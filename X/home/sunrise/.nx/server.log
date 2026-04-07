@@ -1,0 +1,18 @@
+Connection failure: Connection refused
+pa_context_connect() failed: Connection refused
+18670 18670 2026-04-08 05:12:03 131.910 NXNODE WARNING! Process '/bin/pactl info' with pid '18687/18687' finished with exit code 1 after 0,019 seconds.
+18670 18670 2026-04-08 05:12:03 132.089 NXNODE   Process initialized with arguments ''.
+Connection failure: Connection refused
+pa_context_connect() failed: Connection refused
+18670 18670 2026-04-08 05:15:01 068.999 NXNODE WARNING! Process '/bin/pactl info' with pid '19237/19237' finished with exit code 1 after 0,019 seconds.
+Connection failure: Connection refused
+pa_context_connect() failed: Connection refused
+18670 18670 2026-04-08 05:15:01 124.252 NXNODE WARNING! Process '/bin/pactl info' with pid '19249/19249' finished with exit code 1 after 0,019 seconds.
+Error: Session with pid '2478' terminated unexpectedly.
+19534 19534 2026-04-08 05:23:07 120.506 NXNODE WARNING! Process '/bin/ps --ppid 19661 -o pid=' with pid '19744/19744' finished with exit code 1 after 0,038 seconds.
+19534 19534 2026-04-08 05:23:07 120.690 NXNODE   Process initialized with arguments ''.
+19534 19534 2026-04-08 05:23:07 121.209 NXNODE ERROR! Cannot list children of '19661'.
+19534 19534 2026-04-08 05:23:07 121.342 NXNODE WARNING! Cannot retrieve dbus session bus address.
+19785 19785 2026-04-08 05:27:53 098.677 Io/Io: WARNING! Descriptor FD#49 type socket still open at exit.
+20311 20311 2026-04-08 06:31:44 054.291 Io/Io: WARNING! Descriptor FD#49 type socket still open at exit.
+23216 23216 2026-04-08 06:33:22 172.455 Io/Io: WARNING! Descriptor FD#49 type socket still open at exit.

@@ -1,0 +1,78 @@
+dbus-update-activation-environment: setting DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+dbus-update-activation-environment: setting DISPLAY=:0
+dbus-update-activation-environment: setting XAUTHORITY=/home/sunrise/.Xauthority
+/etc/X11/Xsession.d/30x11-common_xresources: line 16: has_option: command not found
+/etc/X11/Xsession.d/90x11-common_ssh-agent: line 9: has_option: command not found
+
+(xfce4-session:3266): dbind-WARNING **: 08:00:34.058: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+gpg-agent: a gpg-agent is already running - not starting a new one
+
+(xfwm4:3460): dbind-WARNING **: 08:00:34.335: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfwm4:3460): xfwm4-WARNING **: 08:00:34.915: Unsupported GL renderer (llvmpipe (LLVM 15.0.7, 128 bits)).
+
+(xfsettingsd:3500): dbind-WARNING **: 08:00:35.037: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfsettingsd:3500): GLib-CRITICAL **: 08:00:35.099: g_str_has_prefix: assertion 'prefix != NULL' failed
+
+(xfsettingsd:3500): GLib-GObject-CRITICAL **: 08:00:35.107: g_value_get_string: assertion 'G_VALUE_HOLDS_STRING (value)' failed
+
+(xfsettingsd:3500): GLib-GObject-CRITICAL **: 08:00:35.113: g_value_get_string: assertion 'G_VALUE_HOLDS_STRING (value)' failed
+
+(xfsettingsd:3500): GLib-GObject-CRITICAL **: 08:00:35.130: g_value_get_string: assertion 'G_VALUE_HOLDS_STRING (value)' failed
+
+(xfce4-panel:3506): dbind-WARNING **: 08:00:35.369: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(Thunar:3510): dbind-WARNING **: 08:00:35.613: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfdesktop:3515): dbind-WARNING **: 08:00:35.926: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+xfce4-panel-Message: 08:00:35.957: Plugin "(null)-4" was not found and has been removed from the configuration
+xfce4-panel-Message: 08:00:35.970: Plugin "statusnotifier-7" was not found and has been removed from the configuration
+xfce4-panel-Message: 08:00:36.041: Plugin "power-manager-plugin-9" was not found and has been removed from the configuration
+
+(wrapper-2.0:3518): dbind-WARNING **: 08:00:36.055: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3520): dbind-WARNING **: 08:00:36.133: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3519): dbind-WARNING **: 08:00:36.148: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3523): dbind-WARNING **: 08:00:36.166: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3520): GLib-GIO-CRITICAL **: 08:00:36.598: g_file_new_for_path: assertion 'path != NULL' failed
+
+(wrapper-2.0:3520): GLib-GIO-CRITICAL **: 08:00:36.598: g_file_monitor_file: assertion 'G_IS_FILE (file)' failed
+
+(wrapper-2.0:3520): GLib-GObject-WARNING **: 08:00:36.598: invalid (NULL) pointer instance
+
+(wrapper-2.0:3520): GLib-GObject-CRITICAL **: 08:00:36.598: g_signal_connect_data: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(wrapper-2.0:3520): Gtk-WARNING **: 08:00:36.598: Attempting to add a widget with type GtkToggleButton to a container of type XfcePanelPlugin, but the widget is already inside a container of type XfcePanelPlugin, please remove the widget from its existing container first.
+
+(wrapper-2.0:3520): Gtk-WARNING **: 08:00:36.718: Negative content width -3 (allocation 1, extents 2x2) while allocating gadget (node button, owner GtkToggleButton)
+
+(xfsettingsd:3539): dbind-WARNING **: 08:00:36.748: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-notifyd:3550): dbind-WARNING **: 08:00:36.775: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(nm-applet:3535): dbind-WARNING **: 08:00:36.844: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(ubuntu-advantage-notification:3559): dbind-WARNING **: 08:00:36.917: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3519): Gtk-WARNING **: 08:00:37.000: Negative content width -3 (allocation 1, extents 2x2) while allocating gadget (node button, owner PulseaudioButton)
+
+(update-notifier:3576): dbind-WARNING **: 08:00:37.015: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3523): Gtk-WARNING **: 08:00:37.163: Negative content width -1 (allocation 1, extents 1x1) while allocating gadget (node button, owner XfceArrowButton)
+
+(livepatch-notification:3603): dbind-WARNING **: 08:00:37.271: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(evolution-alarm-notify:3571): dbind-WARNING **: 08:00:37.496: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(blueman-applet:3555): dbind-WARNING **: 08:00:37.517: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(check-new-release-gtk:3602): dbind-WARNING **: 08:00:37.653: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+blueman-applet 08.00.38 WARNING  PluginManager:147 __load_plugin: Not loading PPPSupport because its conflict has higher priority
+blueman-applet 08.00.38 WARNING  PluginManager:147 __load_plugin: Not loading DhcpClient because its conflict has higher priority
+
+(blueman-tray:3671): dbind-WARNING **: 08:00:39.262: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+WARNING:root:timeout reached, exiting
