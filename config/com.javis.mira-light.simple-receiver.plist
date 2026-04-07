@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.javis.mira-light.simple-receiver</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/Zhuanz/.mira-light-simple-receiver/runtime/start_simple_lamp_receiver.sh</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/Zhuanz/.mira-light-simple-receiver/runtime</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/opt/homebrew/sbin:/Users/Zhuanz/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>MIRA_LIGHT_RECEIVER_PYTHON</key>
+    <string>/opt/homebrew/opt/python@3.14/bin/python3.14</string>
+    <key>MIRA_LIGHT_RECEIVER_HOST</key>
+    <string>0.0.0.0</string>
+    <key>MIRA_LIGHT_RECEIVER_PORT</key>
+    <string>9784</string>
+    <key>MIRA_LIGHT_RECEIVER_SAVE_ROOT</key>
+    <string>/Users/Zhuanz/.mira-light-simple-receiver/data</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/Zhuanz/Library/Logs/Mira-Light/simple-lamp-receiver.stdout.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/Zhuanz/Library/Logs/Mira-Light/simple-lamp-receiver.stderr.log</string>
+</dict>
+</plist>

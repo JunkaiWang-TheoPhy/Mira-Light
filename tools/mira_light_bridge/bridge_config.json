@@ -1,0 +1,14 @@
+{
+  "listenHost": "127.0.0.1",
+  "listenPort": 9783,
+  "lampBaseUrl": "http://172.20.10.3",
+  "requestTimeoutSeconds": 3,
+  "dryRun": false,
+  "bridgeTokenEnv": "MIRA_LIGHT_BRIDGE_TOKEN",
+  "deviceIngestRoot": "~/Documents/Mira-Light-Runtime",
+  "reverseTunnel": {
+    "enabled": false,
+    "remote": "ubuntu@43.160.217.153",
+    "remoteBindPort": 19783
+  }
+}

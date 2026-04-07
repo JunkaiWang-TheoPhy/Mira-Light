@@ -1,148 +1,585 @@
 """Scene definitions for the Mira Light booth demo.
 
-This file is intentionally "half concrete, half commented":
+This file now provides a more structured choreography layer:
 
-- Concrete parts:
-  - scene names
-  - host lines
-  - rough step order
-  - HTTP-call-friendly primitives that already match the ESP32 API
+- servo calibration notes
+- named poses
+- reusable motion primitives
+- scene definitions built from those poses and primitives
 
-- Placeholder parts:
-  - exact servo semantics
-  - sensor triggers
-  - audio playback integration
-  - vision / voice / touch detection
+What is still intentionally provisional:
 
-The goal is to let us wire the booth flow now, even before every hardware detail
-is finalized.
+- the exact physical meaning of servo1 ~ servo4
+- exact collision-safe limits on the real lamp
+- tracking / touch / voice / audio integrations
+
+Those unresolved parts stay visible as comments and TODO notes instead of being
+hidden behind fake precision.
 """
 
-# IMPORTANT:
-# The project currently exposes only `servo1` ~ `servo4`.
-# Their true physical meanings should be confirmed later, for example:
-#
-# - servo1: base yaw
-# - servo2: lower arm lift
-# - servo3: upper arm pitch
-# - servo4: head pitch / head tilt
-#
-# Until that mapping is verified on the real lamp, all angle values below are
-# "rehearsal placeholders". They are useful for script structure, but must be
-# tuned on hardware before the demo.
+from __future__ import annotations
 
-SCENES = {
+from copy import deepcopy
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, List
+
+
+Step = Dict[str, Any]
+
+
+# IMPORTANT:
+# The real hardware should validate these semantic guesses before the demo.
+# For now, we freeze them here so all scenes speak the same "motion language".
+#
+# The practical goal is not to claim these labels are final, but to stop scenes
+# from using unexplained raw deltas everywhere.
+DEFAULT_SERVO_CALIBRATION: Dict[str, Dict[str, Any]] = {
+    "servo1": {
+        "label": "base_yaw",
+        "verified": False,
+        "neutral": 90,
+        "hard_range": [0, 180],
+        "rehearsal_range": [72, 110],
+        "notes": "Primary left-right attention axis. Keep movements modest until real base clearance is confirmed.",
+    },
+    "servo2": {
+        "label": "lower_arm_lift",
+        "verified": False,
+        "neutral": 96,
+        "hard_range": [0, 180],
+        "rehearsal_range": [78, 112],
+        "notes": "Primary lift / crouch axis. Used to make the lamp feel like it wakes, bows, or tucks in.",
+    },
+    "servo3": {
+        "label": "upper_arm_pitch",
+        "verified": False,
+        "neutral": 98,
+        "hard_range": [0, 180],
+        "rehearsal_range": [80, 120],
+        "notes": "Secondary reach axis. Often paired with servo2 for extend / retract behavior.",
+    },
+    "servo4": {
+        "label": "head_tilt",
+        "verified": False,
+        "neutral": 90,
+        "hard_range": [0, 180],
+        "rehearsal_range": [80, 104],
+        "notes": "Best candidate for nod, tilt, and fragile emotional expression. Keep amplitudes small.",
+    },
+}
+
+
+# Named poses are intentionally more deterministic than pure relative deltas.
+# Using these as checkpoints helps prevent posture drift across long booth demos.
+DEFAULT_POSES: Dict[str, Dict[str, Any]] = {
+    "sleep": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 80, "servo3": 82, "servo4": 98},
+        "notes": "Compact folded waiting pose.",
+    },
+    "wake_half": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 88, "servo3": 90, "servo4": 94},
+        "notes": "Midway pose during wake-up, before the final stretch.",
+    },
+    "wake_high": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 96, "servo3": 104, "servo4": 88},
+        "notes": "Higher, more alert pose right before returning to neutral.",
+    },
+    "neutral": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90},
+        "notes": "Calm forward-facing presentation pose.",
+    },
+    "curious_half_left": {
+        "verified": False,
+        "angles": {"servo1": 98, "servo2": 96, "servo3": 98, "servo4": 92},
+        "notes": "Half-turn, used to create hesitation before a full look.",
+    },
+    "curious_full_left": {
+        "verified": False,
+        "angles": {"servo1": 104, "servo2": 97, "servo3": 100, "servo4": 92},
+        "notes": "Full left-facing attention pose.",
+    },
+    "tilt_left": {
+        "verified": False,
+        "angles": {"servo1": 104, "servo2": 97, "servo3": 100, "servo4": 98},
+        "notes": "Left-leaning cute / curious tilt.",
+    },
+    "tilt_right": {
+        "verified": False,
+        "angles": {"servo1": 104, "servo2": 97, "servo3": 100, "servo4": 82},
+        "notes": "Right-leaning cute / curious tilt.",
+    },
+    "extend_soft": {
+        "verified": False,
+        "angles": {"servo1": 92, "servo2": 102, "servo3": 108, "servo4": 90},
+        "notes": "Gentle forward reach without looking aggressive.",
+    },
+    "extend_full": {
+        "verified": False,
+        "angles": {"servo1": 92, "servo2": 106, "servo3": 114, "servo4": 90},
+        "notes": "More committed reach, used sparingly.",
+    },
+    "retract_soft": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 92, "servo3": 90, "servo4": 94},
+        "notes": "Small retreat, good for timid behavior.",
+    },
+    "daydream_left": {
+        "verified": False,
+        "angles": {"servo1": 76, "servo2": 96, "servo3": 94, "servo4": 86},
+        "notes": "Lookaway pose for absent-minded scenes.",
+    },
+    "daydream_drop": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 88, "servo3": 84, "servo4": 102},
+        "notes": "Sleepy head-drop pose.",
+    },
+    "reminder_ready": {
+        "verified": False,
+        "angles": {"servo1": 94, "servo2": 100, "servo3": 104, "servo4": 92},
+        "notes": "Small forward-ready pose before the stand-up bumps.",
+    },
+    "farewell_look": {
+        "verified": False,
+        "angles": {"servo1": 106, "servo2": 96, "servo3": 98, "servo4": 92},
+        "notes": "Softer sideways look for watching someone leave.",
+    },
+    "farewell_bow": {
+        "verified": False,
+        "angles": {"servo1": 106, "servo2": 92, "servo3": 94, "servo4": 98},
+        "notes": "Slightly lowered, softer end-of-goodbye pose.",
+    },
+    "celebrate_ready": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 104, "servo3": 112, "servo4": 86},
+        "notes": "Lifted pre-dance pose so the celebration does not start from a slouch.",
+    },
+    "sleep_ready": {
+        "verified": False,
+        "angles": {"servo1": 90, "servo2": 88, "servo3": 86, "servo4": 96},
+        "notes": "Intermediate pose before folding into sleep.",
+    },
+}
+
+
+WARM_AMBER = {"r": 255, "g": 180, "b": 120}
+SOFT_WARM = {"r": 255, "g": 220, "b": 180}
+COMFORT_WARM = {"r": 255, "g": 170, "b": 110}
+
+
+SCENE_META: Dict[str, Dict[str, Any]] = {
+    "wake_up": {
+        "emotionTags": ["苏醒", "欢迎"],
+        "readiness": "tuning",
+        "durationMs": 2200,
+        "accent": "dawn",
+        "priority": "P0",
+        "requirements": ["基础姿态已校准"],
+        "requirementIds": ["base_calibrated"],
+        "fallbackHint": "直接运行 stretch 后回 neutral",
+        "operatorCue": "适合作为开场第一幕，强调‘它不是机械启动’。",
+    },
+    "curious_observe": {
+        "emotionTags": ["好奇", "试探"],
+        "readiness": "tuning",
+        "durationMs": 2500,
+        "accent": "curious",
+        "priority": "P0",
+        "requirements": ["头部转向姿态已校准"],
+        "requirementIds": ["base_calibrated"],
+        "fallbackHint": "固定执行 half-turn -> tilt -> nod",
+        "operatorCue": "主持人此时最好站在灯的左前方，方便观众理解它在看谁。",
+    },
+    "touch_affection": {
+        "emotionTags": ["亲近", "撒娇"],
+        "readiness": "tuning",
+        "durationMs": 2200,
+        "accent": "warm",
+        "priority": "P0",
+        "requirements": ["手部互动", "extend/retract 已校准"],
+        "requirementIds": ["touch_ready", "base_calibrated"],
+        "fallbackHint": "直接前探并执行小幅 rub_motion",
+        "operatorCue": "邀请评委伸手时再触发，避免空蹭。",
+    },
+    "cute_probe": {
+        "emotionTags": ["卖萌", "胆小"],
+        "readiness": "ready",
+        "durationMs": 2800,
+        "accent": "curious",
+        "priority": "P1",
+        "requirements": ["无特殊附件"],
+        "requirementIds": [],
+        "fallbackHint": "只保留 tilt_left / tilt_right 版本",
+        "operatorCue": "这个场景适合在讲故事时穿插，不需要单独大讲。",
+    },
+    "daydream": {
+        "emotionTags": ["发呆", "走神"],
+        "readiness": "ready",
+        "durationMs": 3600,
+        "accent": "dream",
+        "priority": "P1",
+        "requirements": ["无特殊附件"],
+        "requirementIds": [],
+        "fallbackHint": "固定看左上方 3 秒，再 snap back",
+        "operatorCue": "适合展示它不是一直表演，而像真的有自己的节奏。",
+    },
+    "standup_reminder": {
+        "emotionTags": ["提醒", "可爱"],
+        "readiness": "tuning",
+        "durationMs": 2200,
+        "accent": "alert",
+        "priority": "P1",
+        "requirements": ["提醒语境", "前顶动作已校准"],
+        "requirementIds": ["base_calibrated"],
+        "fallbackHint": "直接执行 3 次 bump + 双点头",
+        "operatorCue": "主持人最好先说‘假装你已经坐了一小时没动’。",
+    },
+    "track_target": {
+        "emotionTags": ["专注", "感知"],
+        "readiness": "sensor-needed",
+        "durationMs": 0,
+        "accent": "vision",
+        "priority": "P0",
+        "requirements": ["摄像头", "目标跟踪", "目标到关节映射"],
+        "requirementIds": ["camera_ready", "tracking_ready"],
+        "fallbackHint": "改用滑杆模拟 tracking 方向或只口头说明",
+        "operatorCue": "只有在 tracking 真正可用时才作为主秀，否则放到备选。",
+    },
+    "celebrate": {
+        "emotionTags": ["庆祝", "爆发"],
+        "readiness": "tuning",
+        "durationMs": 2600,
+        "accent": "celebrate",
+        "priority": "P0",
+        "requirements": ["offer 页面", "音频素材", "dance 动作稳定"],
+        "requirementIds": ["offer_ready", "audio_ready", "base_calibrated"],
+        "fallbackHint": "保留灯效 + dance，音乐失败也能继续",
+        "operatorCue": "这是全场情绪峰值，建议配合屏幕上的假邮件和音乐。",
+    },
+    "farewell": {
+        "emotionTags": ["送别", "不舍"],
+        "readiness": "ready",
+        "durationMs": 1800,
+        "accent": "farewell",
+        "priority": "P0",
+        "requirements": ["无特殊附件"],
+        "requirementIds": [],
+        "fallbackHint": "直接执行 wave + farewell_bow",
+        "operatorCue": "结束时用它来收尾，再接 sleep。",
+    },
+    "sleep": {
+        "emotionTags": ["收场", "安静"],
+        "readiness": "tuning",
+        "durationMs": 2400,
+        "accent": "sleep",
+        "priority": "P0",
+        "requirements": ["sleep pose 已校准"],
+        "requirementIds": ["sleep_calibrated"],
+        "fallbackHint": "直接 apply sleep pose 并 fade lights",
+        "operatorCue": "每轮演示结束都可以回到这个场景，形成闭环。",
+    },
+    "sigh_demo": {
+        "emotionTags": ["安慰", "理解"],
+        "readiness": "sensor-needed",
+        "durationMs": 1900,
+        "accent": "comfort",
+        "priority": "P1",
+        "requirements": ["麦克风", "叹气检测"],
+        "requirementIds": ["mic_ready"],
+        "fallbackHint": "手动触发固定安慰反应",
+        "operatorCue": "适合讲 Mira 理解情绪的价值主张。",
+    },
+    "multi_person_demo": {
+        "emotionTags": ["纠结", "活物感"],
+        "readiness": "prototype",
+        "durationMs": 1400,
+        "accent": "vision",
+        "priority": "P2",
+        "requirements": ["多人目标识别"],
+        "requirementIds": ["camera_ready", "tracking_ready"],
+        "fallbackHint": "固定左右扫视代替",
+        "operatorCue": "如果现场人多，这一幕很容易逗笑评委，但现在仍偏概念验证。",
+    },
+    "voice_demo_tired": {
+        "emotionTags": ["听懂了", "接住你"],
+        "readiness": "sensor-needed",
+        "durationMs": 2200,
+        "accent": "comfort",
+        "priority": "P1",
+        "requirements": ["语音识别", "情绪分类"],
+        "requirementIds": ["mic_ready"],
+        "fallbackHint": "手动触发低头 + 暖色呼吸",
+        "operatorCue": "适合讲‘它不需要说话，也能表达理解’。",
+    },
+}
+
+
+DEFAULT_PROFILE_PATH = Path(
+    os.environ.get(
+        "MIRA_LIGHT_PROFILE_PATH",
+        str(Path(__file__).resolve().parent.parent / "config" / "mira_light_profile.local.json"),
+    )
+)
+
+
+def _deep_merge_dict(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    merged = deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _load_profile_overrides(profile_path: Path) -> Dict[str, Any] | None:
+    if not profile_path.is_file():
+        return None
+
+    raw = profile_path.read_text(encoding="utf-8").strip()
+    if not raw:
+        return None
+
+    parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Invalid profile file: {profile_path}")
+    return parsed
+
+
+SERVO_CALIBRATION = deepcopy(DEFAULT_SERVO_CALIBRATION)
+POSES = deepcopy(DEFAULT_POSES)
+PROFILE_INFO: Dict[str, Any] = {
+    "path": str(DEFAULT_PROFILE_PATH),
+    "exists": DEFAULT_PROFILE_PATH.is_file(),
+    "loaded": False,
+}
+
+_profile_overrides = _load_profile_overrides(DEFAULT_PROFILE_PATH)
+if _profile_overrides:
+    if isinstance(_profile_overrides.get("servoCalibration"), dict):
+        SERVO_CALIBRATION = _deep_merge_dict(SERVO_CALIBRATION, _profile_overrides["servoCalibration"])
+    if isinstance(_profile_overrides.get("poses"), dict):
+        POSES = _deep_merge_dict(POSES, _profile_overrides["poses"])
+    PROFILE_INFO["loaded"] = True
+
+
+def comment(text: str) -> Step:
+    return {"type": "comment", "text": text}
+
+
+def delay(ms: int) -> Step:
+    return {"type": "delay", "ms": ms}
+
+
+def led(mode: str, brightness: int | None = None, color: Dict[str, int] | None = None) -> Step:
+    payload: Dict[str, Any] = {"mode": mode}
+    if brightness is not None:
+        payload["brightness"] = brightness
+    if color is not None:
+        payload["color"] = color
+    return {"type": "led", "payload": payload}
+
+
+def pose(name: str) -> Step:
+    return {"type": "pose", "name": name}
+
+
+def nudge(**servo_values: int) -> Step:
+    return {"type": "control", "payload": {"mode": "relative", **servo_values}}
+
+
+def action(name: str, loops: int = 1) -> Step:
+    return {"type": "action", "payload": {"name": name, "loops": loops}}
+
+
+def action_stop() -> Step:
+    return {"type": "action_stop"}
+
+
+def reset() -> Step:
+    return {"type": "reset"}
+
+
+def audio(name: str) -> Step:
+    return {"type": "audio", "name": name}
+
+
+def micro_shiver(axis: str = "servo4", amplitude: int = 4, repeats: int = 2, beat_ms: int = 140) -> List[Step]:
+    steps: List[Step] = []
+    for _ in range(repeats):
+        steps.extend(
+            [
+                nudge(**{axis: amplitude}),
+                delay(beat_ms),
+                nudge(**{axis: -amplitude}),
+                delay(beat_ms),
+            ]
+        )
+    return steps
+
+
+def rub_motion(axis: str = "servo1", amplitude: int = 4, loops: int = 2, beat_ms: int = 160) -> List[Step]:
+    steps: List[Step] = []
+    for _ in range(loops):
+        steps.extend(
+            [
+                nudge(**{axis: amplitude}),
+                delay(beat_ms),
+                nudge(**{axis: -amplitude * 2}),
+                delay(beat_ms),
+                nudge(**{axis: amplitude}),
+                delay(beat_ms),
+            ]
+        )
+    return steps
+
+
+def pawing_bump(loops: int = 3, reach_axis: str = "servo3", brace_axis: str = "servo2") -> List[Step]:
+    steps: List[Step] = []
+    for _ in range(loops):
+        steps.extend(
+            [
+                nudge(**{brace_axis: -4, reach_axis: 6}),
+                delay(180),
+                nudge(**{brace_axis: 4, reach_axis: -6}),
+                delay(180),
+            ]
+        )
+    return steps
+
+
+def celebration_sway(amplitude: int = 6, loops: int = 2) -> List[Step]:
+    steps: List[Step] = []
+    for _ in range(loops):
+        steps.extend(
+            [
+                nudge(servo1=amplitude, servo4=-3),
+                delay(200),
+                nudge(servo1=-amplitude * 2, servo4=6),
+                delay(200),
+                nudge(servo1=amplitude, servo4=-3),
+                delay(200),
+            ]
+        )
+    return steps
+
+
+def fade_to_sleep(color: Dict[str, int]) -> List[Step]:
+    return [
+        led("solid", brightness=60, color=color),
+        delay(260),
+        led("solid", brightness=30, color=color),
+        delay(320),
+        led("solid", brightness=12, color=color),
+        delay(380),
+        led("off", brightness=0),
+    ]
+
+
+SCENES: Dict[str, Dict[str, Any]] = {
     "wake_up": {
         "title": "起床",
         "host_line": "当 Mira 感觉到有人靠近，它不会立刻机械转头，而是像刚醒的小动物一样慢慢睁眼、抖一抖、伸个懒腰。",
         "notes": [
             "TODO: 把这个场景接到 person_detected_near 事件；在那之前默认通过 OpenClaw 或终端命令触发。",
-            "TODO: 真实调试后把睡姿 -> 正常位的角度写成明确姿态表，而不是相对增量。",
+            "当前版本优先强调‘逐渐醒来’，不是‘突然启动’。",
+        ],
+        "tuning_notes": [
+            "先调 sleep / wake_half / neutral 三个姿态，确认不会在起身时拉扯结构。",
+            "如果抖动看起来像故障而不是抖毛，就减小 servo4 amplitude。",
         ],
         "steps": [
-            {"type": "comment", "text": "先把灯从睡眠微光慢慢唤醒。"},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "breathing",
-                    "color": {"r": 255, "g": 180, "b": 120},
-                    "brightness": 40,
-                },
-            },
-            {"type": "delay", "ms": 700},
-            {"type": "comment", "text": "粗略抬起灯臂。具体关节语义后续再校准。"},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 12, "servo3": 8}},
-            {"type": "delay", "ms": 500},
-            {"type": "comment", "text": "模拟醒来抖两下。"},
-            {"type": "control", "payload": {"mode": "relative", "servo4": 8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo4": 6}},
-            {"type": "delay", "ms": 200},
-            {"type": "action", "payload": {"name": "stretch", "loops": 1}},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "solid",
-                    "color": {"r": 255, "g": 220, "b": 180},
-                    "brightness": 130,
-                },
-            },
+            pose("sleep"),
+            led("solid", brightness=8, color=WARM_AMBER),
+            delay(240),
+            led("breathing", brightness=38, color=WARM_AMBER),
+            delay(420),
+            pose("wake_half"),
+            delay(380),
+            *micro_shiver(axis="servo4", amplitude=4, repeats=2, beat_ms=120),
+            pose("wake_high"),
+            delay(260),
+            action("stretch", loops=1),
+            delay(240),
+            pose("neutral"),
+            led("solid", brightness=130, color=SOFT_WARM),
         ],
     },
     "curious_observe": {
         "title": "好奇你是谁",
         "host_line": "Mira 不会机械地直接盯着你，它会先试探着转过去一半，停一下，再歪头看你。",
         "notes": [
-            "TODO: 接入目标方向识别后，把固定动作改成 turn_to_target(target)。",
-            "TODO: 如果能识别左右方向，可以准备 left / center / right 三个版本。"
+            "TODO: 接入目标方向识别后，把 curious_half_left / curious_full_left 换成按目标方位生成的 pose。",
+        ],
+        "tuning_notes": [
+            "‘好奇’的关键是半转后的停顿，别把停顿删没了。",
+            "歪头幅度应该小一点，让它像试探而不是像抽动。"
         ],
         "steps": [
-            {"type": "comment", "text": "先半转头，制造试探感。"},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 10}},
-            {"type": "delay", "ms": 450},
-            {"type": "comment", "text": "继续转过去。"},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 10}},
-            {"type": "delay", "ms": 400},
-            {"type": "comment", "text": "歪头看你。"},
-            {"type": "control", "payload": {"mode": "relative", "servo4": 12}},
-            {"type": "delay", "ms": 1800},
-            {"type": "action", "payload": {"name": "nod", "loops": 1}},
-            {"type": "delay", "ms": 300},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -12}},
+            pose("neutral"),
+            pose("curious_half_left"),
+            delay(420),
+            pose("curious_full_left"),
+            delay(340),
+            pose("tilt_left"),
+            delay(1500),
+            action("nod", loops=1),
+            delay(220),
+            pose("neutral"),
         ],
     },
     "touch_affection": {
         "title": "摸一摸",
         "host_line": "你可以摸摸它。它会主动靠过来，不只是响应动作，而是在表达亲近。",
         "notes": [
-            "TODO: 触摸传感器或手部识别接入后，真正根据手的位置调整前探方向。",
-            "TODO: 现在的 rub_motion 是简化版，用小幅左右摆模拟。"
+            "TODO: 触摸传感器或手部识别接入后，真正按手的位置选择前探方向。",
+            "当前默认用一个温和的前探姿态。"
+        ],
+        "tuning_notes": [
+            "这个场景不要幅度太大，‘亲近感’比‘动作量’更重要。",
+            "如果 rub_motion 看起来像摇头，减小 servo1 amplitude。"
         ],
         "steps": [
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "solid",
-                    "color": {"r": 255, "g": 190, "b": 120},
-                    "brightness": 180,
-                },
-            },
-            {"type": "comment", "text": "向手的方向前探。当前先用固定前探。"},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 6, "servo3": 8}},
-            {"type": "delay", "ms": 350},
-            {"type": "comment", "text": "小幅左右蹭手。"},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 6}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo1": -12}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 6}},
-            {"type": "delay", "ms": 180},
-            {"type": "comment", "text": "手拿开后追一下。"},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 8}},
-            {"type": "delay", "ms": 220},
-            {"type": "control", "payload": {"mode": "relative", "servo1": -8, "servo2": -6, "servo3": -8}},
+            led("solid", brightness=178, color={"r": 255, "g": 190, "b": 120}),
+            pose("extend_soft"),
+            delay(240),
+            *rub_motion(axis="servo1", amplitude=4, loops=2, beat_ms=150),
+            comment("手拿开后轻轻追一下。当前先用小幅 yaw 追手近似模拟。"),
+            nudge(servo1=6),
+            delay(180),
+            pose("retract_soft"),
+            delay(180),
+            pose("neutral"),
         ],
     },
     "cute_probe": {
         "title": "卖萌",
         "host_line": "它会像小狗一样歪头研究你，有时还会探头一下又缩回去。",
         "notes": [
-            "这个场景建议保留两个版本：歪头版和探头版。",
-            "TODO: 后续可做 scene variant 选择，目前先合成一个短版。"
+            "当前把歪头版和胆小探头版串成一个短场景，方便展位演示。",
+        ],
+        "tuning_notes": [
+            "节奏要慢，给评委留出‘看懂它在想什么’的时间。",
         ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo4": 10}},
-            {"type": "delay", "ms": 1000},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -20}},
-            {"type": "delay", "ms": 1000},
-            {"type": "control", "payload": {"mode": "relative", "servo4": 10}},
-            {"type": "delay", "ms": 250},
-            {"type": "comment", "text": "做一个胆小的探头。"},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 6, "servo3": 10}},
-            {"type": "delay", "ms": 600},
-            {"type": "control", "payload": {"mode": "relative", "servo2": -6, "servo3": -10}},
+            pose("tilt_left"),
+            delay(900),
+            pose("tilt_right"),
+            delay(900),
+            pose("neutral"),
+            delay(180),
+            pose("extend_soft"),
+            delay(420),
+            pose("retract_soft"),
+            delay(220),
+            pose("extend_soft"),
+            delay(260),
+            pose("neutral"),
         ],
     },
     "daydream": {
@@ -150,39 +587,36 @@ SCENES = {
         "host_line": "它不会一直表演，它也会像人一样走神，盯着某个方向发一会儿呆。",
         "notes": [
             "TODO: 未来可接随机方向选择或环境显著目标选择。",
-            "TODO: 可以再加一个 sleepy_nod 变体。"
+            "当前默认朝左上方 lookaway。"
+        ],
+        "tuning_notes": [
+            "这个场景的重点是留白，持有时间要足够。",
+            "回神动作要明显快于前半段，才有‘突然回过神’的感觉。"
         ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo1": -15, "servo4": -6}},
-            {"type": "delay", "ms": 3500},
-            {"type": "comment", "text": "回过神来，快速回正。"},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 15, "servo4": 6}},
+            pose("daydream_left"),
+            delay(3200),
+            pose("neutral"),
+            delay(180),
+            comment("可以在后续加入 sleepy_nod 变体。"),
         ],
     },
     "standup_reminder": {
         "title": "久坐检测：蹭蹭",
         "host_line": "如果你坐太久，它不会直接警报，而是会像宠物一样蹭蹭你，提醒你起来动一动。",
         "notes": [
-            "TODO: 久坐检测信号可以来自电脑端计时器、手环或座位传感器。",
-            "TODO: 当前的 pawing_bump 只是近似版，需要真实关节语义后再调。"
+            "TODO: 久坐检测信号可来自电脑端计时器、手环或座位传感器。",
+            "当前是固定版提醒 choreography。"
+        ],
+        "tuning_notes": [
+            "三次 bump 的节奏要稳定，不要快慢不一。",
         ],
         "steps": [
-            {"type": "comment", "text": "蹭蹭 x3。"},
-            {"type": "control", "payload": {"mode": "relative", "servo2": -5, "servo3": 8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 5, "servo3": -8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo2": -5, "servo3": 8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 5, "servo3": -8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo2": -5, "servo3": 8}},
-            {"type": "delay", "ms": 180},
-            {"type": "control", "payload": {"mode": "relative", "servo2": 5, "servo3": -8}},
-            {"type": "delay", "ms": 250},
-            {"type": "action", "payload": {"name": "nod", "loops": 2}},
-            {"type": "delay", "ms": 300},
-            {"type": "comment", "text": "如果用户明确拒绝提醒，可播放 shake。当前默认不自动执行。"},
+            pose("reminder_ready"),
+            *pawing_bump(loops=3, reach_axis="servo3", brace_axis="servo2"),
+            action("nod", loops=2),
+            delay(260),
+            pose("neutral"),
         ],
     },
     "track_target": {
@@ -190,11 +624,14 @@ SCENES = {
         "host_line": "你试着在桌上移动这本书，它会一直跟着书看，这一段是用来证明它真的看得见。",
         "notes": [
             "TODO: 这里必须接入视觉系统或至少鼠标/滑杆模拟目标输入。",
-            "TODO: 当前只保留注释，不做假实现，以免误导为真正追踪。"
+            "TODO: 当前只保留注释，不做假追踪，以免误导为真实视觉能力。"
+        ],
+        "tuning_notes": [
+            "真正实现时要限制更新频率，避免灯头一步一跳。",
         ],
         "steps": [
-            {"type": "comment", "text": "TODO: 进入 tracking loop，根据目标 x/y 持续调整 servo1/servo4。"},
-            {"type": "comment", "text": "TODO: 若没有视觉，先在控制台做 fake tracking：用滑杆给目标方向。"},
+            comment("TODO: 进入 tracking loop，根据目标 x/y 持续调整 servo1 / servo4。"),
+            comment("TODO: 若没有视觉，先在控制台做 fake tracking：用滑杆给目标方向。"),
         ],
     },
     "celebrate": {
@@ -204,72 +641,57 @@ SCENES = {
             "TODO: 本地电脑配一首固定的 dance.mp3；当前控制器里只打印 audio TODO。",
             "TODO: offer 邮件页面作为独立素材准备，不写死在脚本里。"
         ],
+        "tuning_notes": [
+            "庆祝的起手式要高一点，这样 `dance` 不会从疲软姿态开始。",
+            "如果彩虹灯太花导致动作看不清，可降低亮度到 180~200。"
+        ],
         "steps": [
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "rainbow_cycle",
-                    "brightness": 220,
-                },
-            },
-            {"type": "audio", "name": "dance.mp3"},
-            {"type": "action", "payload": {"name": "dance", "loops": 2}},
-            {"type": "delay", "ms": 500},
-            {"type": "comment", "text": "跳舞结束后慢慢收回来。"},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "solid",
-                    "color": {"r": 255, "g": 220, "b": 180},
-                    "brightness": 140,
-                },
-            },
+            pose("celebrate_ready"),
+            led("rainbow_cycle", brightness=210),
+            audio("dance.mp3"),
+            *celebration_sway(amplitude=5, loops=1),
+            action("dance", loops=2),
+            delay(260),
+            pose("neutral"),
+            led("solid", brightness=140, color=SOFT_WARM),
         ],
     },
     "farewell": {
         "title": "挥手送别",
         "host_line": "当你离开时，它会目送你，还会轻轻摆摆头像在说再见。",
         "notes": [
-            "TODO: 离场方向识别接入后，把 wave 前面的跟随方向变成真实跟随。",
-            "当前先用固定动作，保证现场稳定性。"
+            "TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。"
+        ],
+        "tuning_notes": [
+            "先看过去，再 wave，再 bow，这三个阶段不要压成一团。",
         ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo1": 12}},
-            {"type": "delay", "ms": 500},
-            {"type": "action", "payload": {"name": "wave", "loops": 1}},
-            {"type": "delay", "ms": 250},
-            {"type": "control", "payload": {"mode": "relative", "servo4": 8}},
-            {"type": "delay", "ms": 300},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -8, "servo1": -12}},
+            pose("farewell_look"),
+            delay(360),
+            action("wave", loops=1),
+            delay(200),
+            pose("farewell_bow"),
+            delay(260),
+            pose("neutral"),
+            led("solid", brightness=90, color={"r": 255, "g": 210, "b": 170}),
         ],
     },
     "sleep": {
         "title": "睡觉",
         "host_line": "当人离开后，它会慢慢收回自己，回到休息状态，等下一个人来。",
         "notes": [
-            "TODO: 真实睡姿建议改成 absolute 姿态表，便于重复回到同一姿势。",
+            "TODO: 若未来支持自动入睡，应由 no_person_timeout 或 session_end 触发。"
+        ],
+        "tuning_notes": [
+            "最后一定要落到固定 sleep pose，避免长时间 drift。",
         ],
         "steps": [
-            {"type": "action", "payload": {"name": "stretch", "loops": 1}},
-            {"type": "delay", "ms": 300},
-            {"type": "comment", "text": "粗略进入睡姿。"},
-            {"type": "control", "payload": {"mode": "relative", "servo2": -12, "servo3": -12, "servo4": 6}},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "solid",
-                    "color": {"r": 255, "g": 180, "b": 120},
-                    "brightness": 20,
-                },
-            },
-            {"type": "delay", "ms": 600},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "off",
-                    "brightness": 0,
-                },
-            },
+            action("stretch", loops=1),
+            delay(220),
+            pose("sleep_ready"),
+            delay(260),
+            pose("sleep"),
+            *fade_to_sleep(WARM_AMBER),
         ],
     },
     "sigh_demo": {
@@ -278,18 +700,14 @@ SCENES = {
         "notes": [
             "TODO: 这里需要麦克风与音频模式识别；在那之前默认通过 OpenClaw 或终端命令触发。",
         ],
+        "tuning_notes": [
+            "这个场景应该偏克制，像安静地看向你，而不是夸张动作。"
+        ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo4": 8}},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "breathing",
-                    "color": {"r": 255, "g": 170, "b": 110},
-                    "brightness": 90,
-                },
-            },
-            {"type": "delay", "ms": 1800},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -8}},
+            pose("tilt_left"),
+            led("breathing", brightness=88, color=COMFORT_WARM),
+            delay(1700),
+            pose("neutral"),
         ],
     },
     "multi_person_demo": {
@@ -298,12 +716,17 @@ SCENES = {
         "notes": [
             "TODO: 真正实现时需要多目标检测。当前用固定左右扫视代替。"
         ],
+        "tuning_notes": [
+            "左右扫视不要过快，否则像监控摄像头而不是纠结。"
+        ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo1": 12}},
-            {"type": "delay", "ms": 500},
-            {"type": "control", "payload": {"mode": "relative", "servo1": -24}},
-            {"type": "delay", "ms": 500},
-            {"type": "control", "payload": {"mode": "relative", "servo1": 12}},
+            pose("curious_half_left"),
+            delay(420),
+            pose("neutral"),
+            delay(220),
+            pose("curious_full_left"),
+            delay(420),
+            pose("neutral"),
         ],
     },
     "voice_demo_tired": {
@@ -312,18 +735,15 @@ SCENES = {
         "notes": [
             "TODO: 真正实现时接语音识别和情绪分类；在那之前默认通过 OpenClaw 或终端命令触发。"
         ],
+        "tuning_notes": [
+            "重点是安静地接住情绪，不要做成积极打招呼。"
+        ],
         "steps": [
-            {"type": "control", "payload": {"mode": "relative", "servo4": 6}},
-            {
-                "type": "led",
-                "payload": {
-                    "mode": "breathing",
-                    "color": {"r": 255, "g": 180, "b": 120},
-                    "brightness": 70,
-                },
-            },
-            {"type": "delay", "ms": 2000},
-            {"type": "control", "payload": {"mode": "relative", "servo4": -6}},
+            pose("farewell_bow"),
+            led("breathing", brightness=70, color=COMFORT_WARM),
+            delay(2000),
+            pose("neutral"),
+            led("solid", brightness=110, color=SOFT_WARM),
         ],
     },
 }
