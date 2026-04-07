@@ -1,0 +1,23 @@
+Info: Slave server running with pid 19651.
+Info: Listening to slave connections on port 25001.
+Info: Starting NoMachine Monitor version '9.4.14'.
+Info: Loaded translation files for 'English'.
+19617 19617 2026-04-08 05:23:06 542.811 OsDetect: Setting os type to 'Ubuntu'.
+19617 19617 2026-04-08 05:23:06 542.974 Main: Creating a new connection monitor.
+19617 19617 2026-04-08 05:23:06 646.634 UiUtility: WARNING! Couldn't get window manager name.
+19617 19617 2026-04-08 05:23:06 951.544 MonitorService: Drag and drop feature is disabled.
+Info: Server subscription reported as 'valid'.
+19617 19617 2026-04-08 05:23:11 223.066 MonitorDB: Adding user 'sunrise'.
+19617 19617 2026-04-08 05:23:11 268.706 MonitorDB: There are '1' users.
+19617 19617 2026-04-08 05:27:53 287.362 MonitorDB: Removing user 'sunrise'.
+19617 19617 2026-04-08 05:27:53 287.498 MonitorDB: There are '1' deleted users.
+19617 19617 2026-04-08 05:28:18 329.700 MonitorDB: Adding user 'sunrise'.
+19617 19617 2026-04-08 05:28:18 371.744 MonitorDB: There are '1' users.
+19617 19617 2026-04-08 06:31:44 226.552 MonitorDB: Removing user 'sunrise'.
+19617 19617 2026-04-08 06:31:44 227.322 MonitorDB: There are '2' deleted users.
+19617 19617 2026-04-08 06:32:06 937.551 MonitorDB: Adding user 'sunrise'.
+19617 19617 2026-04-08 06:32:06 981.239 MonitorDB: There are '1' users.
+19617 19617 2026-04-08 06:33:22 345.179 MonitorDB: Removing user 'sunrise'.
+19617 19617 2026-04-08 06:33:22 345.313 MonitorDB: There are '3' deleted users.
+19617 19617 2026-04-08 06:38:23 339.295 MonitorDB: Adding user 'sunrise'.
+19617 19617 2026-04-08 06:38:23 379.927 MonitorDB: There are '1' users.

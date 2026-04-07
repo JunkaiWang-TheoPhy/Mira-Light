@@ -1,0 +1,633 @@
+dbus-update-activation-environment: setting DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+dbus-update-activation-environment: setting DISPLAY=:0
+dbus-update-activation-environment: setting XAUTHORITY=/home/sunrise/.Xauthority
+/etc/X11/Xsession.d/30x11-common_xresources: line 16: has_option: command not found
+/etc/X11/Xsession.d/90x11-common_ssh-agent: line 9: has_option: command not found
+
+(xfce4-session:2478): dbind-WARNING **: 08:00:25.017: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+/usr/bin/iceauth:  creating new authority file /run/user/1000/ICEauthority
+gpg-agent: a gpg-agent is already running - not starting a new one
+
+(xfwm4:2932): dbind-WARNING **: 08:00:25.358: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfwm4:2932): xfwm4-WARNING **: 08:00:26.146: Unsupported GL renderer (llvmpipe (LLVM 15.0.7, 128 bits)).
+
+(xfsettingsd:3089): dbind-WARNING **: 08:00:26.281: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-panel:3109): dbind-WARNING **: 08:00:26.819: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(Thunar:3113): dbind-WARNING **: 08:00:26.951: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfdesktop:3118): dbind-WARNING **: 08:00:27.265: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3121): dbind-WARNING **: 08:00:27.395: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3123): dbind-WARNING **: 08:00:27.473: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3122): dbind-WARNING **: 08:00:27.484: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3126): dbind-WARNING **: 08:00:27.504: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:3123): GLib-GIO-CRITICAL **: 08:00:27.785: g_file_new_for_path: assertion 'path != NULL' failed
+
+(wrapper-2.0:3123): GLib-GIO-CRITICAL **: 08:00:27.785: g_file_monitor_file: assertion 'G_IS_FILE (file)' failed
+
+(wrapper-2.0:3123): GLib-GObject-WARNING **: 08:00:27.785: invalid (NULL) pointer instance
+
+(wrapper-2.0:3123): GLib-GObject-CRITICAL **: 08:00:27.785: g_signal_connect_data: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(wrapper-2.0:3123): Gtk-WARNING **: 08:00:27.786: Attempting to add a widget with type GtkToggleButton to a container of type XfcePanelPlugin, but the widget is already inside a container of type XfcePanelPlugin, please remove the widget from its existing container first.
+
+(wrapper-2.0:3123): Gtk-WARNING **: 08:00:27.873: Negative content width -3 (allocation 1, extents 2x2) while allocating gadget (node button, owner GtkToggleButton)
+
+(wrapper-2.0:3126): Gtk-WARNING **: 08:00:27.996: Negative content width -1 (allocation 1, extents 1x1) while allocating gadget (node button, owner XfceArrowButton)
+
+(wrapper-2.0:3122): Gtk-WARNING **: 08:00:28.079: Negative content width -3 (allocation 1, extents 2x2) while allocating gadget (node button, owner PulseaudioButton)
+
+(xfsettingsd:3156): dbind-WARNING **: 08:00:28.134: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-notifyd:3167): dbind-WARNING **: 08:00:28.135: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(ubuntu-advantage-notification:3178): dbind-WARNING **: 08:00:28.159: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(nm-applet:3150): dbind-WARNING **: 08:00:28.173: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(update-notifier:3187): dbind-WARNING **: 08:00:28.240: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(livepatch-notification:3198): dbind-WARNING **: 08:00:28.435: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(blueman-applet:3175): dbind-WARNING **: 08:00:28.758: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(evolution-alarm-notify:3181): dbind-WARNING **: 08:00:28.955: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+blueman-applet 08.00.29 WARNING  PluginManager:147 __load_plugin: Not loading PPPSupport because its conflict has higher priority
+blueman-applet 08.00.29 WARNING  PluginManager:147 __load_plugin: Not loading DhcpClient because its conflict has higher priority
+
+(blueman-tray:3253): dbind-WARNING **: 08:00:30.307: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:9934): dbind-WARNING **: 08:39:09.905: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:9952): dbind-WARNING **: 08:39:10.001: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:9968): dbind-WARNING **: 08:39:10.863: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event8".
+
+(thunar-volman:9972): dbind-WARNING **: 08:39:10.972: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event5".
+
+(thunar-volman:9976): dbind-WARNING **: 08:39:11.075: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event6".
+
+(thunar-volman:9980): dbind-WARNING **: 08:39:11.176: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event3".
+
+(thunar-volman:9984): dbind-WARNING **: 08:39:11.277: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:9988): dbind-WARNING **: 08:39:11.387: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event7".
+
+(thunar-volman:9992): dbind-WARNING **: 08:39:11.487: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:9996): dbind-WARNING **: 08:39:11.588: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event4".
+
+(thunar-volman:10000): dbind-WARNING **: 08:39:11.689: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10004): dbind-WARNING **: 08:39:11.790: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10008): dbind-WARNING **: 08:39:11.891: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10012): dbind-WARNING **: 08:39:11.992: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10016): dbind-WARNING **: 08:39:12.118: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10020): dbind-WARNING **: 08:39:12.229: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10024): dbind-WARNING **: 08:39:12.347: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10028): dbind-WARNING **: 08:39:12.473: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10032): dbind-WARNING **: 08:39:12.573: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10036): dbind-WARNING **: 08:39:12.672: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10045): dbind-WARNING **: 08:39:12.787: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.380: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.381: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.382: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.383: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.384: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.385: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.386: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.387: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.388: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.389: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.389: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.389: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.390: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.391: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(nm-applet:3150): GLib-GIO-CRITICAL **: 08:39:17.392: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+nm-applet-Message: 08:39:33.194: No keyring secrets found for iPhone/802-11-wireless-security; asking user.
+
+(thunar-volman:10207): dbind-WARNING **: 08:39:57.306: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10224): dbind-WARNING **: 08:39:58.113: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10241): dbind-WARNING **: 08:39:58.223: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event8".
+
+(thunar-volman:10245): dbind-WARNING **: 08:39:58.326: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10249): dbind-WARNING **: 08:39:58.426: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event6".
+
+(thunar-volman:10253): dbind-WARNING **: 08:39:58.529: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event5".
+
+(thunar-volman:10257): dbind-WARNING **: 08:39:58.632: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event3".
+
+(thunar-volman:10261): dbind-WARNING **: 08:39:58.775: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event4".
+
+(thunar-volman:10265): dbind-WARNING **: 08:39:58.897: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10269): dbind-WARNING **: 08:39:59.015: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event7".
+
+(thunar-volman:10273): dbind-WARNING **: 08:39:59.116: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10277): dbind-WARNING **: 08:39:59.218: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10281): dbind-WARNING **: 08:39:59.415: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10293): dbind-WARNING **: 08:39:59.545: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10297): dbind-WARNING **: 08:39:59.647: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10304): dbind-WARNING **: 08:39:59.768: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10308): dbind-WARNING **: 08:39:59.906: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10312): dbind-WARNING **: 08:40:00.037: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10316): dbind-WARNING **: 08:40:00.137: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10320): dbind-WARNING **: 08:40:00.236: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10324): dbind-WARNING **: 08:40:00.336: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10372): dbind-WARNING **: 08:40:11.295: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10388): dbind-WARNING **: 08:40:11.393: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10392): dbind-WARNING **: 08:40:11.776: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10399): dbind-WARNING **: 08:40:11.901: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10405): dbind-WARNING **: 08:40:12.009: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10409): dbind-WARNING **: 08:40:12.111: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10413): dbind-WARNING **: 08:40:12.215: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10417): dbind-WARNING **: 08:40:12.363: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10537): dbind-WARNING **: 08:40:41.462: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10551): dbind-WARNING **: 08:40:41.560: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10556): dbind-WARNING **: 08:40:41.898: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10562): dbind-WARNING **: 08:40:42.000: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10566): dbind-WARNING **: 08:40:42.100: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10570): dbind-WARNING **: 08:40:42.202: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10574): dbind-WARNING **: 08:40:42.303: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10580): dbind-WARNING **: 08:40:42.401: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10695): dbind-WARNING **: 04:47:12.062: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10709): dbind-WARNING **: 04:47:12.158: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10715): dbind-WARNING **: 04:47:12.414: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10720): dbind-WARNING **: 04:47:12.520: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10724): dbind-WARNING **: 04:47:12.619: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10728): dbind-WARNING **: 04:47:12.718: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10732): dbind-WARNING **: 04:47:12.816: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10736): dbind-WARNING **: 04:47:12.914: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10771): dbind-WARNING **: 04:47:24.549: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10788): dbind-WARNING **: 04:47:24.645: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10794): dbind-WARNING **: 04:47:25.325: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10805): dbind-WARNING **: 04:47:25.425: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event8".
+
+(thunar-volman:10809): dbind-WARNING **: 04:47:25.522: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event6".
+
+(thunar-volman:10813): dbind-WARNING **: 04:47:25.622: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event7".
+
+(thunar-volman:10817): dbind-WARNING **: 04:47:25.721: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10821): dbind-WARNING **: 04:47:25.821: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event5".
+
+(thunar-volman:10825): dbind-WARNING **: 04:47:25.924: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event3".
+
+(thunar-volman:10829): dbind-WARNING **: 04:47:26.024: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10833): dbind-WARNING **: 04:47:26.127: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event4".
+
+(thunar-volman:10837): dbind-WARNING **: 04:47:26.226: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10841): dbind-WARNING **: 04:47:26.325: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10845): dbind-WARNING **: 04:47:26.464: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10849): dbind-WARNING **: 04:47:26.582: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10853): dbind-WARNING **: 04:47:26.720: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10857): dbind-WARNING **: 04:47:26.840: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:10861): dbind-WARNING **: 04:47:26.938: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10865): dbind-WARNING **: 04:47:27.061: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10869): dbind-WARNING **: 04:47:27.171: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10873): dbind-WARNING **: 04:47:27.267: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(exo-open:10878): dbind-WARNING **: 04:47:27.580: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-mime-helper:10880): dbind-WARNING **: 04:47:27.656: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-terminal:10881): dbind-WARNING **: 04:47:27.774: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfce4-terminal:10881): GLib-GIO-CRITICAL **: 04:47:28.453: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+
+(thunar-volman:10948): dbind-WARNING **: 04:47:40.856: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:10962): dbind-WARNING **: 04:47:40.953: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10966): dbind-WARNING **: 04:47:41.268: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10973): dbind-WARNING **: 04:47:41.370: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:10977): dbind-WARNING **: 04:47:41.465: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10982): dbind-WARNING **: 04:47:41.571: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:10986): dbind-WARNING **: 04:47:41.669: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:10990): dbind-WARNING **: 04:47:41.764: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: There is no device with the sysfs path "/sys/devices/platform/soc/35000000.hsio_apb/35100000.usb3/35100000.usb/xhci-hcd.2.auto/usb1/1-1/1-1.1/1-1.1:1.0".
+
+(thunar-volman:11010): dbind-WARNING **: 04:47:44.955: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:11021): dbind-WARNING **: 04:47:45.051: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11028): dbind-WARNING **: 04:47:45.714: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11038): dbind-WARNING **: 04:47:45.877: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event8".
+
+(thunar-volman:11042): dbind-WARNING **: 04:47:45.975: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event7".
+
+(thunar-volman:11046): dbind-WARNING **: 04:47:46.075: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event3".
+
+(thunar-volman:11050): dbind-WARNING **: 04:47:46.211: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event6".
+
+(thunar-volman:11054): dbind-WARNING **: 04:47:46.312: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:11058): dbind-WARNING **: 04:47:46.441: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11062): dbind-WARNING **: 04:47:46.545: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event4".
+
+(thunar-volman:11066): dbind-WARNING **: 04:47:46.645: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event5".
+
+(thunar-volman:11070): dbind-WARNING **: 04:47:46.744: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11074): dbind-WARNING **: 04:47:46.845: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11078): dbind-WARNING **: 04:47:46.944: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11082): dbind-WARNING **: 04:47:47.042: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11086): dbind-WARNING **: 04:47:47.139: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11090): dbind-WARNING **: 04:47:47.236: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11094): dbind-WARNING **: 04:47:47.333: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11098): dbind-WARNING **: 04:47:47.432: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11102): dbind-WARNING **: 04:47:47.530: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11106): dbind-WARNING **: 04:47:47.628: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11131): dbind-WARNING **: 04:47:58.051: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:11142): dbind-WARNING **: 04:47:58.149: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11146): dbind-WARNING **: 04:47:58.398: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11152): dbind-WARNING **: 04:47:58.497: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11156): dbind-WARNING **: 04:47:58.597: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11208): dbind-WARNING **: 04:48:19.768: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usb".
+
+(thunar-volman:11227): dbind-WARNING **: 04:48:19.863: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11241): dbind-WARNING **: 04:48:20.495: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event8".
+
+(thunar-volman:11245): dbind-WARNING **: 04:48:20.619: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event3".
+
+(thunar-volman:11249): dbind-WARNING **: 04:48:20.767: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event5".
+
+(thunar-volman:11253): dbind-WARNING **: 04:48:20.875: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11257): dbind-WARNING **: 04:48:20.977: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event7".
+
+(thunar-volman:11261): dbind-WARNING **: 04:48:21.076: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event6".
+
+(thunar-volman:11265): dbind-WARNING **: 04:48:21.175: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event2".
+
+(thunar-volman:11269): dbind-WARNING **: 04:48:21.272: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "/dev/input/event4".
+
+(thunar-volman:11273): dbind-WARNING **: 04:48:21.373: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11277): dbind-WARNING **: 04:48:21.470: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11281): dbind-WARNING **: 04:48:21.596: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11285): dbind-WARNING **: 04:48:21.708: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11289): dbind-WARNING **: 04:48:21.806: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11293): dbind-WARNING **: 04:48:21.910: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11297): dbind-WARNING **: 04:48:22.009: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported input device type "(null)".
+
+(thunar-volman:11301): dbind-WARNING **: 04:48:22.107: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(thunar-volman:11305): dbind-WARNING **: 04:48:22.204: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11309): dbind-WARNING **: 04:48:22.333: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(thunar-volman:11313): dbind-WARNING **: 04:48:22.435: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+thunar-volman: Unsupported USB device type "usbhid".
+
+(check-new-release-gtk:12280): dbind-WARNING **: 04:56:43.042: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+WARNING:root:timeout reached, exiting
