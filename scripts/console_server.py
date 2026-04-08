@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
+DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -189,6 +190,27 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})
 
 
+def resolve_bridge_token(env_name: str) -> str:
+    token = os.environ.get(env_name, "").strip()
+    if token:
+        return token
+
+    if DEFAULT_OPENCLAW_CONFIG_PATH.is_file():
+        try:
+            raw = json.loads(DEFAULT_OPENCLAW_CONFIG_PATH.read_text(encoding="utf-8"))
+            plugins = raw.get("plugins", {})
+            entries = plugins.get("entries", {})
+            mira_entry = entries.get("mira-light-bridge", {})
+            config = mira_entry.get("config", {})
+            token = str(config.get("bridgeToken") or "").strip()
+            if token:
+                return token
+        except Exception:
+            pass
+
+    return ""
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the Mira Light local web console.")
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host")
@@ -212,7 +234,7 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    bridge_token = os.environ.get(args.bridge_token_env, "")
+    bridge_token = resolve_bridge_token(args.bridge_token_env)
     print(f"[console] starting at http://{args.host}:{args.port}")
     print(f"[console] proxying bridge {args.bridge_base_url}")
     print(f"[console] bridge token env {args.bridge_token_env} present={bool(bridge_token)}")

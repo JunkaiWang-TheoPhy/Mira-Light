@@ -357,6 +357,8 @@ PROFILE_INFO: Dict[str, Any] = {
     "path": str(DEFAULT_PROFILE_PATH),
     "exists": DEFAULT_PROFILE_PATH.is_file(),
     "loaded": False,
+    "ledPixelCount": int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40")),
+    "supportedLedModes": ["off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"],
 }
 
 _profile_overrides = _load_profile_overrides(DEFAULT_PROFILE_PATH)

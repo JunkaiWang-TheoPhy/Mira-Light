@@ -1,0 +1,54 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "__HOME__/.openclaw/workspace",
+      "model": {
+        "primary": "openai-codex/gpt-5.4"
+      },
+      "heartbeat": {
+        "every": "0m"
+      },
+      "memorySearch": {
+        "extraPaths": [
+          "__REPO_ROOT__/docs/openclaw-esp32-control-guide.md",
+          "__REPO_ROOT__/docs/mira-light-local-openclaw-plugin-install-config.md",
+          "__REPO_ROOT__/docs/mira-light-vision-event-schema.md",
+          "__REPO_ROOT__/docs/mira-light-single-camera-fourdof-vision-development-guide.md",
+          "__REPO_ROOT__/docs/mira-light-router-hub-architecture.md"
+        ]
+      },
+      "sandbox": {
+        "mode": "non-main"
+      },
+      "userTimezone": "__TIMEZONE__",
+      "timeFormat": "24"
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "__GATEWAY_TOKEN__"
+    }
+  },
+  "plugins": {
+    "allow": [
+      "mira-light-bridge"
+    ],
+    "load": {
+      "paths": [
+        "__REPO_ROOT__/tools/mira_light_bridge/openclaw_mira_light_plugin"
+      ]
+    },
+    "entries": {
+      "mira-light-bridge": {
+        "enabled": true,
+        "config": {
+          "bridgeBaseUrl": "http://127.0.0.1:9783",
+          "bridgeToken": "__BRIDGE_TOKEN__",
+          "requestTimeoutMs": 5000
+        }
+      }
+    }
+  }
+}

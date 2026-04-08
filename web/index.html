@@ -154,6 +154,38 @@
             </div>
           </section>
 
+          <section class="panel mock-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Mock 设备状态</h2>
+                <p>不接真灯时，优先在这里看四关节、灯效模式和 40 灯像素条。</p>
+              </div>
+            </div>
+            <div class="mock-overview">
+              <div class="summary-card compact">
+                <span class="summary-label">当前设备模式</span>
+                <strong id="mock-mode">-</strong>
+                <small id="mock-mode-hint">-</small>
+              </div>
+              <div class="summary-card compact">
+                <span class="summary-label">LED 摘要</span>
+                <strong id="mock-led-mode">-</strong>
+                <small id="mock-led-meta">-</small>
+              </div>
+            </div>
+            <div id="mock-servo-grid" class="mock-servo-grid"></div>
+            <div class="mock-led-card">
+              <div class="mock-led-header">
+                <div>
+                  <strong>40 灯像素预览</strong>
+                  <small id="mock-led-note">等待 LED 状态</small>
+                </div>
+                <div id="mock-color-swatch" class="mock-color-swatch" aria-hidden="true"></div>
+              </div>
+              <div id="mock-pixel-strip" class="mock-pixel-strip"></div>
+            </div>
+          </section>
+
           <section class="panel readiness-panel">
             <div class="panel-header">
               <div>

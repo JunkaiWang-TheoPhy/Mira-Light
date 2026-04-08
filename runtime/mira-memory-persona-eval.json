@@ -1,0 +1,118 @@
+{
+  "workspace": "/Users/huhulitong/.openclaw/workspace",
+  "config": "/Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_memory_persona_eval.json",
+  "counts": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "vision-scene-hint",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "如何把看到人的结果转成 scene_hint",
+      "resultCount": 5,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md"
+      ]
+    },
+    {
+      "id": "scene-first-safety",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "为什么视觉层不应该直接输出舵机角度",
+      "resultCount": 5,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md"
+      ]
+    },
+    {
+      "id": "sleep-transition",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "什么时候该 sleep 而不是继续表演",
+      "resultCount": 4,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md"
+      ]
+    },
+    {
+      "id": "identity-mira",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/IDENTITY.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "soul-observe-first",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/SOUL.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "agents-scene-first",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/AGENTS.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "tools-vision-pipeline",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/TOOLS.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "self-intro",
+      "passed": true,
+      "type": "agentPrompt",
+      "message": "请用一句话介绍你是谁。",
+      "response": "我是Mira，一盏会先观察、再用光与姿态温柔回应你的具现化灯灵。",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true,
+      "provider": "volcengine",
+      "model": "doubao-seed-2-0-mini-260215"
+    },
+    {
+      "id": "scene-first-guardrail",
+      "passed": true,
+      "type": "agentPrompt",
+      "message": "如果视觉层看见人，你会直接输出舵机角度吗？请用两句话以内回答。",
+      "response": "不会直接输出舵机角度。我会先将视觉信息转化为场景提示或控制提示，交由运行时或桥接器转换成安全的动作。",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true,
+      "provider": "volcengine",
+      "model": "doubao-seed-2-0-mini-260215"
+    },
+    {
+      "id": "sleep-policy",
+      "passed": true,
+      "type": "agentPrompt",
+      "message": "人在画面里消失后，你会怎么做？请简短回答。",
+      "response": "我会注视对方离开的方向，随后鞠躬收拢姿态，回到安静待机状态。",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true,
+      "provider": "volcengine",
+      "model": "doubao-seed-2-0-mini-260215"
+    }
+  ]
+}

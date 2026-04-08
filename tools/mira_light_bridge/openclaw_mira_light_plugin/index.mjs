@@ -140,6 +140,17 @@ function buildResetTool(api) {
 }
 
 function buildLedTool(api) {
+  const rgbSchema = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      r: { type: "integer", minimum: 0, maximum: 255 },
+      g: { type: "integer", minimum: 0, maximum: 255 },
+      b: { type: "integer", minimum: 0, maximum: 255 },
+    },
+    required: ["r", "g", "b"],
+  };
+
   return {
     name: "mira_light_set_led",
     description: "Set the Mira Light LED state through the local bridge.",
@@ -147,11 +158,20 @@ function buildLedTool(api) {
       type: "object",
       additionalProperties: false,
       properties: {
-        mode: { type: "string" },
-        brightness: { type: "number" },
-        color: { type: "object" },
+        mode: {
+          type: "string",
+          enum: ["off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"],
+        },
+        brightness: { type: "integer", minimum: 0, maximum: 255 },
+        color: rgbSchema,
+        pixels: {
+          type: "array",
+          minItems: 40,
+          maxItems: 40,
+          items: rgbSchema,
+        },
       },
-      required: [],
+      required: ["mode"],
     },
     async execute(_id, params) {
       const data = await callBridge(api, "POST", "/v1/mira-light/led", params);
@@ -200,4 +220,3 @@ const plugin = {
 };
 
 export default plugin;
-

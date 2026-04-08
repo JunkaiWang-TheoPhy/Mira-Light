@@ -5,7 +5,7 @@ This script is intentionally practical:
 
 - create a timestamped backup of ~/.openclaw/openclaw.json
 - link the local plugin source into ~/.openclaw/extensions/mira-light-bridge
-- patch plugins.allow and plugins.entries in the local OpenClaw config
+- patch plugins.allow, plugins.load.paths, and plugins.entries in the local OpenClaw config
 - optionally validate with `openclaw plugins doctor`
 
 It does not try to be a general plugin manager. It is a project-local helper
@@ -79,6 +79,12 @@ def ensure_plugin_config(
     allow = plugins.setdefault("allow", [])
     if PLUGIN_ID not in allow:
         allow.append(PLUGIN_ID)
+
+    load = plugins.setdefault("load", {})
+    paths = load.setdefault("paths", [])
+    plugin_source = str(PLUGIN_SOURCE_DIR)
+    if plugin_source not in paths:
+        paths.append(plugin_source)
 
     entries = plugins.setdefault("entries", {})
     entries[PLUGIN_ID] = {
@@ -166,4 +172,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

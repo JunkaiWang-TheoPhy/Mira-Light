@@ -242,6 +242,101 @@
   }
 }
 
+@keyframes fireworkBurstIntro {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.16);
+    filter: blur(2px);
+  }
+  18% {
+    opacity: 1;
+  }
+  56% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0.3px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.08);
+    filter: blur(1.2px);
+  }
+}
+
+@keyframes rocketAscend {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--rocket-dx)), var(--rocket-dy)) scale(1);
+  }
+}
+
+@keyframes rocketTrailPulse {
+  0% {
+    opacity: 0;
+    height: 34px;
+  }
+  20% {
+    opacity: 0.96;
+    height: 120px;
+  }
+  70% {
+    opacity: 0.82;
+    height: 196px;
+  }
+  100% {
+    opacity: 0;
+    height: 220px;
+  }
+}
+
+@keyframes centralBurstFlash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.28);
+  }
+  20% {
+    opacity: 1;
+  }
+  64% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.24);
+  }
+}
+
+@keyframes festiveFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes festiveSway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
 @keyframes popupRise {
   0% {
     opacity: 0;
@@ -324,7 +419,7 @@ body[data-phase="opening"] {
 
 body[data-phase="celebrating"] {
   background:
-    radial-gradient(circle at 20% 16%, rgba(255, 248, 207, 0.98), transparent 18%),
+    radial-gradient(circle at 20% 16%, rgba(255, 220, 126, 0.46), transparent 18%),
     radial-gradient(circle at 82% 12%, rgba(125, 213, 255, 0.9), transparent 24%),
     radial-gradient(circle at 50% 82%, rgba(255, 196, 92, 0.34), transparent 20%),
     linear-gradient(135deg, #ff7a54 0%, #ffd35f 22%, #ff667e 52%, #665bff 80%, #4bc5ff 100%);
@@ -335,41 +430,6 @@ body[data-phase="cooldown"] {
     radial-gradient(circle at 18% 18%, rgba(255, 243, 189, 0.9), transparent 18%),
     radial-gradient(circle at 84% 16%, rgba(112, 199, 255, 0.76), transparent 24%),
     linear-gradient(135deg, #ff9866 0%, #ffd67c 22%, #ff8f86 52%, #7d7af5 78%, #70cfff 100%);
-}
-
-.page-glow {
-  position: fixed;
-  border-radius: 999px;
-  filter: blur(26px);
-  pointer-events: none;
-  opacity: 0.42;
-  animation: glowDrift 18s ease-in-out infinite;
-}
-
-.page-glow-a {
-  top: -12vh;
-  left: -8vw;
-  width: 34vw;
-  height: 34vw;
-  background: radial-gradient(circle, rgba(255, 248, 212, 0.9), rgba(255, 248, 212, 0.06) 72%, transparent 78%);
-}
-
-.page-glow-b {
-  right: -10vw;
-  top: 18vh;
-  width: 28vw;
-  height: 28vw;
-  background: radial-gradient(circle, rgba(129, 214, 255, 0.8), rgba(129, 214, 255, 0.06) 72%, transparent 78%);
-  animation-duration: 20s;
-}
-
-.page-glow-c {
-  left: 26vw;
-  bottom: -14vh;
-  width: 32vw;
-  height: 32vw;
-  background: radial-gradient(circle, rgba(255, 195, 115, 0.54), rgba(255, 195, 115, 0.04) 74%, transparent 80%);
-  animation-duration: 22s;
 }
 
 .confetti-layer {
@@ -438,15 +498,34 @@ body[data-phase="cooldown"] {
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 0;
+}
+
+.firework-burst-layer,
+.firework-rocket-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint style;
+  transform: translateZ(0);
+}
+
+.firework-burst-layer {
+  z-index: 11;
+}
+
+.firework-rocket-layer {
+  z-index: 12;
 }
 
 .firework {
   position: absolute;
-  width: 220px;
-  height: 220px;
+  width: 300px;
+  height: 300px;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.92) 0 5%, rgba(255, 255, 255, 0) 8%),
+    radial-gradient(circle, rgba(255, 238, 176, 0.72) 0 5%, rgba(255, 238, 176, 0) 8%),
     repeating-conic-gradient(
       from 0deg,
       rgba(255, 226, 115, 0.82) 0deg 8deg,
@@ -455,9 +534,98 @@ body[data-phase="cooldown"] {
       rgba(100, 209, 255, 0.24) 24deg 32deg
     );
   filter: blur(0.6px);
-  mix-blend-mode: screen;
-  opacity: 0.52;
+  opacity: 0.42;
   animation: fireworkPulse 3.8s ease-out infinite;
+}
+
+.firework-burst {
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  background:
+    radial-gradient(circle, rgba(255, 236, 168, 0.84) 0 4%, rgba(255, 236, 168, 0) 7%),
+    repeating-conic-gradient(
+      from 0deg,
+      var(--fw-a) 0deg 10deg,
+      transparent 10deg 18deg,
+      var(--fw-b) 18deg 28deg,
+      transparent 28deg 36deg,
+      var(--fw-c) 36deg 46deg,
+      transparent 46deg 54deg,
+      var(--fw-d) 54deg 60deg,
+      transparent 60deg 72deg
+    );
+  filter:
+    drop-shadow(0 0 34px rgba(255, 209, 108, 0.48))
+    drop-shadow(0 0 72px rgba(255, 147, 91, 0.22));
+  opacity: 0;
+  animation: fireworkBurstIntro 1.95s cubic-bezier(0.18, 0.8, 0.22, 1) forwards;
+}
+
+.sky-rocket {
+  position: absolute;
+  will-change: transform, opacity;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 245, 204, 0.92), var(--trail-core) 58%, rgba(255, 245, 204, 0) 82%);
+  box-shadow:
+    0 0 16px rgba(255, 243, 206, 0.72),
+    0 0 42px var(--trail-core);
+  animation: rocketAscend 0.66s cubic-bezier(0.16, 0.78, 0.21, 0.99) forwards;
+}
+
+.sky-rocket::before,
+.sky-rocket::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.sky-rocket::before {
+  width: 14px;
+  height: 240px;
+  background: linear-gradient(180deg, rgba(255, 253, 236, 0.98), var(--trail-core) 26%, var(--trail-flare) 58%, rgba(255, 142, 92, 0.12) 86%, transparent 100%);
+  filter: blur(2.2px);
+  box-shadow: 0 0 44px rgba(255, 218, 144, 0.48);
+  animation: rocketTrailPulse 0.66s ease-out forwards;
+}
+
+.sky-rocket::after {
+  width: 34px;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(255, 241, 193, 0.3), rgba(255, 224, 151, 0.14) 38%, transparent 100%);
+  filter: blur(6px);
+  opacity: 0.72;
+  animation: rocketTrailPulse 0.66s ease-out forwards;
+}
+
+.sky-firework-burst {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 234, 156, 0.88) 0 4%, rgba(255, 234, 156, 0.18) 5%, rgba(255, 234, 156, 0) 8%),
+    repeating-conic-gradient(
+      from 0deg,
+      var(--fw-a) 0deg 10deg,
+      transparent 10deg 16deg,
+      var(--fw-b) 16deg 26deg,
+      transparent 26deg 32deg,
+      var(--fw-c) 32deg 44deg,
+      transparent 44deg 50deg,
+      var(--fw-d) 50deg 58deg,
+      transparent 58deg 72deg
+    );
+  filter:
+    drop-shadow(0 0 38px rgba(255, 221, 134, 0.56))
+    drop-shadow(0 0 88px rgba(255, 170, 93, 0.28));
+  opacity: 0;
+  animation: centralBurstFlash 2.1s cubic-bezier(0.18, 0.82, 0.18, 1) forwards;
 }
 
 .firework-a {
@@ -468,32 +636,32 @@ body[data-phase="cooldown"] {
 .firework-b {
   right: 8%;
   top: 16%;
-  width: 180px;
-  height: 180px;
+  width: 240px;
+  height: 240px;
   animation-delay: -1s;
 }
 
 .firework-c {
   left: 16%;
   bottom: 18%;
-  width: 150px;
-  height: 150px;
+  width: 210px;
+  height: 210px;
   animation-delay: -1.8s;
 }
 
 .firework-d {
   right: 18%;
   bottom: 20%;
-  width: 170px;
-  height: 170px;
+  width: 230px;
+  height: 230px;
   animation-delay: -0.5s;
 }
 
 .firework-e {
   left: 50%;
   top: 8%;
-  width: 200px;
-  height: 200px;
+  width: 270px;
+  height: 270px;
   transform: translateX(-50%);
   animation-delay: -2.3s;
 }
@@ -508,16 +676,10 @@ body[data-phase="cooldown"] {
   width: min(1180px, calc(100vw - 40px));
   min-height: 100vh;
   margin: 0 auto;
-  padding: 42px 0 56px;
+  padding: 18px 0 28px;
   display: grid;
   align-content: center;
-  gap: 28px;
-}
-
-.hero {
-  display: grid;
-  gap: 0;
-  text-align: center;
+  gap: 16px;
 }
 
 .celebrate-text {
@@ -573,23 +735,32 @@ body[data-phase="celebrating"] h1 {
   position: relative;
   width: min(820px, 100%);
   margin: 0 auto;
-  padding-top: 92px;
+  padding-top: 34px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
+}
+
+.sky-launch-layer {
+  position: absolute;
+  inset: -18px -48px 32px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .decor-layer {
   position: absolute;
   inset: -24px -70px -24px;
   pointer-events: none;
+  z-index: 1;
 }
 
 .side-ornaments {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
 .side-column {
@@ -862,7 +1033,7 @@ body[data-phase="celebrating"] h1 {
 
 .ribbon {
   position: relative;
-  padding: 16px 38px;
+  padding: 14px 34px;
   border-radius: 14px;
   background: linear-gradient(180deg, #342f3c, #25212e);
   color: #fff7ee;
@@ -899,7 +1070,7 @@ body[data-phase="celebrating"] h1 {
 .celebration-card {
   position: relative;
   width: 100%;
-  padding: 132px 38px 34px;
+  padding: 118px 34px 28px;
   border-radius: 34px;
   background: var(--card);
   border: 1px solid var(--card-border);
@@ -941,7 +1112,7 @@ body[data-phase="celebrating"] .medal-rays {
   position: relative;
   z-index: 5;
   min-width: min(460px, calc(100% - 60px));
-  padding: 20px 28px 18px;
+  padding: 18px 26px;
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(196, 27, 27, 0.94), rgba(145, 16, 16, 0.96));
   border: 1px solid rgba(255, 222, 171, 0.44);
@@ -957,34 +1128,16 @@ body[data-phase="celebrating"] .popup-banner {
   animation: popupFloat 1.8s ease-in-out infinite;
 }
 
-.popup-script {
-  margin-bottom: 2px;
-  font-family: "STKaiti", "KaiTi", "Songti SC", serif;
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  letter-spacing: 0.12em;
-  color: #fff8ef;
-  text-shadow:
-    0 2px 0 rgba(97, 8, 8, 0.34),
-    0 10px 16px rgba(65, 6, 6, 0.18);
-}
-
-.popup-title {
+.popup-message {
   display: block;
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  line-height: 1;
-  color: #ffe08a;
+  font-family: "STKaiti", "KaiTi", "Songti SC", serif;
+  font-size: clamp(2rem, 3.4vw, 3.1rem);
+  line-height: 1.12;
+  letter-spacing: 0.06em;
+  color: #fff3d5;
   text-shadow:
-    0 2px 0 rgba(114, 48, 0, 0.34),
+    0 2px 0 rgba(114, 48, 0, 0.28),
     0 10px 24px rgba(44, 8, 8, 0.34);
-}
-
-.popup-subtitle {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.92rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: #fff4d8;
 }
 
 .close-mark {
@@ -1108,19 +1261,42 @@ body[data-phase="celebrating"] .popup-banner {
 }
 
 .imperial-line {
-  margin-bottom: 8px;
+  width: min(560px, 100%);
+  margin: 0 auto 6px;
   color: #8a420d;
-  font-size: 0.96rem;
-  letter-spacing: 0.36em;
-  text-transform: uppercase;
+  font-size: 1.12rem;
+  letter-spacing: 0.16em;
+  display: grid;
+  grid-template-columns: 1fr 136px 1fr;
+  align-items: center;
   font-weight: 700;
 }
 
+.imperial-line-part {
+  white-space: nowrap;
+}
+
+.imperial-line-left {
+  justify-self: end;
+  text-align: right;
+}
+
+.imperial-line-right {
+  justify-self: start;
+  text-align: left;
+}
+
+.imperial-line-spacer {
+  display: block;
+  width: 136px;
+  height: 1px;
+}
+
 .card-kicker {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #c64b2f;
-  font-size: 0.9rem;
-  letter-spacing: 0.18em;
+  font-size: 1.06rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -1131,9 +1307,19 @@ h2 {
   color: var(--ink);
 }
 
+#award-title {
+  font-family: "STKaiti", "Kaiti SC", "KaiTi", "Songti SC", serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #2f2440;
+  text-shadow:
+    0 2px 0 rgba(255, 247, 233, 0.7),
+    0 10px 22px rgba(80, 48, 45, 0.08);
+}
+
 .counter-panel {
-  margin-top: 18px;
-  padding: 24px;
+  margin-top: 14px;
+  padding: 18px;
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(255, 243, 210, 0.8), rgba(255, 255, 255, 0.72));
   border: 1px solid rgba(255, 209, 129, 0.44);
@@ -1142,8 +1328,8 @@ h2 {
 }
 
 .counter-label {
-  font-size: 0.82rem;
-  letter-spacing: 0.18em;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(136, 87, 30, 0.78);
 }
@@ -1156,44 +1342,160 @@ h2 {
 }
 
 .action-row {
-  margin-top: 20px;
+  margin-top: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 18px;
 }
 
-.stereo-wave {
+.festive-side {
+  position: relative;
   width: 132px;
   height: 74px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 24px;
-  background: rgba(255, 247, 225, 0.62);
+  background: linear-gradient(180deg, rgba(255, 247, 225, 0.78), rgba(255, 241, 214, 0.62));
   border: 1px solid rgba(255, 214, 150, 0.38);
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  gap: 5px;
+  display: grid;
+  place-items: center;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.52),
     0 16px 30px rgba(201, 132, 42, 0.12);
+  animation: festiveFloat 3.2s ease-in-out infinite;
 }
 
-.stereo-wave span {
-  width: 6px;
-  height: 18px;
+.festive-side-right {
+  animation-delay: -1.3s;
+}
+
+.festive-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 122, 93, 0.98), rgba(255, 188, 92, 0.92));
-  transform-origin: center bottom;
-  transition: height 80ms linear, opacity 80ms linear, transform 80ms linear;
-  opacity: 0.46;
+  background: rgba(180, 54, 36, 0.1);
+  color: #b14a28;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
-.stereo-wave-right span {
-  background: linear-gradient(180deg, rgba(101, 120, 255, 0.96), rgba(116, 215, 255, 0.92));
+.festive-ingot {
+  position: relative;
+  width: 52px;
+  height: 24px;
+  margin-top: 14px;
+  border-radius: 40% 40% 55% 55%;
+  background: linear-gradient(180deg, #fff2a8, #f7ba3a);
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.54),
+    0 10px 16px rgba(204, 131, 28, 0.18);
 }
 
-body.is-celebrating .stereo-wave {
+.festive-ingot::before,
+.festive-ingot::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  width: 18px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff4b5, #efb53e);
+}
+
+.festive-ingot::before {
+  left: -6px;
+}
+
+.festive-ingot::after {
+  right: -6px;
+}
+
+.festive-lantern-mini {
+  position: relative;
+  width: 36px;
+  height: 42px;
+  margin-top: 10px;
+  border-radius: 18px 18px 12px 12px;
+  background: linear-gradient(180deg, #ff8e63, #d63329);
+  box-shadow:
+    inset 0 4px 10px rgba(255, 224, 176, 0.28),
+    0 10px 18px rgba(181, 56, 37, 0.2);
+  animation: festiveSway 2.8s ease-in-out infinite;
+}
+
+.festive-lantern-mini::before,
+.festive-lantern-mini::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.festive-lantern-mini::before {
+  top: -12px;
+  width: 4px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 248, 231, 0.94);
+}
+
+.festive-lantern-mini::after {
+  bottom: -10px;
+  width: 10px;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f7da7e, #ffb440);
+}
+
+.festive-lantern-mini span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff8ef;
+  font-family: "STKaiti", "KaiTi", "Songti SC", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(96, 28, 12, 0.22);
+}
+
+.festive-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(255, 213, 122, 0.38);
+}
+
+.festive-dot-a {
+  left: 18px;
+  bottom: 18px;
+  background: #ffbe54;
+}
+
+.festive-dot-b {
+  right: 20px;
+  top: 22px;
+  background: #ff7f69;
+}
+
+.festive-dot-c {
+  left: 20px;
+  top: 24px;
+  background: #ffcf63;
+}
+
+.festive-dot-d {
+  right: 18px;
+  bottom: 18px;
+  background: #ff7e73;
+}
+
+body.is-celebrating .festive-side {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.52),
     0 22px 40px rgba(201, 132, 42, 0.2);
@@ -1309,20 +1611,30 @@ body[data-phase="celebrating"] .coin {
 @media (max-width: 840px) {
   .page {
     width: min(100vw - 24px, 100%);
-    padding: 24px 0 40px;
-  }
-
-  .hero-subtitle {
-    font-size: 0.96rem;
+    padding: 14px 0 24px;
   }
 
   .celebration-stage {
     width: 100%;
-    padding-top: 72px;
+    padding-top: 24px;
+  }
+
+  .sky-launch-layer {
+    inset: -12px -22px 24px;
   }
 
   .celebration-card {
-    padding: 122px 22px 22px;
+    padding: 108px 20px 20px;
+  }
+
+  .imperial-line {
+    grid-template-columns: 1fr 92px 1fr;
+    font-size: 0.98rem;
+    letter-spacing: 0.12em;
+  }
+
+  .imperial-line-spacer {
+    width: 92px;
   }
 
   .coin {
@@ -1337,15 +1649,31 @@ body[data-phase="celebrating"] .coin {
     gap: 10px;
   }
 
-  .stereo-wave {
+  .festive-side {
     width: 86px;
     height: 60px;
-    padding: 10px 8px;
-    gap: 3px;
+    padding: 8px 6px;
   }
 
-  .stereo-wave span {
-    width: 4px;
+  .festive-badge {
+    top: 6px;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+
+  .festive-ingot {
+    width: 40px;
+    height: 18px;
+  }
+
+  .festive-lantern-mini {
+    width: 28px;
+    height: 34px;
+    margin-top: 8px;
+  }
+
+  .festive-lantern-mini span {
+    font-size: 0.92rem;
   }
 
   .side-ornaments {
@@ -1359,7 +1687,7 @@ body[data-phase="celebrating"] .coin {
 
   .popup-banner {
     min-width: calc(100% - 28px);
-    padding: 16px 18px 14px;
+    padding: 14px 16px;
   }
 
   .decor-layer {

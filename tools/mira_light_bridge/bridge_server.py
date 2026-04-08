@@ -335,12 +335,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             if path == "/v1/mira-light/control":
                 body = self._read_json_body()
-                self._send_json(200, {"ok": True, "data": self.server.runtime.get_client().control(body)})
+                self._send_json(200, {"ok": True, "data": self.server.runtime.control_joints(body)})
                 return
 
             if path == "/v1/mira-light/led":
                 body = self._read_json_body()
-                self._send_json(200, {"ok": True, "data": self.server.runtime.get_client().set_led(body)})
+                self._send_json(200, {"ok": True, "data": self.server.runtime.set_led_state(body)})
                 return
 
             if path == "/v1/mira-light/action":
@@ -397,7 +397,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": str(exc)})
         except RuntimeError as exc:
             message = str(exc)
-            status_code = 409 if "already running" in message else 400
+            status_code = 409 if "already running" in message or "while a scene is running" in message else 400
             self._send_json(status_code, {"ok": False, "error": message})
         except Exception as exc:  # noqa: BLE001
             self._send_json(500, {"ok": False, "error": str(exc)})

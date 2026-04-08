@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>ai.mira-light.bridge</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>2</integer>
+    <key>WorkingDirectory</key>
+    <string>__REPO_ROOT__</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/zsh</string>
+      <string>__HOME__/.local/bin/mira-light-bridge</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>HOME</key>
+      <string>__HOME__</string>
+      <key>PATH</key>
+      <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__HOME__/.openclaw/logs/mira-light-bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/.openclaw/logs/mira-light-bridge.err.log</string>
+  </dict>
+</plist>

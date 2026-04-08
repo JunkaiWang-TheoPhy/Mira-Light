@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scene Trace: farewell</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f1e8;
+      --panel: #fffaf4;
+      --ink: #2c241c;
+      --muted: #7e6f61;
+      --line: #dfd1c1;
+      --accent: #b5653b;
+    }
+    body {
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+      background: linear-gradient(180deg, #f8efe1 0%, var(--bg) 100%);
+      color: var(--ink);
+      margin: 0;
+      padding: 32px;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    section {
+      background: rgba(255, 250, 244, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 24px;
+      box-shadow: 0 18px 40px rgba(130, 93, 61, 0.08);
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+    h1 {
+      font-size: 32px;
+      color: var(--accent);
+    }
+    p {
+      margin: 8px 0;
+      line-height: 1.55;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.68);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    th, td {
+      vertical-align: top;
+      text-align: left;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f0dfcf;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      color: #7e4c28;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>挥手送别</h1>
+      <p>当你离开时，它会目送你，还会轻轻摆摆头像在说再见。</p>
+      <p><strong>Operator cue:</strong> 结束时用它来收尾，再接 sleep。</p>
+      <div><span class="tag">送别</span><span class="tag">不舍</span></div>
+    </section>
+    <section>
+      <h2>Summary</h2>
+      <div class="meta">
+        <div class="card"><strong>Duration</strong><p>0.17 ms</p></div>
+        <div class="card"><strong>Steps</strong><p>23</p></div>
+        <div class="card"><strong>Requests</strong><p>12</p></div>
+        <div class="card"><strong>Dry Run</strong><p>True</p></div>
+      </div>
+    </section>
+    <section>
+      <h2>Timeline</h2>
+      <table>
+        <thead>
+          <tr><th>t (ms)</th><th>kind</th><th>payload</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0.00</td><td>scene-start</td><td><pre>{
+  &quot;tMs&quot;: 0.0,
+  &quot;kind&quot;: &quot;scene-start&quot;,
+  &quot;scene&quot;: &quot;farewell&quot;,
+  &quot;title&quot;: &quot;挥手送别&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;=== Scene: farewell / 挥手送别 ===&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -&gt; 两次慢慢点头式挥手 -&gt; 舍不得地低头。&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。&quot;
+}</pre></td></tr><tr><td>0.03</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.03,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。&quot;
+}</pre></td></tr><tr><td>0.04</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.04,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 1,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;pose&quot;,
+  &quot;stepLabel&quot;: &quot;pose:neutral&quot;
+}</pre></td></tr><tr><td>0.06</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.06,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[pose] neutral -&gt; {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 90, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 98, \&quot;servo4\&quot;: 90}&quot;
+}</pre></td></tr><tr><td>0.06</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.06,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 90,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 98,
+    &quot;servo4&quot;: 90
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    }
+  }
+}</pre></td></tr><tr><td>0.06</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.06,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 2,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;led&quot;,
+  &quot;stepLabel&quot;: &quot;led:solid&quot;
+}</pre></td></tr><tr><td>0.07</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.07,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[led] {\&quot;mode\&quot;: \&quot;solid\&quot;, \&quot;brightness\&quot;: 108, \&quot;color\&quot;: {\&quot;r\&quot;: 255, \&quot;g\&quot;: 214, \&quot;b\&quot;: 176}}&quot;
+}</pre></td></tr><tr><td>0.07</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.07,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/led&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;solid&quot;,
+    &quot;brightness&quot;: 108,
+    &quot;color&quot;: {
+      &quot;r&quot;: 255,
+      &quot;g&quot;: 214,
+      &quot;b&quot;: 176
+    }
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/led&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 108,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 214,
+        &quot;b&quot;: 176
+      }
+    }
+  }
+}</pre></td></tr><tr><td>0.07</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.07,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 3,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;先目送评委离开的方向。&quot;
+}</pre></td></tr><tr><td>0.07</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.07,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 先目送评委离开的方向。&quot;
+}</pre></td></tr><tr><td>0.08</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.08,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 4,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo1,servo2,servo3,servo4&quot;
+}</pre></td></tr><tr><td>0.08</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.08,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 106, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 100, \&quot;servo4\&quot;: 92}&quot;
+}</pre></td></tr><tr><td>0.08</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.08,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 106,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 100,
+    &quot;servo4&quot;: 92
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    }
+  }
+}</pre></td></tr><tr><td>0.08</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.08,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 5,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:420ms&quot;
+}</pre></td></tr><tr><td>0.09</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 420ms&quot;
+}</pre></td></tr><tr><td>0.09</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 420ms&quot;
+}</pre></td></tr><tr><td>0.09</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 6,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;再做两次慢慢点头，像挥手说再见。&quot;
+}</pre></td></tr><tr><td>0.09</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 再做两次慢慢点头，像挥手说再见。&quot;
+}</pre></td></tr><tr><td>0.09</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 7,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.09</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>0.09</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.09,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    }
+  }
+}</pre></td></tr><tr><td>0.10</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.1,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 8,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>0.10</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.1,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.10</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.1,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.10</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.1,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 9,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.10</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.1,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: -10}&quot;
+}</pre></td></tr><tr><td>0.11</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: -10
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: -10
+    }
+  }
+}</pre></td></tr><tr><td>0.11</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 10,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>0.11</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.11</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.11</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 11,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.11</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>0.11</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.11,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    }
+  }
+}</pre></td></tr><tr><td>0.12</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 12,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:220ms&quot;
+}</pre></td></tr><tr><td>0.12</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 220ms&quot;
+}</pre></td></tr><tr><td>0.12</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 220ms&quot;
+}</pre></td></tr><tr><td>0.12</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 13,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.12</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>0.12</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    }
+  }
+}</pre></td></tr><tr><td>0.12</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 14,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>0.12</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.12</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.12,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.13</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.13,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 15,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.13</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.13,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: -10}&quot;
+}</pre></td></tr><tr><td>0.13</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.13,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: -10
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: -10
+    }
+  }
+}</pre></td></tr><tr><td>0.13</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.13,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 16,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 17,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>0.14</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    }
+  }
+}</pre></td></tr><tr><td>0.14</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 18,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:220ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 220ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 220ms&quot;
+}</pre></td></tr><tr><td>0.14</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 19,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;最后微微低头，像有点舍不得。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 最后微微低头，像有点舍不得。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 20,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo1,servo2,servo3,servo4&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 102, \&quot;servo2\&quot;: 92, \&quot;servo3\&quot;: 96, \&quot;servo4\&quot;: 100}&quot;
+}</pre></td></tr><tr><td>0.15</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 102,
+    &quot;servo2&quot;: 92,
+    &quot;servo3&quot;: 96,
+    &quot;servo4&quot;: 100
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 102,
+      &quot;servo2&quot;: 92,
+      &quot;servo3&quot;: 96,
+      &quot;servo4&quot;: 100
+    }
+  }
+}</pre></td></tr><tr><td>0.15</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 21,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>0.15</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 22,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;pose&quot;,
+  &quot;stepLabel&quot;: &quot;pose:neutral&quot;
+}</pre></td></tr><tr><td>0.16</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[pose] neutral -&gt; {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 90, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 98, \&quot;servo4\&quot;: 90}&quot;
+}</pre></td></tr><tr><td>0.16</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 90,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 98,
+    &quot;servo4&quot;: 90
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/control&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    }
+  }
+}</pre></td></tr><tr><td>0.16</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 23,
+  &quot;stepTotal&quot;: 23,
+  &quot;stepType&quot;: &quot;led&quot;,
+  &quot;stepLabel&quot;: &quot;led:solid&quot;
+}</pre></td></tr><tr><td>0.16</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[led] {\&quot;mode\&quot;: \&quot;solid\&quot;, \&quot;brightness\&quot;: 90, \&quot;color\&quot;: {\&quot;r\&quot;: 255, \&quot;g\&quot;: 210, \&quot;b\&quot;: 170}}&quot;
+}</pre></td></tr><tr><td>0.16</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/led&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;solid&quot;,
+    &quot;brightness&quot;: 90,
+    &quot;color&quot;: {
+      &quot;r&quot;: 255,
+      &quot;g&quot;: 210,
+      &quot;b&quot;: 170
+    }
+  },
+  &quot;durationMs&quot;: 0.0,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;dry_run&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;url&quot;: &quot;http://127.0.0.1:9799/led&quot;,
+    &quot;payload&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 90,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 210,
+        &quot;b&quot;: 170
+      }
+    }
+  }
+}</pre></td></tr><tr><td>0.16</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[scene-done] farewell&quot;
+}</pre></td></tr><tr><td>0.16</td><td>scene-finished</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;scene-finished&quot;,
+  &quot;scene&quot;: &quot;farewell&quot;,
+  &quot;error&quot;: null
+}</pre></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

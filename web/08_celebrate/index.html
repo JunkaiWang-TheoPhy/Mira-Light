@@ -7,26 +7,22 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-phase="idle">
-    <div class="page-glow page-glow-a" aria-hidden="true"></div>
-    <div class="page-glow page-glow-b" aria-hidden="true"></div>
-    <div class="page-glow page-glow-c" aria-hidden="true"></div>
-    <div class="firework-layer" aria-hidden="true">
+    <div class="firework-layer" id="firework-layer" aria-hidden="true">
       <span class="firework firework-a"></span>
       <span class="firework firework-b"></span>
       <span class="firework firework-c"></span>
       <span class="firework firework-d"></span>
       <span class="firework firework-e"></span>
     </div>
+    <div class="firework-burst-layer" id="firework-burst-layer" aria-hidden="true"></div>
+    <div class="firework-rocket-layer" id="firework-rocket-layer" aria-hidden="true"></div>
     <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
     <div class="coin-burst-layer" id="coin-burst-layer" aria-hidden="true"></div>
     <div class="button-burst-layer" id="button-burst-layer" aria-hidden="true"></div>
 
     <main class="page">
-      <header class="hero">
-        <h1 id="hero-title" class="celebrate-text celebrate-text-main">恭喜你拿到 1 亿 Token</h1>
-      </header>
-
       <section class="celebration-stage">
+        <div class="sky-launch-layer" id="sky-launch-layer" aria-hidden="true"></div>
         <div class="decor-layer" aria-hidden="true">
           <img class="decor-image decor-trophy" src="./assets/trophy.svg" alt="" />
           <img class="decor-image decor-popper-left" src="./assets/party-popper.svg" alt="" />
@@ -42,15 +38,15 @@
             <span class="side-streamer streamer-left"></span>
             <div class="side-lantern lantern-top"><span>喜</span></div>
             <div class="side-lantern lantern-bottom"><span>福</span></div>
-            <div class="side-seal seal-left"><span>财</span></div>
+            <div class="side-seal seal-left"><span>財</span></div>
             <img class="side-icon side-icon-a" src="./assets/star.svg" alt="" />
             <img class="side-icon side-icon-b" src="./assets/sparkles.svg" alt="" />
           </div>
           <div class="side-column side-right">
             <span class="side-streamer streamer-right"></span>
             <div class="side-lantern lantern-top"><span>旺</span></div>
-            <div class="side-lantern lantern-bottom"><span>奖</span></div>
-            <div class="side-seal seal-right"><span>贺</span></div>
+            <div class="side-lantern lantern-bottom"><span>獎</span></div>
+            <div class="side-seal seal-right"><span>賀</span></div>
             <img class="side-icon side-icon-c" src="./assets/sparkles.svg" alt="" />
             <img class="side-icon side-icon-d" src="./assets/star.svg" alt="" />
           </div>
@@ -65,9 +61,7 @@
 
         <div class="ribbon celebrate-text celebrate-text-ribbon" id="ribbon">恭喜达成</div>
         <div class="popup-banner celebrate-text celebrate-text-popup" id="popup-banner" aria-live="polite">
-          <p class="popup-script">恭喜</p>
-          <strong class="popup-title">1 亿 Token</strong>
-          <span class="popup-subtitle">荣耀到账</span>
+          <strong class="popup-message" id="popup-message">恭喜你拿到 1 亿 Token！</strong>
         </div>
 
         <article class="celebration-card">
@@ -82,24 +76,32 @@
             </div>
           </div>
 
-          <p class="imperial-line celebrate-text celebrate-text-caption">金榜题名 · 财气满满</p>
-          <p class="card-kicker celebrate-text celebrate-text-caption" id="card-kicker">特别奖励已送达</p>
+          <p class="imperial-line celebrate-text celebrate-text-caption">
+            <span class="imperial-line-part imperial-line-left">金榜題名</span>
+            <span class="imperial-line-spacer" aria-hidden="true"></span>
+            <span class="imperial-line-part imperial-line-right">財氣滿滿</span>
+          </p>
+          <p class="card-kicker celebrate-text celebrate-text-caption" id="card-kicker">特別獎勵已送達</p>
           <h2 id="award-title" class="celebrate-text celebrate-text-title">1 亿 Token 已到账</h2>
 
           <div class="counter-panel celebrate-text celebrate-text-counter">
-            <span class="counter-label">到账总额</span>
+            <span class="counter-label">到賬總額</span>
             <strong id="token-counter">100,000,000</strong>
           </div>
 
           <div class="action-row">
-            <div class="stereo-wave stereo-wave-left" id="wave-left" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span><span></span>
-              <span></span><span></span><span></span><span></span><span></span><span></span>
+            <div class="festive-side festive-side-left" aria-hidden="true">
+              <span class="festive-badge">招財</span>
+              <span class="festive-ingot"></span>
+              <span class="festive-dot festive-dot-a"></span>
+              <span class="festive-dot festive-dot-b"></span>
             </div>
             <button id="accept-reward" class="reward-button" type="button">接受奖励</button>
-            <div class="stereo-wave stereo-wave-right" id="wave-right" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span><span></span>
-              <span></span><span></span><span></span><span></span><span></span><span></span>
+            <div class="festive-side festive-side-right" aria-hidden="true">
+              <span class="festive-badge">納福</span>
+              <span class="festive-lantern-mini"><span>喜</span></span>
+              <span class="festive-dot festive-dot-c"></span>
+              <span class="festive-dot festive-dot-d"></span>
             </div>
           </div>
         </article>

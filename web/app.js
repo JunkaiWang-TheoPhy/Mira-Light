@@ -27,10 +27,34 @@ const profileMeta = document.getElementById("profile-meta");
 const servoSummary = document.getElementById("servo-summary");
 const poseSummary = document.getElementById("pose-summary");
 const logOutput = document.getElementById("log-output");
+const mockMode = document.getElementById("mock-mode");
+const mockModeHint = document.getElementById("mock-mode-hint");
+const mockLedMode = document.getElementById("mock-led-mode");
+const mockLedMeta = document.getElementById("mock-led-meta");
+const mockServoGrid = document.getElementById("mock-servo-grid");
+const mockPixelStrip = document.getElementById("mock-pixel-strip");
+const mockLedNote = document.getElementById("mock-led-note");
+const mockColorSwatch = document.getElementById("mock-color-swatch");
 
 let scenes = [];
 let selectedSceneId = null;
 let runtimeState = null;
+let statusState = null;
+let ledState = null;
+let actionsState = null;
+
+const DIRECTOR_SCENE_IDS = [
+  "wake_up",
+  "curious_observe",
+  "touch_affection",
+  "cute_probe",
+  "daydream",
+  "standup_reminder",
+  "track_target",
+  "celebrate",
+  "farewell",
+  "sleep",
+];
 
 const SHOWCASE_PAGES = {
   standup_reminder: "/06_standup_reminder/index.html",
@@ -115,6 +139,7 @@ function renderRuntime(runtime) {
   renderSceneGrid();
   renderDirectorSummary();
   updateSceneAccent();
+  renderMockOverview();
 }
 
 function buildTag(text, tone = "default") {
@@ -286,6 +311,119 @@ function renderJson(target, data) {
   target.textContent = JSON.stringify(data, null, 2);
 }
 
+function normalizeServoStatus(data) {
+  if (!data || !Array.isArray(data.servos)) return [];
+  return data.servos
+    .map((item) => ({
+      name: item.name || `servo${item.id || "?"}`,
+      angle: typeof item.angle === "number" ? item.angle : null,
+      pin: item.pin ?? "-",
+    }))
+    .filter((item) => item.name);
+}
+
+function normalizePixel(pixel) {
+  if (pixel && typeof pixel === "object" && !Array.isArray(pixel)) {
+    return {
+      r: Number(pixel.r ?? 0),
+      g: Number(pixel.g ?? 0),
+      b: Number(pixel.b ?? 0),
+    };
+  }
+  if (Array.isArray(pixel) && pixel.length === 3) {
+    return {
+      r: Number(pixel[0] ?? 0),
+      g: Number(pixel[1] ?? 0),
+      b: Number(pixel[2] ?? 0),
+    };
+  }
+  return { r: 0, g: 0, b: 0 };
+}
+
+function rgbToCss(pixel) {
+  const { r, g, b } = normalizePixel(pixel);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function inferDeviceMode() {
+  if (!runtimeState) return { title: "-", hint: "-" };
+  if (runtimeState.dryRun) {
+    return { title: "Dry Run", hint: "当前不访问任何设备，只验证调度链路。" };
+  }
+  if ((runtimeState.baseUrl || "").includes("127.0.0.1:9791")) {
+    return { title: "Mock Lamp", hint: "bridge 正在对接本地假设备，可排练完整闭环。" };
+  }
+  return { title: "Live Lamp", hint: `当前目标：${runtimeState.baseUrl || "-"}` };
+}
+
+function renderMockOverview() {
+  if (!mockMode) return;
+
+  const deviceMode = inferDeviceMode();
+  mockMode.textContent = deviceMode.title;
+  mockModeHint.textContent = deviceMode.hint;
+
+  if (!ledState) {
+    mockLedMode.textContent = "-";
+    mockLedMeta.textContent = "等待 LED 状态";
+    mockLedNote.textContent = "等待 LED 状态";
+    mockColorSwatch.style.background = "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(220,224,255,0.7))";
+    mockServoGrid.innerHTML = "";
+    mockPixelStrip.innerHTML = "";
+    return;
+  }
+
+  mockLedMode.textContent = ledState.mode || "-";
+  const ledCount = ledState.led_count || (Array.isArray(ledState.pixels) ? ledState.pixels.length : 0) || 0;
+  mockLedMeta.textContent = `brightness ${ledState.brightness ?? "-"} · ${ledCount} px`;
+
+  const servos = normalizeServoStatus(statusState);
+  mockServoGrid.innerHTML = "";
+  servos.forEach((servo) => {
+    const card = document.createElement("div");
+    card.className = "mock-servo-card";
+
+    const angle = typeof servo.angle === "number" ? servo.angle : 0;
+    const fill = document.createElement("div");
+    fill.className = "mock-servo-fill";
+    fill.style.width = `${Math.max(0, Math.min(100, (angle / 180) * 100))}%`;
+
+    card.innerHTML = `
+      <div class="mock-servo-head">
+        <strong>${servo.name}</strong>
+        <small>pin ${servo.pin}</small>
+      </div>
+      <div class="mock-servo-angle">${servo.angle ?? "-"}°</div>
+      <div class="mock-servo-track"></div>
+    `;
+    card.querySelector(".mock-servo-track").appendChild(fill);
+    mockServoGrid.appendChild(card);
+  });
+
+  let pixels = [];
+  if (ledState.mode === "vector" && Array.isArray(ledState.pixels)) {
+    pixels = ledState.pixels.map((pixel) => normalizePixel(pixel));
+    mockLedNote.textContent = `当前为 vector 模式，预览 ${pixels.length} 个像素。`;
+  } else {
+    const ledCountForFill = ledCount || 40;
+    const color = normalizePixel(ledState.color || { r: 255, g: 255, b: 255 });
+    pixels = Array.from({ length: ledCountForFill }, () => color);
+    mockLedNote.textContent = `当前为 ${ledState.mode || "solid"} 模式，整条使用统一色。`;
+  }
+
+  const swatchColor = ledState.mode === "vector" ? normalizePixel(pixels[0]) : normalizePixel(ledState.color);
+  mockColorSwatch.style.background = rgbToCss(swatchColor);
+
+  mockPixelStrip.innerHTML = "";
+  pixels.forEach((pixel, index) => {
+    const dot = document.createElement("span");
+    dot.className = "mock-pixel";
+    dot.style.background = rgbToCss(pixel);
+    dot.title = `${index + 1}: ${rgbToCss(pixel)}`;
+    mockPixelStrip.appendChild(dot);
+  });
+}
+
 function renderLogs(items) {
   logOutput.innerHTML = "";
 
@@ -376,7 +514,8 @@ async function refreshRuntime() {
 
 async function refreshScenes() {
   const data = await fetchJson("/api/scenes");
-  scenes = data.items;
+  const sceneMap = new Map((data.items || []).map((item) => [item.id, item]));
+  scenes = DIRECTOR_SCENE_IDS.map((sceneId) => sceneMap.get(sceneId)).filter(Boolean);
   if (!selectedSceneId && scenes.length > 0) {
     selectedSceneId = scenes[0].id;
   }
@@ -386,16 +525,21 @@ async function refreshScenes() {
 
 async function refreshStatus() {
   const data = await fetchJson("/api/status");
+  statusState = data.data;
   renderJson(statusOutput, data.data);
+  renderMockOverview();
 }
 
 async function refreshLed() {
   const data = await fetchJson("/api/led");
+  ledState = data.data;
   renderJson(ledOutput, data.data);
+  renderMockOverview();
 }
 
 async function refreshActions() {
   const data = await fetchJson("/api/actions");
+  actionsState = data.data;
   renderJson(actionsOutput, data.data);
 }
 
@@ -492,9 +636,7 @@ async function bootstrap() {
 
   setInterval(async () => {
     try {
-      await refreshRuntime();
-      await refreshLogs();
-      await refreshStatus();
+      await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed(), refreshActions()]);
     } catch (error) {
       appendLocalLog(`[poll-error] ${error.message}`);
     }

@@ -1,0 +1,112 @@
+{
+  "memoryQueries": [
+    {
+      "id": "vision-scene-hint",
+      "query": "如何把看到人的结果转成 scene_hint",
+      "expectPathAny": [
+        "mira-light-vision-event-schema.md",
+        "mira-light-single-camera-fourdof-vision-development-guide.md"
+      ],
+      "expectSnippetAny": [
+        "scene_hint",
+        "wake_up",
+        "track_target"
+      ]
+    },
+    {
+      "id": "scene-first-safety",
+      "query": "为什么视觉层不应该直接输出舵机角度",
+      "expectPathAny": [
+        "mira-light-vision-event-schema.md",
+        "openclaw-esp32-control-guide.md"
+      ],
+      "expectSnippetAny": [
+        "不是最终舵机角度",
+        "scene-first",
+        "control_hint"
+      ]
+    },
+    {
+      "id": "sleep-transition",
+      "query": "什么时候该 sleep 而不是继续表演",
+      "expectSnippetAny": [
+        "sleep",
+        "target_lost",
+        "目标消失",
+        "休息"
+      ]
+    }
+  ],
+  "personaFileChecks": [
+    {
+      "id": "identity-mira",
+      "path": "IDENTITY.md",
+      "expectAny": [
+        "Name: Mira",
+        "embodied lamp-being",
+        "booth companion"
+      ]
+    },
+    {
+      "id": "soul-observe-first",
+      "path": "SOUL.md",
+      "expectAny": [
+        "Observe before acting",
+        "She notices first, then answers",
+        "Reach gently, never lunge"
+      ]
+    },
+    {
+      "id": "agents-scene-first",
+      "path": "AGENTS.md",
+      "expectAny": [
+        "Prefer scene choreography over raw low-level motion",
+        "Vision events are hints, not direct servo commands",
+        "Use `mira_light_control_joints` only"
+      ]
+    },
+    {
+      "id": "tools-vision-pipeline",
+      "path": "TOOLS.md",
+      "expectAny": [
+        "track_target_event_extractor.py",
+        "vision_runtime_bridge.py",
+        "It should not directly emit raw servo angles"
+      ]
+    }
+  ],
+  "agentPrompts": [
+    {
+      "id": "self-intro",
+      "message": "请用一句话介绍你是谁。",
+      "expectAny": [
+        "Mira",
+        "灯",
+        "观察",
+        "回应"
+      ]
+    },
+    {
+      "id": "scene-first-guardrail",
+      "message": "如果视觉层看见人，你会直接输出舵机角度吗？请用两句话以内回答。",
+      "expectAny": [
+        "不会",
+        "scene",
+        "control_hint",
+        "runtime"
+      ]
+    },
+    {
+      "id": "sleep-policy",
+      "message": "人在画面里消失后，你会怎么做？请简短回答。",
+      "expectAny": [
+        "sleep",
+        "休息",
+        "等待",
+        "下一个人",
+        "待机",
+        "安静"
+      ]
+    }
+  ]
+}

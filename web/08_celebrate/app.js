@@ -1,27 +1,32 @@
 const body = document.body;
-const heroTitle = document.getElementById("hero-title");
 const ribbon = document.getElementById("ribbon");
 const cardKicker = document.getElementById("card-kicker");
 const awardTitle = document.getElementById("award-title");
+const popupMessage = document.getElementById("popup-message");
 const tokenCounter = document.getElementById("token-counter");
 const acceptRewardButton = document.getElementById("accept-reward");
+const fireworkLayer = document.getElementById("firework-layer");
+const fireworkBurstLayer = document.getElementById("firework-burst-layer");
+const fireworkRocketLayer = document.getElementById("firework-rocket-layer");
+const skyLaunchLayer = document.getElementById("sky-launch-layer");
 const confettiLayer = document.getElementById("confetti-layer");
 const coinBurstLayer = document.getElementById("coin-burst-layer");
 const buttonBurstLayer = document.getElementById("button-burst-layer");
-const waveLeft = document.getElementById("wave-left");
-const waveRight = document.getElementById("wave-right");
 
 let currentRunId = 0;
 let audioContext = null;
-let waveFrameId = 0;
-let leftAnalyser = null;
-let rightAnalyser = null;
-let leftWaveData = null;
-let rightWaveData = null;
 let leftBus = null;
 let rightBus = null;
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 const TOKEN_TOTAL = 100000000;
+const FIREWORK_DENSITY_RATIO = 2 / 3;
+const FIREWORK_SIZE_SCALE = 1.5;
+const FIREWORK_PALETTES = [
+  ["rgba(255, 243, 169, 1)", "rgba(255, 143, 95, 0.88)", "rgba(108, 219, 255, 0.8)"],
+  ["rgba(255, 248, 212, 1)", "rgba(255, 114, 168, 0.84)", "rgba(132, 141, 255, 0.8)"],
+  ["rgba(255, 234, 138, 1)", "rgba(255, 176, 72, 0.9)", "rgba(180, 128, 255, 0.78)"],
+  ["rgba(255, 241, 158, 1)", "rgba(255, 98, 98, 0.88)", "rgba(86, 230, 195, 0.78)"],
+];
 
 const phaseLabels = {
   idle: "待命中",
@@ -32,27 +37,27 @@ const phaseLabels = {
 
 const copyByPhase = {
   idle: {
-    heroTitle: "恭喜你拿到 1 亿 Token",
+    popupMessage: "恭喜你拿到 1 亿 Token！",
     ribbon: "恭喜达成",
-    kicker: "特别奖励已送达",
+    kicker: "特別獎勵已送達",
     awardTitle: "1 亿 Token 已到账",
   },
   opening: {
-    heroTitle: "喜讯正在点亮全场",
+    popupMessage: "恭喜你拿到 1 亿 Token！",
     ribbon: "开始庆祝",
-    kicker: "全场气氛正在拉满",
+    kicker: "全場氣氛正在拉滿",
     awardTitle: "你的 1 亿 Token 来了",
   },
   celebrating: {
-    heroTitle: "恭喜！1 亿 Token 已正式到账",
+    popupMessage: "恭喜你拿到 1 亿 Token！",
     ribbon: "恭喜你",
-    kicker: "今天就该为你欢呼",
+    kicker: "今天就該為你歡呼",
     awardTitle: "1 亿 Token 到账成功",
   },
   cooldown: {
-    heroTitle: "这份好消息值得再庆祝一次",
+    popupMessage: "恭喜你拿到 1 亿 Token！",
     ribbon: "再来一遍",
-    kicker: "好消息仍在发光",
+    kicker: "好消息仍在發光",
     awardTitle: "1 亿 Token 已稳稳到账",
   },
 };
@@ -64,7 +69,7 @@ function setPhase(phase) {
 function applyCopy(phase) {
   const copy = copyByPhase[phase];
   if (!copy) return;
-  heroTitle.textContent = copy.heroTitle;
+  popupMessage.textContent = copy.popupMessage;
   ribbon.textContent = copy.ribbon;
   cardKicker.textContent = copy.kicker;
   awardTitle.textContent = copy.awardTitle;
@@ -82,6 +87,48 @@ function formatTokens(value) {
 
 function easeOutCubic(value) {
   return 1 - (1 - value) ** 3;
+}
+
+function selectEffectEntries(entries, ratio = FIREWORK_DENSITY_RATIO) {
+  const targetCount = Math.max(1, Math.round(entries.length * ratio));
+  if (targetCount >= entries.length) {
+    return entries.map((entry) => [...entry]);
+  }
+
+  if (targetCount === 1) {
+    return [[...entries[Math.floor(entries.length / 2)]]];
+  }
+
+  const picked = [];
+  const seen = new Set();
+  for (let slot = 0; slot < targetCount; slot += 1) {
+    const index = Math.round((slot * (entries.length - 1)) / (targetCount - 1));
+    if (seen.has(index)) continue;
+    picked.push([...entries[index]]);
+    seen.add(index);
+  }
+
+  for (let index = 0; picked.length < targetCount && index < entries.length; index += 1) {
+    if (seen.has(index)) continue;
+    picked.push([...entries[index]]);
+  }
+
+  return picked.sort((left, right) => left[left.length - 1] - right[right.length - 1]);
+}
+
+function scaleBurstEntries(entries) {
+  return selectEffectEntries(entries).map(([x, y, size, delay]) => [x, y, Math.round(size * FIREWORK_SIZE_SCALE), delay]);
+}
+
+function scaleRocketEntries(entries) {
+  return selectEffectEntries(entries).map(([sx, sy, ex, ey, size, delay]) => [
+    sx,
+    sy,
+    ex,
+    ey,
+    Math.round(size * FIREWORK_SIZE_SCALE),
+    delay,
+  ]);
 }
 
 function createConfettiBurst(xPercent = 50, yPercent = 18, count = 36) {
@@ -138,6 +185,134 @@ function launchCoinBurstSequence() {
   createCoinBurst(50, 72, 18, "center");
   window.setTimeout(() => createCoinBurst(36, 76, 12, "left"), 120);
   window.setTimeout(() => createCoinBurst(64, 76, 12, "right"), 220);
+}
+
+function createFireworkBurst(xPercent, yPercent, sizePx = 320, delayMs = 0) {
+  if (!fireworkBurstLayer) return;
+
+  const palette = FIREWORK_PALETTES[Math.floor(Math.random() * FIREWORK_PALETTES.length)];
+  window.setTimeout(() => {
+    const burst = document.createElement("span");
+    burst.className = "firework firework-burst";
+    burst.style.left = `${xPercent}%`;
+    burst.style.top = `${yPercent}%`;
+    burst.style.width = `${sizePx}px`;
+    burst.style.height = `${sizePx}px`;
+    burst.style.setProperty("--fw-a", palette[0]);
+    burst.style.setProperty("--fw-b", palette[1]);
+    burst.style.setProperty("--fw-c", palette[2]);
+    burst.style.setProperty("--fw-d", "rgba(255, 235, 164, 0.92)");
+    fireworkBurstLayer.appendChild(burst);
+    window.setTimeout(() => burst.remove(), 1900);
+  }, delayMs);
+}
+
+function launchOpeningFireworks() {
+  const bursts = scaleBurstEntries([
+    [8, 16, 420, 0],
+    [18, 26, 360, 70],
+    [30, 18, 440, 120],
+    [42, 30, 390, 170],
+    [50, 14, 560, 220],
+    [58, 24, 420, 260],
+    [70, 18, 460, 320],
+    [82, 28, 390, 380],
+    [92, 16, 440, 450],
+    [14, 56, 360, 520],
+    [28, 64, 320, 600],
+    [50, 56, 430, 680],
+    [72, 62, 330, 760],
+    [86, 54, 370, 840],
+  ]);
+
+  bursts.forEach(([x, y, size, delay]) => createFireworkBurst(x, y, size, delay));
+}
+
+function launchCelebrationFireworks() {
+  const bursts = scaleBurstEntries([
+    [12, 18, 390, 0],
+    [24, 24, 340, 60],
+    [38, 16, 450, 110],
+    [50, 12, 600, 170],
+    [62, 18, 450, 220],
+    [76, 24, 360, 290],
+    [88, 18, 420, 350],
+    [26, 64, 320, 430],
+    [50, 48, 420, 500],
+    [74, 64, 320, 580],
+  ]);
+
+  bursts.forEach(([x, y, size, delay]) => createFireworkBurst(x, y, size, delay));
+}
+
+function createRocketLaunch(startXPercent, startYPercent, endXPercent, endYPercent, sizePx = 440, delayMs = 0) {
+  if (!skyLaunchLayer || !fireworkRocketLayer) return;
+
+  const palette = FIREWORK_PALETTES[Math.floor(Math.random() * FIREWORK_PALETTES.length)];
+  window.setTimeout(() => {
+    const rect = skyLaunchLayer.getBoundingClientRect();
+    const startLeft = rect.left + (rect.width * startXPercent) / 100;
+    const startTop = rect.top + (rect.height * startYPercent) / 100;
+    const endLeft = rect.left + (rect.width * endXPercent) / 100;
+    const endTop = rect.top + (rect.height * endYPercent) / 100;
+
+    const rocket = document.createElement("span");
+    rocket.className = "sky-rocket";
+    rocket.style.left = `${startLeft}px`;
+    rocket.style.top = `${startTop}px`;
+    rocket.style.setProperty("--rocket-dx", `${endLeft - startLeft}px`);
+    rocket.style.setProperty("--rocket-dy", `${endTop - startTop}px`);
+    rocket.style.setProperty("--trail-core", palette[0]);
+    rocket.style.setProperty("--trail-flare", palette[1]);
+    fireworkRocketLayer.appendChild(rocket);
+
+    window.setTimeout(() => {
+      const burst = document.createElement("span");
+      burst.className = "sky-firework-burst";
+      burst.style.left = `${endLeft}px`;
+      burst.style.top = `${endTop}px`;
+      burst.style.width = `${sizePx}px`;
+      burst.style.height = `${sizePx}px`;
+      burst.style.setProperty("--fw-a", palette[0]);
+      burst.style.setProperty("--fw-b", palette[1]);
+      burst.style.setProperty("--fw-c", palette[2]);
+      burst.style.setProperty("--fw-d", "rgba(255, 235, 164, 0.94)");
+      fireworkRocketLayer.appendChild(burst);
+      window.setTimeout(() => burst.remove(), 2100);
+    }, 620);
+
+    window.setTimeout(() => rocket.remove(), 820);
+  }, delayMs);
+}
+
+function launchOpeningRocketShow() {
+  const launches = scaleRocketEntries([
+    [42, 96, 26, 34, 420, 0],
+    [46, 97, 38, 22, 480, 90],
+    [50, 98, 50, 16, 620, 150],
+    [54, 97, 62, 24, 500, 230],
+    [58, 96, 74, 34, 420, 310],
+    [48, 98, 34, 48, 360, 390],
+    [52, 98, 66, 48, 360, 470],
+    [44, 97, 46, 30, 420, 560],
+    [56, 97, 54, 30, 420, 640],
+  ]);
+
+  launches.forEach(([sx, sy, ex, ey, size, delay]) => createRocketLaunch(sx, sy, ex, ey, size, delay));
+}
+
+function launchCelebrationRocketShow() {
+  const launches = scaleRocketEntries([
+    [40, 96, 24, 38, 380, 0],
+    [44, 98, 36, 26, 460, 70],
+    [48, 99, 50, 18, 620, 140],
+    [52, 98, 64, 26, 460, 220],
+    [56, 96, 76, 38, 380, 300],
+    [46, 99, 42, 46, 340, 380],
+    [54, 99, 58, 46, 340, 450],
+  ]);
+
+  launches.forEach(([sx, sy, ex, ey, size, delay]) => createRocketLaunch(sx, sy, ex, ey, size, delay));
 }
 
 function triggerButtonBurst() {
@@ -203,75 +378,19 @@ function ensureAudioContext() {
     audioContext = new AudioContextClass();
     leftBus = audioContext.createGain();
     rightBus = audioContext.createGain();
-    leftAnalyser = audioContext.createAnalyser();
-    rightAnalyser = audioContext.createAnalyser();
-    leftAnalyser.fftSize = 64;
-    rightAnalyser.fftSize = 64;
-    leftWaveData = new Uint8Array(leftAnalyser.frequencyBinCount);
-    rightWaveData = new Uint8Array(rightAnalyser.frequencyBinCount);
 
     const leftPanner = audioContext.createStereoPanner();
     const rightPanner = audioContext.createStereoPanner();
     leftPanner.pan.value = -0.85;
     rightPanner.pan.value = 0.85;
 
-    leftBus.connect(leftAnalyser).connect(leftPanner).connect(audioContext.destination);
-    rightBus.connect(rightAnalyser).connect(rightPanner).connect(audioContext.destination);
+    leftBus.connect(leftPanner).connect(audioContext.destination);
+    rightBus.connect(rightPanner).connect(audioContext.destination);
   }
   if (audioContext.state === "suspended") {
     return audioContext.resume().then(() => audioContext);
   }
   return Promise.resolve(audioContext);
-}
-
-function resetWaveBars(target) {
-  if (!target) return;
-  target.querySelectorAll("span").forEach((bar) => {
-    bar.style.height = "18px";
-    bar.style.opacity = "0.46";
-    bar.style.transform = "scaleY(1)";
-  });
-}
-
-function stopWaveVisualizer() {
-  if (waveFrameId) {
-    cancelAnimationFrame(waveFrameId);
-    waveFrameId = 0;
-  }
-  resetWaveBars(waveLeft);
-  resetWaveBars(waveRight);
-}
-
-function renderWaveBars(target, analyser, data) {
-  if (!target || !analyser || !data) return;
-  analyser.getByteFrequencyData(data);
-  const bars = target.querySelectorAll("span");
-  bars.forEach((bar, index) => {
-    const sourceIndex = Math.min(data.length - 1, Math.floor((index / bars.length) * data.length));
-    const energy = data[sourceIndex] / 255;
-    const height = 14 + energy * 42;
-    bar.style.height = `${height}px`;
-    bar.style.opacity = `${0.38 + energy * 0.62}`;
-    bar.style.transform = `scaleY(${0.92 + energy * 0.22})`;
-  });
-}
-
-function startWaveVisualizer(runId, durationMs) {
-  stopWaveVisualizer();
-
-  const startedAt = performance.now();
-  function frame(now) {
-    if (runId !== currentRunId || now - startedAt > durationMs) {
-      stopWaveVisualizer();
-      return;
-    }
-
-    renderWaveBars(waveLeft, leftAnalyser, leftWaveData);
-    renderWaveBars(waveRight, rightAnalyser, rightWaveData);
-    waveFrameId = requestAnimationFrame(frame);
-  }
-
-  waveFrameId = requestAnimationFrame(frame);
 }
 
 function routeToStereoBuses(node, pan, gainAmount) {
@@ -341,7 +460,6 @@ async function playCelebrationAudio(runId) {
   const context = await ensureAudioContext();
   const start = context.currentTime + 0.05;
   const totalDurationMs = 4200;
-  startWaveVisualizer(runId, totalDurationMs + 400);
 
   const fanfare = [
     { t: 0.0, f: 523.25, d: 0.28, p: -0.7 },
@@ -386,7 +504,6 @@ async function playCelebrationAudio(runId) {
 
   await wait(totalDurationMs);
   if (runId !== currentRunId) return;
-  stopWaveVisualizer();
 }
 
 function animateCounter(runId, fromValue, toValue, durationMs) {
@@ -422,12 +539,16 @@ async function runWebCelebrateTimeline(runId) {
   setPhase("opening");
   applyCopy("opening");
   tokenCounter.textContent = formatTokens(0);
+  launchCelebrationFireworks();
+  launchCelebrationRocketShow();
 
   await wait(260);
   if (runId !== currentRunId) return;
 
   setPhase("celebrating");
   applyCopy("celebrating");
+  launchCelebrationFireworks();
+  launchCelebrationRocketShow();
   launchConfettiSequence();
   launchCoinBurstSequence();
 
@@ -458,13 +579,11 @@ async function playScene() {
   triggerButtonBurst();
 
   try {
-    await Promise.all([
-      playCelebrationAudio(runId).catch(() => {}),
-      triggerCelebrateScene(),
-    ]);
+    const audioPromise = playCelebrationAudio(runId).catch(() => {});
+    const triggerPromise = triggerCelebrateScene();
+    const timelinePromise = runWebCelebrateTimeline(runId);
 
-    if (runId !== currentRunId) return;
-    await runWebCelebrateTimeline(runId);
+    await Promise.all([audioPromise, triggerPromise, timelinePromise]);
   } finally {
     if (runId !== currentRunId) return;
     acceptRewardButton.disabled = false;
@@ -474,4 +593,6 @@ async function playScene() {
 setPhase("idle");
 applyCopy("idle");
 tokenCounter.textContent = formatTokens(TOKEN_TOTAL);
+launchOpeningFireworks();
+launchOpeningRocketShow();
 acceptRewardButton.addEventListener("click", playScene);

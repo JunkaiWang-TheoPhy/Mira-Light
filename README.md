@@ -1,5 +1,22 @@
 # Mira-Lume
 
+## Claw-Native
+
+The repository now includes a packaged `Claw-Native ` folder for the local
+Mira Light + OpenClaw rollout. It contains:
+
+- workspace identity templates for Mira
+- redacted local config templates
+- launchd and wrapper templates
+- overview and runbook documentation
+
+Start here:
+
+- `Claw-Native /README.md`
+- `Claw-Native /docs/mira-light-claw-native-overview.md`
+- `Claw-Native /docs/mira-light-claw-native-runbook.md`
+- `Claw-Native /docs/mira-light-claw-native-automation.md`
+
 ## Camera Receiver
 
 This repository includes a formalized HTTP camera receiver at

@@ -36,10 +36,53 @@ from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
 
 
 DEFAULT_TIMEOUT_SECONDS = 3.0
+SERVO_KEYS = ("servo1", "servo2", "servo3", "servo4")
+VALID_CONTROL_MODES = {"absolute", "relative"}
+VALID_LED_MODES = {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}
+MAX_RELATIVE_DELTA = 45
+LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
 
 
 class SceneStopped(RuntimeError):
     """Raised when a running scene is asked to stop early."""
+
+
+class PayloadValidationError(RuntimeError):
+    """Raised when incoming HTTP control payloads are structurally invalid."""
+
+
+def _coerce_int(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise PayloadValidationError(f"{field_name} must be an integer")
+    if int(value) != value:
+        raise PayloadValidationError(f"{field_name} must be an integer")
+    return int(value)
+
+
+def _normalize_rgb_triplet(value: Any, *, field_name: str) -> dict[str, int]:
+    if isinstance(value, dict):
+        allowed = {"r", "g", "b"}
+        unknown = sorted(set(value) - allowed)
+        if unknown:
+            raise PayloadValidationError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
+        missing = [channel for channel in ("r", "g", "b") if channel not in value]
+        if missing:
+            raise PayloadValidationError(f"{field_name} is missing channels: {', '.join(missing)}")
+        red = _coerce_int(value["r"], field_name=f"{field_name}.r")
+        green = _coerce_int(value["g"], field_name=f"{field_name}.g")
+        blue = _coerce_int(value["b"], field_name=f"{field_name}.b")
+    elif isinstance(value, (list, tuple)) and len(value) == 3:
+        red = _coerce_int(value[0], field_name=f"{field_name}[0]")
+        green = _coerce_int(value[1], field_name=f"{field_name}[1]")
+        blue = _coerce_int(value[2], field_name=f"{field_name}[2]")
+    else:
+        raise PayloadValidationError(f"{field_name} must be an RGB object or 3-value vector")
+
+    normalized = {"r": red, "g": green, "b": blue}
+    for channel_name, channel_value in normalized.items():
+        if not 0 <= channel_value <= 255:
+            raise PayloadValidationError(f"{field_name}.{channel_name} must be between 0 and 255")
+    return normalized
 
 
 class MiraLightClient:
@@ -323,6 +366,133 @@ class MiraLightRuntime:
             timeout_seconds=self.timeout_seconds,
             dry_run=self.dry_run,
         )
+
+    def _ensure_manual_control_allowed(self, capability: str) -> None:
+        with self._state_lock:
+            running_scene = self._running_scene
+        if running_scene:
+            raise RuntimeError(
+                f"Cannot directly {capability} while a scene is running: {running_scene}. "
+                "Stop the scene first."
+            )
+
+    def validate_control_payload(self, payload: Dict[str, Any]) -> dict[str, int | str]:
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("Control payload must be a JSON object")
+
+        allowed_keys = {"mode", *SERVO_KEYS}
+        unknown = sorted(set(payload) - allowed_keys)
+        if unknown:
+            raise PayloadValidationError(f"Unsupported control fields: {', '.join(unknown)}")
+
+        mode = payload.get("mode")
+        if mode not in VALID_CONTROL_MODES:
+            raise PayloadValidationError("mode must be one of: absolute, relative")
+
+        normalized: dict[str, int | str] = {"mode": str(mode)}
+        servo_count = 0
+        for servo_name in SERVO_KEYS:
+            if servo_name not in payload:
+                continue
+
+            servo_count += 1
+            value = _coerce_int(payload[servo_name], field_name=servo_name)
+            calibration = SERVO_CALIBRATION.get(servo_name, {})
+            hard_range = calibration.get("hard_range", [0, 180])
+            rehearsal_range = calibration.get("rehearsal_range", hard_range)
+
+            if mode == "absolute":
+                low, high = rehearsal_range
+                if not low <= value <= high:
+                    raise PayloadValidationError(
+                        f"{servo_name} absolute angle must be within rehearsal_range [{low}, {high}]"
+                    )
+            else:
+                if abs(value) > MAX_RELATIVE_DELTA:
+                    raise PayloadValidationError(
+                        f"{servo_name} relative delta must be between {-MAX_RELATIVE_DELTA} and {MAX_RELATIVE_DELTA}"
+                    )
+                hard_low, hard_high = hard_range
+                neutral = calibration.get("neutral")
+                if isinstance(neutral, int | float):
+                    projected = int(neutral) + value
+                    if not hard_low <= projected <= hard_high:
+                        raise PayloadValidationError(
+                            f"{servo_name} relative delta projects past hard_range [{hard_low}, {hard_high}]"
+                        )
+
+            normalized[servo_name] = value
+
+        if servo_count == 0:
+            raise PayloadValidationError("At least one servo field is required")
+
+        return normalized
+
+    def validate_led_payload(self, payload: Dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("LED payload must be a JSON object")
+
+        allowed_keys = {"mode", "brightness", "color", "pixels"}
+        unknown = sorted(set(payload) - allowed_keys)
+        if unknown:
+            raise PayloadValidationError(f"Unsupported LED fields: {', '.join(unknown)}")
+
+        mode = payload.get("mode")
+        if mode not in VALID_LED_MODES:
+            raise PayloadValidationError(
+                "mode must be one of: off, solid, breathing, rainbow, rainbow_cycle, vector"
+            )
+
+        normalized: dict[str, Any] = {"mode": str(mode)}
+
+        if "brightness" in payload:
+            brightness = _coerce_int(payload["brightness"], field_name="brightness")
+            if not 0 <= brightness <= 255:
+                raise PayloadValidationError("brightness must be between 0 and 255")
+            normalized["brightness"] = brightness
+
+        if mode == "vector":
+            if "color" in payload:
+                raise PayloadValidationError("color is not allowed when mode=vector; use pixels")
+            pixels = payload.get("pixels")
+            if not isinstance(pixels, list):
+                raise PayloadValidationError("pixels must be a list when mode=vector")
+            if len(pixels) != LED_PIXEL_COUNT:
+                raise PayloadValidationError(f"pixels must contain exactly {LED_PIXEL_COUNT} RGB entries")
+            normalized["pixels"] = [
+                _normalize_rgb_triplet(pixel, field_name=f"pixels[{index}]") for index, pixel in enumerate(pixels)
+            ]
+            return normalized
+
+        if "pixels" in payload:
+            raise PayloadValidationError("pixels is only supported when mode=vector")
+
+        if mode in {"solid", "breathing"}:
+            if "color" not in payload:
+                raise PayloadValidationError(f"color is required when mode={mode}")
+            normalized["color"] = _normalize_rgb_triplet(payload["color"], field_name="color")
+            return normalized
+
+        if "color" in payload:
+            raise PayloadValidationError(f"color is not supported when mode={mode}")
+
+        return normalized
+
+    def control_joints(self, payload: Dict[str, Any]) -> Any:
+        self._ensure_manual_control_allowed("control joints")
+        normalized = self.validate_control_payload(payload)
+        self.log(f"[runtime] direct joint control {json.dumps(normalized, ensure_ascii=False)}")
+        with self._state_lock:
+            self._last_command = f"control:{normalized['mode']}"
+        return self.get_client().control(normalized)
+
+    def set_led_state(self, payload: Dict[str, Any]) -> Any:
+        self._ensure_manual_control_allowed("set LED state")
+        normalized = self.validate_led_payload(payload)
+        self.log(f"[runtime] direct led control {json.dumps(normalized, ensure_ascii=False)}")
+        with self._state_lock:
+            self._last_command = f"led:{normalized['mode']}"
+        return self.get_client().set_led(normalized)
 
     def _record_step(self, step_state: dict[str, Any]) -> None:
         with self._state_lock:

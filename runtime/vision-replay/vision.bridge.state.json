@@ -1,0 +1,76 @@
+{
+  "updatedAt": "2026-04-09T06:28:57+08:00",
+  "runtime": {
+    "baseUrl": "http://127.0.0.1:9799",
+    "dryRun": true,
+    "running": false,
+    "runningScene": null,
+    "lastError": null,
+    "lastStartedAt": "2026-04-09T06:28:57+08:00",
+    "lastFinishedAt": "2026-04-09T06:28:57+08:00",
+    "lastFinishedScene": "track_target",
+    "currentStepIndex": null,
+    "currentStepTotal": null,
+    "currentStepLabel": null,
+    "currentStepType": null,
+    "lastCommand": "led:solid",
+    "deviceOnline": null,
+    "lastStatusAt": null,
+    "sceneCount": 13
+  },
+  "bridge": {
+    "lastEventSignature": null,
+    "lastTargetPresent": false,
+    "targetMissingSinceMonotonic": 8.4,
+    "lastSceneStarted": "track_target",
+    "sceneCounts": {
+      "wake_up": 1,
+      "track_target": 1
+    }
+  },
+  "lastVisionEvent": {
+    "schema_version": "1.0.0",
+    "event_type": "no_target",
+    "timestamp": "2026-04-09T06:28:57+08:00",
+    "source": {
+      "pipeline": "saved_jpeg_watch",
+      "camera_mode": "single_camera_2d",
+      "distance_mode": "monocular_heuristic"
+    },
+    "frame": {
+      "path": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/vision-demo-captures/demo-seq-008.jpg",
+      "width": 640,
+      "height": 480,
+      "seq": "008",
+      "capture_ts": null
+    },
+    "tracking": {
+      "target_present": false,
+      "target_class": "none",
+      "detector": "none",
+      "confidence": 0.0,
+      "bbox_norm": null,
+      "center_norm": null,
+      "horizontal_zone": "unknown",
+      "vertical_zone": "unknown",
+      "size_norm": null,
+      "distance_band": "unknown",
+      "approach_state": "unknown"
+    },
+    "scene_hint": {
+      "name": "sleep",
+      "reason": "当前没有稳定目标，适合回到休息或等待状态。"
+    },
+    "control_hint": {
+      "yaw_error_norm": 0.0,
+      "pitch_error_norm": 0.0,
+      "lift_intent": 0.5,
+      "reach_intent": 0.0
+    },
+    "raw_measurements": {
+      "frame_age_ms": 155.5,
+      "bbox_area_px": null,
+      "size_delta_norm": null
+    }
+  }
+}
