@@ -21,9 +21,16 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[1]
+BRIDGE_DIR = ROOT / "tools" / "mira_light_bridge"
+if str(BRIDGE_DIR) not in sys.path:
+    sys.path.insert(0, str(BRIDGE_DIR))
+
+from embodied_memory_client import EmbodiedMemoryClient
 from mira_light_runtime import MiraLightRuntime
 
 
@@ -111,6 +118,32 @@ def parse_args() -> argparse.Namespace:
         "--log-json",
         action="store_true",
         help="Print bridge decisions as JSON instead of plain text lines.",
+    )
+    parser.add_argument(
+        "--memory-context-base-url",
+        default=os.environ.get("MIRA_LIGHT_MEMORY_CONTEXT_URL", ""),
+        help="Optional memory-context base URL for session-state writes.",
+    )
+    parser.add_argument(
+        "--memory-context-enabled",
+        action="store_true",
+        default=os.environ.get("MIRA_LIGHT_MEMORY_CONTEXT_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"},
+        help="Enable session-state writes into memory-context.",
+    )
+    parser.add_argument(
+        "--memory-context-auth-token",
+        default=os.environ.get("MIRA_MEMORY_CONTEXT_AUTH_TOKEN", ""),
+        help="Bearer token for memory-context when required.",
+    )
+    parser.add_argument(
+        "--memory-context-user-id",
+        default=os.environ.get("MIRA_LIGHT_MEMORY_CONTEXT_USER_ID", "mira-light-bridge"),
+        help="Writer user id used for memory-context writes.",
+    )
+    parser.add_argument(
+        "--memory-session-id",
+        default=os.environ.get("MIRA_LIGHT_VISION_SESSION_ID", "mira-light-vision"),
+        help="Session id used for vision-bridge session-memory updates.",
     )
     return parser.parse_args()
 
@@ -228,7 +261,39 @@ def apply_scene(scene_name: str, runtime: MiraLightRuntime, bridge_state: Bridge
     log(args, "scene started", scene=scene_name, dry_run=runtime.dry_run)
 
 
-def handle_event(event: dict[str, Any], runtime: MiraLightRuntime, bridge_state: BridgeState, args: argparse.Namespace) -> None:
+def record_tracking_session_state(
+    memory_client: EmbodiedMemoryClient | None,
+    *,
+    event: dict[str, Any],
+    candidate_scene: str,
+    candidate_reason: str,
+    allowed: bool,
+    allowed_reason: str,
+    args: argparse.Namespace,
+) -> None:
+    if memory_client is None:
+        return
+    try:
+        memory_client.record_tracking_session_state(
+            event_type=str(event.get("event_type") or "unknown"),
+            candidate_scene=candidate_scene,
+            candidate_reason=candidate_reason,
+            allowed=allowed,
+            allowed_reason=allowed_reason,
+            tracking=event.get("tracking", {}) if isinstance(event.get("tracking", {}), dict) else {},
+            session_id=args.memory_session_id,
+        )
+    except Exception as exc:  # noqa: BLE001
+        log(args, "tracking session-memory write failed", error=str(exc))
+
+
+def handle_event(
+    event: dict[str, Any],
+    runtime: MiraLightRuntime,
+    bridge_state: BridgeState,
+    args: argparse.Namespace,
+    memory_client: EmbodiedMemoryClient | None = None,
+) -> None:
     now_mono = time.monotonic()
     tracking = event.get("tracking", {})
     target_present = bool(tracking.get("target_present"))
@@ -260,6 +325,16 @@ def handle_event(event: dict[str, Any], runtime: MiraLightRuntime, bridge_state:
     if allowed:
         apply_scene(candidate_scene, runtime, bridge_state, now_mono, args)
 
+    record_tracking_session_state(
+        memory_client,
+        event=event,
+        candidate_scene=candidate_scene,
+        candidate_reason=candidate_reason,
+        allowed=allowed,
+        allowed_reason=allowed_reason,
+        args=args,
+    )
+
     bridge_state.last_target_present = target_present
 
 
@@ -268,7 +343,20 @@ def main() -> int:
     event_file = args.event_file.expanduser().resolve()
     bridge_state_out = args.bridge_state_out.expanduser().resolve()
 
-    runtime = MiraLightRuntime(base_url=args.base_url, dry_run=args.dry_run)
+    memory_client = None
+    if args.memory_context_enabled and args.memory_context_base_url.strip():
+        memory_client = EmbodiedMemoryClient(
+            base_url=args.memory_context_base_url.strip().rstrip("/"),
+            auth_token=args.memory_context_auth_token,
+            user_id=args.memory_context_user_id,
+            enabled=True,
+        )
+
+    runtime = MiraLightRuntime(
+        base_url=args.base_url,
+        dry_run=args.dry_run,
+        embodied_memory_client=memory_client,
+    )
     runtime.show_experimental = args.allow_experimental or runtime.show_experimental
     bridge_state = BridgeState()
 
@@ -279,6 +367,7 @@ def main() -> int:
         base_url=runtime.base_url,
         dry_run=runtime.dry_run,
         show_experimental=runtime.show_experimental,
+        memory_context_enabled=bool(memory_client and memory_client.enabled),
     )
 
     while True:
@@ -287,7 +376,7 @@ def main() -> int:
             signature = compute_signature(event)
             if signature != bridge_state.last_event_signature:
                 bridge_state.last_event_signature = signature
-                handle_event(event, runtime, bridge_state, args)
+                handle_event(event, runtime, bridge_state, args, memory_client)
                 write_state_file(bridge_state_out, runtime, bridge_state, event)
                 if args.once:
                     return 0

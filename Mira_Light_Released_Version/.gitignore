@@ -1,0 +1,10 @@
+.DS_Store
+.env.local
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mira-light-runtime/
+captures/
+dist/
+build/

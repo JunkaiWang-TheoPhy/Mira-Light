@@ -6,6 +6,10 @@
 
 > 目前这套系统到底哪些部分已经成熟、哪些只做到一半、哪些还没有闭环。
 
+如需看 `Mira-Light` 如何具体接入 `Mira_v3` 最近新增的 layered memory / prompt-pack 链路，请优先对照：
+
+- [`mira-light-to-mira-v3-layered-memory-integration-plan.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-to-mira-v3-layered-memory-integration-plan.md)
+
 它的重点不是重复架构说明，而是把当前仓库里的：
 
 - 文档
@@ -107,4 +111,3 @@ curl http://<真实灯IP>/status
 如果把当前仓库整体看作一个工程系统，那么它现在处于：
 
 > 文档体系成熟、代码骨架完整、真实设备链路未最终闭环的阶段。
-

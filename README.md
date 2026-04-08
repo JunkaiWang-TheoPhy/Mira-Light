@@ -46,3 +46,21 @@ Additional behavior:
 - `GET /health` returns simple receiver status
 - `--save-dir` writes each received JPEG to the selected directory
 - `--log-level` controls runtime log verbosity
+
+## Architecture Docs
+
+The most relevant design notes in this repository right now are:
+
+- [docs/mira-context-proactivity-architecture.md](./docs/mira-context-proactivity-architecture.md)
+- [docs/mira-light-embodied-memory-integration-2026-04-09.md](./docs/mira-light-embodied-memory-integration-2026-04-09.md)
+- [docs/mira-light-to-mira-v3-layered-memory-integration-plan.md](./docs/mira-light-to-mira-v3-layered-memory-integration-plan.md)
+
+Those two documents together explain:
+
+- how Mira should evolve from context capture into proactive companionship
+- how `Mira-Light` now participates as an embodied memory producer for cloud Mira
+
+The layered-memory execution guide additionally explains:
+
+- how to connect `Mira-Light` into `Mira_v3` memory-context, session-memory, and prompt-pack
+- how to implement and run that integration step by step

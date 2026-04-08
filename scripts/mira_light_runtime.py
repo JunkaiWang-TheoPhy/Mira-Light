@@ -263,10 +263,17 @@ class BoothController:
 class MiraLightRuntime:
     """Shared runtime facade for terminal and local web console use."""
 
-    def __init__(self, base_url: str, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS, dry_run: bool = False):
+    def __init__(
+        self,
+        base_url: str,
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+        dry_run: bool = False,
+        embodied_memory_client: Any | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
+        self.embodied_memory_client = embodied_memory_client
         self.show_experimental = os.environ.get("MIRA_LIGHT_SHOW_EXPERIMENTAL", "").strip().lower() in {
             "1",
             "true",
@@ -293,6 +300,9 @@ class MiraLightRuntime:
         self._last_command: str | None = None
         self._device_online: bool | None = None
         self._last_status_at: str | None = None
+
+    def set_embodied_memory_client(self, client: Any | None) -> None:
+        self.embodied_memory_client = client
 
     def _now(self) -> str:
         return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
@@ -407,6 +417,34 @@ class MiraLightRuntime:
             "poses": POSES,
         }
 
+    def _record_scene_outcome(self, scene_name: str, status: str, error: str | None = None) -> None:
+        client = self.embodied_memory_client
+        if client is None:
+            return
+        try:
+            client.record_scene_outcome(
+                scene_name=scene_name,
+                status=status,
+                runtime_state=self.get_runtime_state(),
+                error=error,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"[memory-warning] record_scene_outcome failed: {exc}")
+
+    def _record_scene_session_state(self, scene_name: str, phase: str, error: str | None = None) -> None:
+        client = self.embodied_memory_client
+        if client is None:
+            return
+        try:
+            client.record_scene_session_state(
+                scene_name=scene_name,
+                phase=phase,
+                runtime_state=self.get_runtime_state(),
+                error=error,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"[memory-warning] record_scene_session_state failed: {exc}")
+
     def reset_lamp(self) -> Any:
         self.log("[runtime] reset lamp")
         with self._state_lock:
@@ -458,6 +496,7 @@ class MiraLightRuntime:
             self._current_step_type = "scene"
             self._last_command = f"run-scene:{scene_name}"
         self.log(f"[runtime] start scene {scene_name}")
+        self._record_scene_session_state(scene_name, "started")
 
     def _finish_run(self, scene_name: str, error: str | None = None) -> None:
         with self._state_lock:
@@ -473,6 +512,11 @@ class MiraLightRuntime:
             self.log(f"[runtime-error] scene {scene_name}: {error}")
         else:
             self.log(f"[runtime] finished scene {scene_name}")
+        status = "completed"
+        if error:
+            status = "stopped" if isinstance(error, str) and "stop requested" in error.lower() else "failed"
+        self._record_scene_outcome(scene_name, status, error)
+        self._record_scene_session_state(scene_name, status, error)
         self._run_lock.release()
 
     def run_scene_blocking(self, scene_name: str) -> dict[str, Any]:
