@@ -25,6 +25,7 @@ from __future__ import annotations
 from collections import deque
 from datetime import datetime, timezone
 import json
+import os
 import threading
 import time
 import urllib.error
@@ -248,19 +249,12 @@ class BoothController:
             return
 
         if step_type == "audio":
-            # TODO:
-            # We still have not decided whether audio playback should be handled by:
-            # - a local laptop media player
-            # - a browser audio element
-            # - a separate booth operator app
-            self._log(f"[todo-audio] play audio asset: {step['name']}")
+            self._log(f"[skip-audio] asset={step['name']}")
             return
 
         if step_type == "sensor_gate":
-            # TODO:
-            # This is a placeholder for future automatic gating:
-            # person_detected_near, hand_near, tracked_object_ready, voice intent, etc.
-            self._log(f"[todo-sensor] wait for sensor condition: {step['name']}")
+            condition = step.get("name") or step.get("condition") or "unknown"
+            self._log(f"[skip-sensor-gate] condition={condition}")
             return
 
         raise ValueError(f"Unsupported step type: {step_type}")
@@ -273,6 +267,12 @@ class MiraLightRuntime:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
+        self.show_experimental = os.environ.get("MIRA_LIGHT_SHOW_EXPERIMENTAL", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
         self._log_lock = threading.Lock()
         self._state_lock = threading.Lock()
@@ -333,9 +333,15 @@ class MiraLightRuntime:
         self.log(f"[config] base_url={self.base_url} dry_run={self.dry_run}")
         return self.get_runtime_state()
 
+    def is_scene_available(self, scene_name: str) -> bool:
+        readiness = SCENE_META.get(scene_name, {}).get("readiness", "prototype")
+        return self.show_experimental or readiness == "ready"
+
     def list_scenes(self) -> list[dict[str, Any]]:
         items = []
         for scene_id, scene in SCENES.items():
+            if not self.is_scene_available(scene_id):
+                continue
             meta = SCENE_META.get(scene_id, {})
             items.append(
                 {
@@ -430,6 +436,11 @@ class MiraLightRuntime:
     def _prepare_run(self, scene_name: str) -> None:
         if scene_name not in SCENES:
             raise KeyError(f"Unknown scene: {scene_name}")
+        if not self.is_scene_available(scene_name):
+            raise RuntimeError(
+                f"Scene not enabled for minimal mode: {scene_name}. "
+                "Set MIRA_LIGHT_SHOW_EXPERIMENTAL=1 to run non-ready scenes."
+            )
 
         if not self._run_lock.acquire(blocking=False):
             with self._state_lock:

@@ -12,41 +12,36 @@
 
 ## 接口映射说明
 
-基于 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)，当前程序层只能直接控制 4 个舵机：
+基于 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 与 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)，当前版本严格按 4 个舵机关节实现：
 
 - `servo1`：底座转向
 - `servo2`：下臂抬升
 - `servo3`：前段抬升 / 前探
 - `servo4`：灯头俯仰 / 微表情
 
-根据 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)，当前版本按 4 个关节理解和实现，不再额外假设底部前后摇摆的第 5 个自由度。
+不再假设底部存在额外的前后摇摆自由度。
 
-## 建议姿态
+## 当前代码对应姿态
 
 ```json
 {
-  "sleep":   {"servo1": 90, "servo2": 80, "servo3": 82,  "servo4": 98},
-  "wakeHalf":{"servo1": 90, "servo2": 88, "servo3": 90,  "servo4": 94},
-  "wakeHigh":{"servo1": 90, "servo2": 98, "servo3": 108, "servo4": 84},
-  "neutral": {"servo1": 96, "servo2": 96, "servo3": 98,  "servo4": 90}
+  "sleep":    {"servo1": 90, "servo2": 80,  "servo3": 82,  "servo4": 98},
+  "wakeHalf": {"servo1": 90, "servo2": 88,  "servo3": 90,  "servo4": 94},
+  "wakeHigh": {"servo1": 90, "servo2": 98,  "servo3": 108, "servo4": 84},
+  "stretch":  {"servo1": 90, "servo2": 100, "servo3": 112, "servo4": 82},
+  "neutral":  {"servo1": 96, "servo2": 96,  "servo3": 98,  "servo4": 90}
 }
 ```
 
-## 灯光策略
-
-- 起始微光：暖琥珀 `rgb(255,180,120)`，亮度 `8`
-- 醒来过渡：同色呼吸，亮度上限 `42`
-- 正常状态：柔暖白 `rgb(255,220,180)`，亮度 `132`
-
-如果你希望更明显的“渐变色”观感，但设备只支持 `solid/breathing`，建议用多次 `POST /led` 模拟：
+## 灯光时序
 
 ```json
 [
-  {"mode":"solid","brightness":8,"color":{"r":255,"g":180,"b":120}},
-  {"mode":"solid","brightness":18,"color":{"r":255,"g":190,"b":135}},
-  {"mode":"solid","brightness":30,"color":{"r":255,"g":205,"b":155}},
-  {"mode":"breathing","brightness":42,"color":{"r":255,"g":220,"b":180}},
-  {"mode":"solid","brightness":132,"color":{"r":255,"g":220,"b":180}}
+  {"atMs":0,    "mode":"solid",     "brightness":6,   "color":{"r":255,"g":176,"b":116}},
+  {"atMs":220,  "mode":"solid",     "brightness":12,  "color":{"r":255,"g":188,"b":130}},
+  {"atMs":400,  "mode":"solid",     "brightness":22,  "color":{"r":255,"g":200,"b":148}},
+  {"atMs":580,  "mode":"breathing", "brightness":42,  "color":{"r":255,"g":214,"b":172}},
+  {"atMs":2660, "mode":"solid",     "brightness":132, "color":{"r":255,"g":220,"b":180}}
 ]
 ```
 
@@ -54,115 +49,74 @@
 
 | 步骤 | 起始时间 | 时长 | 动作 | 程序说明 |
 | --- | --- | --- | --- | --- |
-| 0 | `0ms` | `0ms` | 进入睡姿 | `POST /control` 绝对角度到 `sleep` |
-| 1 | `0ms` | `280ms` | 微光亮起 | `POST /led` 暖色低亮 |
-| 2 | `280ms` | `480ms` | 呼吸变亮 | `POST /led` 切 `breathing` |
-| 3 | `760ms` | `420ms` | 身体抬到半醒 | `POST /control` 到 `wakeHalf` |
-| 4 | `1180ms` | `320ms` | 继续抬高、仰头 | `POST /control` 到 `wakeHigh` |
-| 5 | `1500ms` | `420ms` | 伸懒腰停顿 | 保持姿态，灯继续呼吸 |
-| 6 | `1920ms` | `480ms` | 回到正常位并抖两下 | `POST /control` 回 `neutral`，再做两次小幅相对摆动 |
-| 7 | `2400ms` | `320ms` | 转向评委 | `servo1` 向评委方向微转 |
-| 8 | `2720ms` | `0ms` | 常亮结束态 | `POST /led` 切柔暖常亮 |
+| 0 | `0ms` | `0ms` | 进入睡姿 | `pose("sleep")` |
+| 1 | `0ms` | `220ms` | 微光亮起 | 最低亮度暖琥珀 |
+| 2 | `220ms` | `180ms` | 第一段提亮 | 稍微亮一点，仍然克制 |
+| 3 | `400ms` | `180ms` | 第二段提亮 | 从“睁眼”过渡到“醒来” |
+| 4 | `580ms` | `420ms` | 呼吸灯过渡 | 让情绪感先起来 |
+| 5 | `1000ms` | `360ms` | 身体抬到半醒 | `pose("wake_half")` |
+| 6 | `1360ms` | `320ms` | 抬到高位 | `absolute(90,98,108,84)` |
+| 7 | `1680ms` | `700ms` | 伸懒腰停顿 | 高于正常位并后仰，按 PDF2 停约 1 秒 |
+| 8 | `2380ms` | `720ms` | 回到正常位并抖毛 | 回 `neutral` 后做 6 个小抖动阶段 |
+| 9 | `3100ms` | `0ms` | 看向评委并常亮收尾 | `absolute(96,96,98,90)` + 柔暖常亮 |
 
-## 动作细节
-
-### 1. 睡姿进入
-
-```json
-{
-  "mode": "absolute",
-  "servo1": 90,
-  "servo2": 80,
-  "servo3": 82,
-  "servo4": 98
-}
-```
-
-### 2. 半醒
-
-```json
-{
-  "mode": "absolute",
-  "servo1": 90,
-  "servo2": 88,
-  "servo3": 90,
-  "servo4": 94
-}
-```
-
-### 3. 醒到最高点
-
-```json
-{
-  "mode": "absolute",
-  "servo1": 90,
-  "servo2": 98,
-  "servo3": 108,
-  "servo4": 84
-}
-```
-
-### 4. 抖毛动作
-
-这里不建议大幅摇头，而是用底座和灯头一起做小幅抖动：
+## 抖毛动作细节
 
 ```json
 [
-  {"mode":"relative","servo1":4,"servo4":-3},
+  {"mode":"relative","servo1":4,  "servo4":-2},
   {"delayMs":120},
-  {"mode":"relative","servo1":-8,"servo4":6},
+  {"mode":"relative","servo1":-8, "servo4":4},
   {"delayMs":120},
-  {"mode":"relative","servo1":4,"servo4":-3},
+  {"mode":"relative","servo1":4,  "servo4":-2},
   {"delayMs":120},
-  {"mode":"relative","servo1":-4,"servo4":3},
+  {"mode":"relative","servo1":-4, "servo4":2},
   {"delayMs":120},
-  {"mode":"relative","servo1":8,"servo4":-6},
+  {"mode":"relative","servo1":8,  "servo4":-4},
   {"delayMs":120},
-  {"mode":"relative","servo1":-4,"servo4":3}
+  {"mode":"relative","servo1":-4, "servo4":2}
 ]
 ```
 
-### 5. 转向评委
-
-默认先向左前方看：
-
-```json
-{
-  "mode": "absolute",
-  "servo1": 96,
-  "servo2": 96,
-  "servo3": 98,
-  "servo4": 90
-}
-```
-
-## 可直接改写成程序步骤
+## 当前代码对应片段
 
 ```python
 steps = [
-    {"type": "control", "atMs": 0, "payload": {"mode": "absolute", "servo1": 90, "servo2": 80, "servo3": 82, "servo4": 98}},
-    {"type": "led", "atMs": 0, "payload": {"mode": "solid", "brightness": 8, "color": {"r": 255, "g": 180, "b": 120}}},
-    {"type": "delay", "ms": 280},
-    {"type": "led", "payload": {"mode": "breathing", "brightness": 42, "color": {"r": 255, "g": 180, "b": 120}}},
-    {"type": "delay", "ms": 480},
-    {"type": "control", "payload": {"mode": "absolute", "servo1": 90, "servo2": 88, "servo3": 90, "servo4": 94}},
-    {"type": "delay", "ms": 420},
-    {"type": "control", "payload": {"mode": "absolute", "servo1": 90, "servo2": 98, "servo3": 108, "servo4": 84}},
-    {"type": "delay", "ms": 420},
-    {"type": "control", "payload": {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}},
-    {"type": "control", "payload": {"mode": "relative", "servo1": 4, "servo4": -3}},
-    {"type": "delay", "ms": 120},
-    {"type": "control", "payload": {"mode": "relative", "servo1": -8, "servo4": 6}},
-    {"type": "delay", "ms": 120},
-    {"type": "control", "payload": {"mode": "relative", "servo1": 4, "servo4": -3}},
-    {"type": "delay", "ms": 120},
-    {"type": "control", "payload": {"mode": "absolute", "servo1": 96, "servo2": 96, "servo3": 98, "servo4": 90}},
-    {"type": "led", "payload": {"mode": "solid", "brightness": 132, "color": {"r": 255, "g": 220, "b": 180}}}
+    pose("sleep"),
+    led("solid", brightness=6, color={"r": 255, "g": 176, "b": 116}),
+    delay(220),
+    led("solid", brightness=12, color={"r": 255, "g": 188, "b": 130}),
+    delay(180),
+    led("solid", brightness=22, color={"r": 255, "g": 200, "b": 148}),
+    delay(180),
+    led("breathing", brightness=42, color={"r": 255, "g": 214, "b": 172}),
+    delay(420),
+    pose("wake_half"),
+    delay(360),
+    absolute(servo1=90, servo2=98, servo3=108, servo4=84),
+    delay(320),
+    absolute(servo1=90, servo2=100, servo3=112, servo4=82),
+    delay(700),
+    absolute(servo1=90, servo2=96, servo3=98, servo4=90),
+    nudge(servo1=4, servo4=-2),
+    delay(120),
+    nudge(servo1=-8, servo4=4),
+    delay(120),
+    nudge(servo1=4, servo4=-2),
+    delay(120),
+    nudge(servo1=-4, servo4=2),
+    delay(120),
+    nudge(servo1=8, servo4=-4),
+    delay(120),
+    nudge(servo1=-4, servo4=2),
+    delay(120),
+    absolute(servo1=96, servo2=96, servo3=98, servo4=90),
+    led("solid", brightness=132, color=SOFT_WARM),
 ]
 ```
 
 ## 调试建议
 
 - 如果看起来像“抽动”，先缩小 `servo1` 与 `servo4` 的抖动幅度。
-- 如果像“没睡醒”而不是“伸懒腰”，就提高 `wakeHigh.servo3`，同时把 `servo4` 再减小 2 到 4 度，让灯头更仰。
-- 如果结构有拉扯感，先把 `servo2/servo3` 的最高位一起各减 4 到 6 度。
+- 如果像“没睡醒”而不是“伸懒腰”，提高 `servo3` 高位并让 `servo4` 再减小 2 到 4 度。
+- 如果结构有拉扯感，先把 `servo2/servo3` 的高位一起各减 4 到 6 度。

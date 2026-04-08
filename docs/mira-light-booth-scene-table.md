@@ -2,6 +2,17 @@
 
 ## 文档目的
 
+注意：
+
+当前仓库里的动作实现与排练审计，已经优先以 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf) 为准。
+
+本文件保留为场景总表和导演层阅读材料，但其中部分动作描述仍带有早期稿件口径，不应直接视为当前代码真值。
+
+当前实现状态、已修问题和剩余缺口请优先对照：
+
+- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+
 这份文档把 [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf) 中的自然语言场景，整理成可以直接用于：
 
 - 展位排练

@@ -2,6 +2,10 @@
   "name": "mira-light-bridge-plugin",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.mjs"
+    ]
+  }
 }
-

@@ -2,6 +2,22 @@
 
 ## 文档目的
 
+注意：
+
+当前仓库里的“动作真值”已经切换到 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)。
+
+本文件仍然有价值，但现在更适合作为：
+
+- 自然语言到代码的翻译方法说明
+- 原语库设计思路说明
+
+而不是当前排练版动作的唯一依据。
+
+当前实现状态与审计结果请优先对照：
+
+- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+
 [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf) 里的内容大多是自然语言描述，例如：
 
 - “像小动物刚醒来抖抖毛”

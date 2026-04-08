@@ -16,6 +16,7 @@ const summaryStepCounter = document.getElementById("summary-step-counter");
 const summaryHostCue = document.getElementById("summary-host-cue");
 const summaryRequirements = document.getElementById("summary-requirements");
 const summaryFallback = document.getElementById("summary-fallback");
+const summaryShowcaseLink = document.getElementById("summary-showcase-link");
 const readinessGrid = document.getElementById("readiness-grid");
 
 const statusOutput = document.getElementById("status-output");
@@ -30,6 +31,14 @@ const logOutput = document.getElementById("log-output");
 let scenes = [];
 let selectedSceneId = null;
 let runtimeState = null;
+
+const SHOWCASE_PAGES = {
+  standup_reminder: "/06_standup_reminder/index.html",
+  track_target: "/07_track_target/index.html",
+  celebrate: "/08_celebrate/index.html",
+  farewell: "/09_farewell/index.html",
+  sleep: "/10_sleep/index.html",
+};
 
 const ATTACHMENT_DEFS = [
   { id: "base_calibrated", label: "基础姿态已校准", hint: "neutral / sleep / extend 等关键 pose 已调好" },
@@ -221,6 +230,19 @@ function renderDirectorSummary() {
 
   summaryHostCue.textContent = scene.operatorCue || scene.hostLine || "-";
   summaryFallback.textContent = scene.fallbackHint || "-";
+
+  const showcaseHref = SHOWCASE_PAGES[scene.id];
+  if (showcaseHref) {
+    summaryShowcaseLink.textContent = "打开当前场景展示页";
+    summaryShowcaseLink.href = showcaseHref;
+    summaryShowcaseLink.classList.remove("is-disabled");
+    summaryShowcaseLink.removeAttribute("aria-disabled");
+  } else {
+    summaryShowcaseLink.textContent = "当前场景暂无单独展示页";
+    summaryShowcaseLink.href = "#";
+    summaryShowcaseLink.classList.add("is-disabled");
+    summaryShowcaseLink.setAttribute("aria-disabled", "true");
+  }
 
   summaryRequirements.innerHTML = "";
   (scene.requirements || []).forEach((item, index) => {

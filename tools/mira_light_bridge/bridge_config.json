@@ -9,6 +9,6 @@
   "reverseTunnel": {
     "enabled": false,
     "remote": "ubuntu@43.160.217.153",
-    "remoteBindPort": 19783
+    "remoteBindPort": 9783
   }
 }

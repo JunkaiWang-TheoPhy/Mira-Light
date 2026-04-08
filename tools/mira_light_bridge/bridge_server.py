@@ -233,6 +233,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"ok": True, "runtime": self.server.runtime.get_runtime_state()})
                 return
 
+            if path == "/v1/mira-light/logs":
+                self._send_json(200, {"ok": True, "items": self.server.runtime.get_logs()})
+                return
+
             if path == "/v1/mira-light/scenes":
                 self._send_json(200, {"ok": True, "items": self.server.runtime.list_scenes()})
                 return
@@ -288,6 +292,23 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             if path == "/v1/mira-light/reset":
                 self._send_json(200, {"ok": True, "data": self.server.runtime.reset_lamp()})
+                return
+
+            if path == "/v1/mira-light/apply-pose":
+                body = self._read_json_body()
+                pose_name = body.get("pose")
+                if not isinstance(pose_name, str) or not pose_name:
+                    self._send_json(400, {"ok": False, "error": "pose is required"})
+                    return
+                self._send_json(200, {"ok": True, "data": self.server.runtime.apply_pose(pose_name)})
+                return
+
+            if path == "/v1/mira-light/operator/stop-to-neutral":
+                self._send_json(200, {"ok": True, "runtime": self.server.runtime.stop_to_pose("neutral")})
+                return
+
+            if path == "/v1/mira-light/operator/stop-to-sleep":
+                self._send_json(200, {"ok": True, "runtime": self.server.runtime.stop_to_pose("sleep")})
                 return
 
             if path == "/v1/mira-light/control":

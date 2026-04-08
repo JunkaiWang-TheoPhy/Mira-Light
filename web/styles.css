@@ -742,6 +742,30 @@ button.danger {
   margin-top: 6px;
 }
 
+.summary-link {
+  color: var(--text-strong);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(121, 165, 205, 0.18);
+  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.summary-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(98, 144, 207, 0.36);
+}
+
+.summary-link.is-disabled {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
 .summary-text {
   margin: 0;
   color: var(--text);
