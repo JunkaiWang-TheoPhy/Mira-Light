@@ -135,6 +135,9 @@ function renderSceneGrid() {
     const requirements = (scene.requirements || []).slice(0, 2);
     const unmetCount = (scene.requirementIds || []).filter((id) => readinessState[id] !== true).length;
 
+    const halo = document.createElement("div");
+    halo.className = "scene-halo";
+
     const badges = document.createElement("div");
     badges.className = "scene-badges";
     badges.appendChild(buildTag(scene.priority || "P2", "priority"));
@@ -163,6 +166,7 @@ function renderSceneGrid() {
     needs.className = "scene-needs";
     requirements.forEach((item) => needs.appendChild(buildTag(item, "need")));
 
+    card.appendChild(halo);
     card.appendChild(badges);
     card.appendChild(title);
     card.appendChild(id);

@@ -90,6 +90,24 @@
   }
 }
 
+@keyframes sceneHalo {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(119, 183, 226, 0.22),
+      0 16px 38px rgba(112, 168, 211, 0.14);
+  }
+  50% {
+    box-shadow:
+      0 0 0 20px rgba(119, 183, 226, 0),
+      0 24px 54px rgba(112, 168, 211, 0.24);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(119, 183, 226, 0),
+      0 16px 38px rgba(112, 168, 211, 0.14);
+  }
+}
+
 body {
   margin: 0;
   font-family: "Baskerville", "IBM Plex Sans", "Segoe UI", sans-serif;
@@ -259,6 +277,70 @@ body[data-scene="dream"] {
   height: 20px;
   animation-duration: 14s;
   animation-delay: -6s;
+}
+
+.bubble-9 {
+  left: 11%;
+  width: 68px;
+  height: 68px;
+  animation-duration: 24s;
+  animation-delay: -12s;
+}
+
+.bubble-10 {
+  left: 19%;
+  width: 28px;
+  height: 28px;
+  animation-duration: 15s;
+  animation-delay: -7s;
+}
+
+.bubble-11 {
+  left: 35%;
+  width: 76px;
+  height: 76px;
+  animation-duration: 26s;
+  animation-delay: -15s;
+}
+
+.bubble-12 {
+  left: 43%;
+  width: 24px;
+  height: 24px;
+  animation-duration: 13s;
+  animation-delay: -4s;
+}
+
+.bubble-13 {
+  left: 58%;
+  width: 62px;
+  height: 62px;
+  animation-duration: 22s;
+  animation-delay: -16s;
+}
+
+.bubble-14 {
+  left: 69%;
+  width: 30px;
+  height: 30px;
+  animation-duration: 17s;
+  animation-delay: -9s;
+}
+
+.bubble-15 {
+  left: 81%;
+  width: 82px;
+  height: 82px;
+  animation-duration: 29s;
+  animation-delay: -18s;
+}
+
+.bubble-16 {
+  left: 88%;
+  width: 26px;
+  height: 26px;
+  animation-duration: 16s;
+  animation-delay: -10s;
 }
 
 .page {
@@ -483,6 +565,18 @@ button.danger {
   box-shadow: 0 12px 30px rgba(111, 165, 208, 0.09);
 }
 
+.scene-card .scene-halo {
+  position: absolute;
+  inset: -18% -14%;
+  border-radius: 32px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(126, 193, 232, 0.22), transparent 60%);
+  opacity: 0.68;
+  filter: blur(16px);
+  transform: scale(0.95);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
 .scene-card::before {
   content: "";
   position: absolute;
@@ -590,9 +684,19 @@ button.danger {
   box-shadow: 0 18px 36px rgba(116, 173, 216, 0.16);
 }
 
+.scene-card.is-selected .scene-halo {
+  opacity: 0.92;
+  transform: scale(1);
+}
+
 .scene-card.is-running {
-  border-color: rgba(102, 162, 218, 0.75);
-  animation: pulseGlow 2.2s ease-in-out infinite;
+  border-color: rgba(102, 162, 218, 0.78);
+  animation: sceneHalo 2.3s ease-in-out infinite;
+}
+
+.scene-card.is-running .scene-halo {
+  opacity: 1;
+  transform: scale(1.04);
 }
 
 .hint-chip {

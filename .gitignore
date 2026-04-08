@@ -1,4 +1,6 @@
 .omx/
 __pycache__/
 *.pyc
+.venv/
+.DS_Store
 config/mira_light_profile.local.json
