@@ -64,38 +64,46 @@ zsh scripts/setup_cam_receiver_env.sh
 zsh scripts/run_cam_receiver.sh
 ```
 
-#### A2.5. 先准备本机 MLX 运行环境
+#### A2.5. `macOS 13.0` 优先走 `llama.cpp`
 
 ```bash
-bash scripts/setup_mlx_qwen_env.sh
-source ~/.openclaw/mira-light-mlx/.venv/bin/activate
+bash scripts/setup_llama_cpp_env.sh
 ```
 
-这个环境脚本会：
+这台机器当前更推荐：
 
-- 创建独立虚拟环境
-- 安装 `mlx-lm`
-- 保持 Mira 主仓库的 `requirements.txt` 不被强行改写
+- `llama.cpp`
+- `Qwen` 官方 `GGUF`
+- 先用 `Qwen2.5-3B-Instruct q4_k_m`
 
-#### A2.6. 把本机 MLX Qwen2.5 下载到本地
+当前要特别注意：
 
-当前这台 `macOS 13.0` 机器不建议走 `Ollama`，更适合直接走 `MLX` 模型仓库。
+- `MLX` 模型文件虽然可以先下载
+- 但当前官方 `MLX` runtime 要求 `macOS >= 14.0`
+- 所以这台 `13.0` 机器要真正常驻本地推理，应该切到 `llama.cpp`
 
-推荐先下轻量版本：
+#### A2.6. 下载官方 Qwen GGUF 到本地
+
+推荐先下轻量且最稳的版本：
 
 ```bash
-python3 scripts/download_mlx_model.py --model qwen2.5-3b
+python3 scripts/download_llama_cpp_model.py --model qwen2.5-3b
 ```
 
-如果后续觉得总结、长文档理解、结构化输出还不够稳，再下：
+这会下载官方仓库：
+
+- `Qwen/Qwen2.5-3B-Instruct-GGUF`
+- 默认文件：`qwen2.5-3b-instruct-q4_k_m.gguf`
+
+如果后续觉得质量还不够，再下 7B：
 
 ```bash
-python3 scripts/download_mlx_model.py --model qwen2.5-7b
+python3 scripts/download_llama_cpp_model.py --model qwen2.5-7b
 ```
 
-脚本默认能力：
+这个下载脚本复用了前面那套“可中断恢复”的思路，但目标文件改成了 `GGUF`：
 
-- 从 `mlx-community` 的 Hugging Face 仓库拉取模型快照
+- 从 `Qwen` 官方 Hugging Face `GGUF` 仓库拉取模型
 - 下载中断后保留 `.part` 文件
 - 再次执行时自动从断点续传
 - 对瞬时网络错误自动重试
@@ -105,35 +113,57 @@ python3 scripts/download_mlx_model.py --model qwen2.5-7b
 也可以单独验证本地模型目录是否完整：
 
 ```bash
-python3 scripts/download_mlx_model.py --model qwen2.5-3b --verify
+python3 scripts/download_llama_cpp_model.py --model qwen2.5-3b --verify
 ```
 
 默认下载目录：
 
 ```text
-~/Library/Caches/Mira-Light/mlx-models/
+~/Library/Caches/Mira-Light/llama-cpp-models/
 ```
 
-对于当前这条 Mira 本地主脑路径，先把 `Qwen2.5-3B-Instruct-4bit` 跑通即可，`gemma3:12b` 不是必需前置。
+要说明白的一点是：
 
-#### A2.7. 对本地 MLX 模型做一次 smoke test
+- 之前已经下载好的 `MLX` 模型文件不能直接给 `llama.cpp` 用
+- 现在复用的是下载/续传/verify 的工程思路
+- 真正运行时仍然需要重新下载 `GGUF`
+
+#### A2.7. 用 `llama.cpp` 做一次 smoke test
 
 ```bash
-python3 scripts/smoke_test_mlx_model.py --model qwen2.5-3b
+python3 scripts/smoke_test_llama_cpp.py --model qwen2.5-3b
 ```
 
 如果你已经下载了 7B，也可以直接指向本地目录：
 
 ```bash
-python3 scripts/smoke_test_mlx_model.py \
-  --model-dir ~/Library/Caches/Mira-Light/mlx-models/Qwen2.5-7B-Instruct-4bit
+python3 scripts/smoke_test_llama_cpp.py \
+  --model-dir ~/Library/Caches/Mira-Light/llama-cpp-models/Qwen2.5-7B-Instruct-GGUF \
+  --model-file qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf
 ```
 
 这一步的目标不是调优，而是确认三件事：
 
-- `mlx-lm` 在当前机器能正常加载模型
-- tokenizer / chat template 可以正常工作
+- `llama.cpp` 在当前机器能正常启动
+- 本地 `GGUF` 文件已经可被加载
 - 本地生成链路已经通了
+
+对这台 `macOS 13.0` 机器，脚本默认会走更稳的 `CPU-only` 路线，也就是 `-ngl 0`。
+
+#### A2.8. 如果要常驻服务，启动本地 `llama-server`
+
+```bash
+bash scripts/run_llama_cpp_server.sh
+```
+
+默认监听：
+
+- `127.0.0.1:8012`
+
+当前默认仍然是：
+
+- `Qwen2.5-3B-Instruct q4_k_m`
+- `CPU-only`
 
 #### A3. 本机大模型读取输入
 

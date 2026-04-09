@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import platform
 from pathlib import Path
 import sys
 
@@ -57,6 +58,13 @@ def main() -> int:
     try:
         from mlx_lm import generate, load
     except ImportError as exc:
+        message = str(exc)
+        if "mlx/core" in message or "mlx.core" in message or "built for macOS" in message or "dlopen" in message:
+            raise SystemExit(
+                "MLX failed to load on this machine.\n"
+                f"Platform: macOS {platform.mac_ver()[0] or 'unknown'}\n"
+                "The current official MLX runtime requires macOS 14.0 or higher."
+            ) from exc
         raise SystemExit(
             "mlx-lm is not installed in the current Python environment.\n"
             "Install it with: bash scripts/setup_mlx_qwen_env.sh"

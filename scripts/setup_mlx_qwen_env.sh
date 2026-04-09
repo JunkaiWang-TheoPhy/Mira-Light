@@ -7,6 +7,29 @@ SERVICE_ROOT="${MIRA_LIGHT_MLX_ROOT:-$HOME/.openclaw/mira-light-mlx}"
 VENV_DIR="${SERVICE_ROOT}/.venv"
 REQUIRED_PYTHON_MINOR="${MIRA_LIGHT_MLX_PYTHON_MINOR:-3.11}"
 
+require_supported_macos() {
+  if [[ "${MIRA_LIGHT_SKIP_MLX_OS_CHECK:-0}" == "1" ]]; then
+    return 0
+  fi
+  if ! command -v sw_vers >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local product_version=""
+  product_version="$(sw_vers -productVersion 2>/dev/null || true)"
+  if [[ -z "${product_version}" ]]; then
+    return 0
+  fi
+
+  local major="${product_version%%.*}"
+  if [[ "${major}" -lt 14 ]]; then
+    echo "MLX currently requires macOS 14.0 or higher, but this machine is ${product_version}." >&2
+    echo "You can still pre-download MLX model files, but the official MLX runtime will not load on this OS." >&2
+    echo "Upgrade macOS or rerun with MIRA_LIGHT_SKIP_MLX_OS_CHECK=1 only if you are intentionally experimenting." >&2
+    exit 2
+  fi
+}
+
 choose_python_bin() {
   if [[ -n "${PYTHON_BIN:-}" ]]; then
     printf '%s\n' "${PYTHON_BIN}"
@@ -38,6 +61,8 @@ if [[ -z "${PYTHON_BIN}" ]]; then
   echo "A compatible Python interpreter was not found in PATH." >&2
   exit 1
 fi
+
+require_supported_macos
 
 mkdir -p "${SERVICE_ROOT}"
 
