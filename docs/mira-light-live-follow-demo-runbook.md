@@ -82,6 +82,38 @@ http://这台Mac的IP:8000
 
 就能接进来。
 
+## 2.5 直接挂接你现在这台机器上的实时预览器
+
+如果你已经在用现成的接收器和预览窗口：
+
+- receiver: `0.0.0.0:8000`
+- captures: `/Users/huhulitong/.openclaw/workspace/runtime/captures`
+- preview window: `Mira Light Capture Preview`
+
+那最推荐的跑法是只启动 extractor + bridge，直接复用当前链路：
+
+```bash
+cd /Users/huhulitong/Documents/GitHub/Mira-Light
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --base-url http://172.20.10.3 \
+  --runtime-dir ./runtime/live-follow-demo-real
+```
+
+如果要先用 mock 灯验证后半段控制链路，也可以：
+
+```bash
+cd /Users/huhulitong/Documents/GitHub/Mira-Light
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --mock-device \
+  --mock-port 19791 \
+  --runtime-dir ./runtime/live-follow-demo-attach-mock
+```
+
+这时脚本不会再启动新的 `8000` 接收器，也不会动你的预览窗口；
+它只会消费现成的 `captures/` 目录。
+
 ## 3. 没有真实摄像头时，单独回放样例帧
 
 如果视觉栈已经在跑，只想手动把样例帧推到接收器：

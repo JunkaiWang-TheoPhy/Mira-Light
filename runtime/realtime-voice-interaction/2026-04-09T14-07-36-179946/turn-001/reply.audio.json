@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+    "你好呀，见到你很开心。今天想聊些什么？"
+  ],
+  "description": "speech:openclaw",
+  "requestedText": "你好呀，见到你很开心。今天想聊些什么？",
+  "spokenText": "你好呀，见到你很开心。今天想聊些什么？"
+}

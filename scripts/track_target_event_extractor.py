@@ -45,6 +45,8 @@ class ExtractorState:
     next_track_id: int = 1
     previous_tracks: dict[int, dict[str, Any]] = None  # type: ignore[assignment]
     selected_track_id: int | None = None
+    missing_frame_count: int = 0
+    last_selected_target: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.previous_tracks is None:
@@ -121,6 +123,43 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.015,
         help="Minimum contour area ratio before a motion blob is treated as a target.",
+    )
+    parser.add_argument(
+        "--hold-missing-frames",
+        type=int,
+        default=3,
+        help="How many consecutive empty frames to keep the last selected target alive before declaring loss.",
+    )
+    parser.add_argument(
+        "--engagement-zone-left",
+        type=float,
+        default=0.08,
+        help="Ignore detections whose center is left of this normalized x bound.",
+    )
+    parser.add_argument(
+        "--engagement-zone-right",
+        type=float,
+        default=0.92,
+        help="Ignore detections whose center is right of this normalized x bound.",
+    )
+    parser.add_argument(
+        "--operator-state-file",
+        type=Path,
+        default=Path("./runtime/vision.operator.json"),
+        help="Optional JSON file written by the director console to request target locking.",
+    )
+    parser.add_argument(
+        "--hog-min-confidence",
+        type=float,
+        default=0.58,
+        help="Minimum normalized confidence for OpenCV HOG person detections.",
+    )
+    parser.set_defaults(enable_hog_person=True)
+    parser.add_argument(
+        "--disable-hog-person",
+        dest="enable_hog_person",
+        action="store_false",
+        help="Disable HOG person detector fallback when face detection misses.",
     )
     return parser.parse_args()
 
@@ -244,7 +283,7 @@ def make_track_entry(
     center_x = (x + (bw / 2.0)) / frame_width
     center_y = (y + (bh / 2.0)) / frame_height
 
-    if detector == "haar_face":
+    if detector in {"haar_face", "hog_person"}:
         distance_band = classify_distance_band(size_norm, near_threshold=0.10, mid_threshold=0.03)
     elif detector == "background_motion":
         distance_band = classify_distance_band(size_norm, near_threshold=0.18, mid_threshold=0.06)
@@ -321,10 +360,24 @@ def assign_track_ids(candidates: list[dict[str, Any]], state: ExtractorState) ->
     return assigned
 
 
-def choose_selected_target(tracks: list[dict[str, Any]], state: ExtractorState) -> dict[str, Any] | None:
+def choose_selected_target(
+    tracks: list[dict[str, Any]],
+    state: ExtractorState,
+    *,
+    operator_state: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     if not tracks:
-        state.selected_track_id = None
         return None
+
+    operator_lock_track_id = parse_operator_lock_track_id(operator_state)
+    if operator_lock_track_id is not None:
+        for item in tracks:
+            if int(item["track_id"]) == operator_lock_track_id:
+                state.selected_track_id = operator_lock_track_id
+                selected = dict(item)
+                selected["lock_state"] = "operator_locked"
+                selected["reason"] = "director console requested target lock"
+                return selected
 
     locked_track = None
     if state.selected_track_id is not None:
@@ -350,6 +403,70 @@ def choose_selected_target(tracks: list[dict[str, Any]], state: ExtractorState) 
         selected["reason"] = "highest score among multiple visible targets"
         state.selected_track_id = None
     return selected
+
+
+def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int | None:
+    if not isinstance(operator_state, dict):
+        return None
+    raw = operator_state.get("lockSelectedTrackId")
+    if raw in {None, "", False}:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def load_operator_state(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.is_file():
+        return {}
+    try:
+        raw = path.read_text(encoding="utf-8").strip()
+        if not raw:
+            return {}
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def within_engagement_zone(track: dict[str, Any], args: argparse.Namespace) -> bool:
+    center = track.get("center_norm")
+    if not isinstance(center, dict):
+        return True
+    x_norm = float(center.get("x", 0.5))
+    return args.engagement_zone_left <= x_norm <= args.engagement_zone_right
+
+
+def hold_selected_target(state: ExtractorState, args: argparse.Namespace) -> dict[str, Any] | None:
+    if state.last_selected_target is None:
+        return None
+    if not state.last_target_present:
+        return None
+    if state.missing_frame_count > args.hold_missing_frames:
+        return None
+
+    held = dict(state.last_selected_target)
+    held["confidence"] = round(max(0.35, float(held.get("confidence") or 0.0) * 0.84), 4)
+    held["lock_state"] = "held"
+    held["reason"] = f"short occlusion hold ({state.missing_frame_count}/{args.hold_missing_frames})"
+    held["approach_state"] = "stable"
+    return held
+
+
+def detect_people(frame: np.ndarray, hog: Any, *, min_confidence: float) -> list[tuple[tuple[int, int, int, int], float]]:
+    if hog is None:
+        return []
+    boxes, weights = hog.detectMultiScale(frame, winStride=(8, 8), padding=(8, 8), scale=1.05)
+    detections: list[tuple[tuple[int, int, int, int], float]] = []
+    for box, weight in zip(boxes, weights):
+        confidence = clamp(float(weight) / 2.5, 0.0, 0.95)
+        if confidence < min_confidence:
+            continue
+        x, y, bw, bh = [int(value) for value in box]
+        detections.append(((x, y, bw, bh), confidence))
+    return detections
 
 
 def write_event_outputs(event: dict[str, Any], latest_event_out: Path | None, events_jsonl: Path | None) -> None:
@@ -573,12 +690,20 @@ def extract_seq_from_name(filename: str) -> str | None:
     return seq
 
 
-def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundSubtractor, cascade: cv2.CascadeClassifier, args: argparse.Namespace) -> dict[str, Any]:
+def process_frame(
+    path: Path,
+    state: ExtractorState,
+    subtractor: cv2.BackgroundSubtractor,
+    cascade: cv2.CascadeClassifier,
+    hog: Any,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
     frame = load_image(path)
     if frame is None:
         raise RuntimeError(f"Failed to decode JPEG frame: {path}")
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    operator_state = load_operator_state(args.operator_state_file)
 
     faces = detect_faces(gray, cascade)
     candidates: list[dict[str, Any]] = []
@@ -590,6 +715,21 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
                     track_id=0,
                     bbox=bbox,
                     detector="haar_face",
+                    target_class="person",
+                    confidence=confidence,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
+                )
+            )
+    elif args.enable_hog_person:
+        people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
+        for bbox, confidence in people:
+            candidates.append(
+                make_track_entry(
+                    track_id=0,
+                    bbox=bbox,
+                    detector="hog_person",
                     target_class="person",
                     confidence=confidence,
                     frame_width=frame.shape[1],
@@ -620,8 +760,33 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
                 )
             )
 
+    if not candidates and args.enable_hog_person:
+        motion_bbox, warmup_count = detect_motion(
+            frame,
+            subtractor,
+            min_area_ratio=args.min_motion_area_ratio,
+            warmup_count=state.bg_warmup_count,
+            warmup_frames=args.warmup_frames,
+        )
+        state.bg_warmup_count = warmup_count
+        if motion_bbox is not None:
+            candidates.append(
+                make_track_entry(
+                    track_id=0,
+                    bbox=motion_bbox,
+                    detector="background_motion",
+                    target_class="motion_blob",
+                    confidence=0.55,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
+                )
+            )
+
+    candidates = [item for item in candidates if within_engagement_zone(item, args)]
+
     tracks = assign_track_ids(candidates, state)
-    selected_target = choose_selected_target(tracks, state)
+    selected_target = choose_selected_target(tracks, state, operator_state=operator_state)
     bbox = None
     detector = "none"
     target_class = "none"
@@ -630,6 +795,8 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
     multi_target_payload = None
 
     if selected_target is not None:
+        state.missing_frame_count = 0
+        state.last_selected_target = dict(selected_target)
         detector = str(selected_target["detector"])
         target_class = str(selected_target["target_class"])
         confidence = float(selected_target["confidence"])
@@ -641,6 +808,24 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
                 int(round(float(bbox_norm["w"]) * frame.shape[1])),
                 int(round(float(bbox_norm["h"]) * frame.shape[0])),
             )
+    else:
+        state.missing_frame_count += 1
+        selected_target = hold_selected_target(state, args)
+        if selected_target is None:
+            state.selected_track_id = None
+            state.last_selected_target = None
+        else:
+            detector = str(selected_target["detector"])
+            target_class = str(selected_target["target_class"])
+            confidence = float(selected_target["confidence"])
+            bbox_norm = selected_target.get("bbox_norm")
+            if isinstance(bbox_norm, dict):
+                bbox = (
+                    int(round(float(bbox_norm["x"]) * frame.shape[1])),
+                    int(round(float(bbox_norm["y"]) * frame.shape[0])),
+                    int(round(float(bbox_norm["w"]) * frame.shape[1])),
+                    int(round(float(bbox_norm["h"]) * frame.shape[0])),
+                )
 
     if len(tracks) >= 2:
         ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
@@ -692,6 +877,11 @@ def main() -> int:
     if cascade.empty():
         raise SystemExit("OpenCV haarcascade_frontalface_default.xml is unavailable.")
 
+    hog = None
+    if args.enable_hog_person:
+        hog = cv2.HOGDescriptor()
+        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+
     subtractor = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=32, detectShadows=False)
     state = ExtractorState()
 
@@ -704,7 +894,7 @@ def main() -> int:
     while True:
         latest = find_latest_jpg(captures_dir)
         if latest is not None and latest != state.last_frame_path:
-            event = process_frame(latest, state, subtractor, cascade, args)
+            event = process_frame(latest, state, subtractor, cascade, hog, args)
             print(json.dumps(event, ensure_ascii=False))
             write_event_outputs(event, latest_event_out, events_jsonl)
 

@@ -10,6 +10,7 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     "comfort": ("好累", "累死", "很累", "今天好累", "辛苦", "难受", "不舒服", "烦", "委屈"),
     "farewell": ("拜拜", "再见", "我走了", "先走了", "下次见", "回头见"),
     "praise": ("好可爱", "可爱", "喜欢你", "真好看", "好漂亮", "真漂亮"),
+    "criticism": ("不好看", "不可爱", "不喜欢你", "你表现不好", "你今天不太行", "你今天有点不太行", "一般般", "有点失望"),
 }
 
 SIGH_KEYWORDS = {
@@ -27,7 +28,8 @@ INTENT_ACTIONS: dict[str, dict[str, str]] = {
     "sigh": {"type": "trigger", "name": "sigh_detected"},
     "comfort": {"type": "trigger", "name": "voice_tired"},
     "farewell": {"type": "trigger", "name": "farewell_detected"},
-    "praise": {"type": "scene", "name": "celebrate"},
+    "praise": {"type": "trigger", "name": "praise_detected"},
+    "criticism": {"type": "trigger", "name": "criticism_detected"},
 }
 
 

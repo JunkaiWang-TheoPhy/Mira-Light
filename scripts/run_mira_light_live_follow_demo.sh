@@ -19,6 +19,7 @@ BASE_URL_EXPLICIT="0"
 MOCK_DEVICE="0"
 MOCK_PORT="9791"
 DRY_RUN="0"
+ATTACH_EXISTING_RECEIVER="0"
 REPLAY_DEMO="0"
 REPLAY_LOOP="0"
 REPLAY_SOURCE="${REPO_ROOT}/runtime/vision-demo-captures"
@@ -48,6 +49,7 @@ Options:
   --mock-device                  Start the local mock lamp on 127.0.0.1:9791
   --mock-port PORT               Mock lamp port. Default: 9791
   --dry-run                      Do not send hardware commands to a real lamp
+  --attach-existing-receiver     Reuse the already-running camera receiver and preview
   --replay-demo                  Replay sample frames from runtime/vision-demo-captures
   --replay-source DIR            Override replay frame directory
   --replay-fps FPS               Replay rate. Default: 3.0
@@ -99,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       DRY_RUN="1"
+      shift
+      ;;
+    --attach-existing-receiver)
+      ATTACH_EXISTING_RECEIVER="1"
       shift
       ;;
     --replay-demo)
@@ -175,7 +181,11 @@ if [[ "${REPLAY_DEMO}" == "1" && "${WARMUP_FRAMES_EXPLICIT}" != "1" ]]; then
 fi
 
 if [[ -z "${CAPTURES_DIR}" ]]; then
-  CAPTURES_DIR="${RUNTIME_DIR}/captures"
+  if [[ "${ATTACH_EXISTING_RECEIVER}" == "1" ]]; then
+    CAPTURES_DIR="$HOME/.openclaw/workspace/runtime/captures"
+  else
+    CAPTURES_DIR="${RUNTIME_DIR}/captures"
+  fi
 fi
 
 mkdir -p "$(dirname "${RUNTIME_DIR}")" "$(dirname "${CAPTURES_DIR}")"
@@ -188,6 +198,7 @@ mkdir -p "${RUNTIME_DIR}" "${CAPTURES_DIR}"
 LATEST_EVENT_OUT="${RUNTIME_DIR}/vision.latest.json"
 EVENTS_JSONL="${RUNTIME_DIR}/vision.events.jsonl"
 BRIDGE_STATE_OUT="${RUNTIME_DIR}/vision.bridge.state.json"
+VISION_OPERATOR_STATE_PATH="${RUNTIME_DIR}/vision.operator.json"
 STACK_LOG="${RUNTIME_DIR}/vision-stack.log"
 REPLAY_LOG="${RUNTIME_DIR}/vision-replay.log"
 MOCK_LOG="${RUNTIME_DIR}/mock-lamp.log"
@@ -221,6 +232,7 @@ export MIRA_LIGHT_CAPTURES_DIR="${CAPTURES_DIR}"
 export MIRA_LIGHT_LATEST_EVENT_OUT="${LATEST_EVENT_OUT}"
 export MIRA_LIGHT_EVENTS_JSONL="${EVENTS_JSONL}"
 export MIRA_LIGHT_BRIDGE_STATE_OUT="${BRIDGE_STATE_OUT}"
+export MIRA_LIGHT_VISION_OPERATOR_STATE_PATH="${VISION_OPERATOR_STATE_PATH}"
 export MIRA_LIGHT_VISION_HOST="${RECEIVER_HOST}"
 export MIRA_LIGHT_VISION_PORT="${RECEIVER_PORT}"
 export MIRA_LIGHT_BASE_URL="${BASE_URL}"
@@ -235,6 +247,7 @@ export MIRA_LIGHT_MIN_MOTION_AREA_RATIO="${MIN_MOTION_AREA_RATIO}"
 export MIRA_LIGHT_WARMUP_FRAMES="${WARMUP_FRAMES}"
 export MIRA_LIGHT_ALLOW_EXPERIMENTAL="${ALLOW_EXPERIMENTAL}"
 export MIRA_LIGHT_VISION_DRY_RUN="${DRY_RUN}"
+export MIRA_LIGHT_SKIP_RECEIVER="${ATTACH_EXISTING_RECEIVER}"
 
 bash "${REPO_ROOT}/scripts/run_mira_light_vision_stack.sh" >"${STACK_LOG}" 2>&1 &
 STACK_PID=$!
@@ -263,6 +276,11 @@ fi
 echo "Mira Light live-follow demo is running."
 echo "  base_url:           ${BASE_URL}"
 echo "  receiver_url:       http://127.0.0.1:${RECEIVER_PORT}"
+if [[ "${ATTACH_EXISTING_RECEIVER}" == "1" ]]; then
+  echo "  receiver_mode:      attach-existing"
+else
+  echo "  receiver_mode:      managed-by-demo"
+fi
 echo "  runtime_dir:        ${RUNTIME_DIR}"
 echo "  captures_dir:       ${CAPTURES_DIR}"
 echo "  latest_event:       ${LATEST_EVENT_OUT}"

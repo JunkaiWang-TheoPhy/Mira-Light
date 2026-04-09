@@ -34,10 +34,12 @@ from openclaw_voice_to_claw import (
     ensure_mono_float32,
     load_audio_file,
     print_input_devices,
+    parse_openclaw_agent_response,
     record_fixed_duration,
     record_push_to_talk,
     resolve_input_device,
     save_wav,
+    send_to_openclaw,
     transcribe_local,
 )
 
@@ -50,6 +52,8 @@ DEFAULT_VOICE = "openclaw"
 DEFAULT_TIMEOUT = 45
 DEFAULT_MODE = "continuous"
 DEFAULT_HISTORY_TURNS = 4
+DEFAULT_REPLY_AGENT = "mira-voice-spark"
+DEFAULT_REPLY_THINKING = "off"
 DEFAULT_IDLE_TIMEOUT_SECONDS = 30.0
 DEFAULT_TRIGGER_COOLDOWN_SECONDS = 8.0
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
@@ -60,6 +64,13 @@ DEFAULT_MAX_UTTERANCE_SECONDS = 6.0
 DEFAULT_CHUNK_MS = 50
 DEFAULT_VAD_MIN_RMS = 0.003
 DEFAULT_VAD_SPEECH_RATIO = 1.5
+DEFAULT_SKIP_LOW_RMS = 0.0045
+DEFAULT_SKIP_LOW_PEAK = 0.04
+DEFAULT_REPEAT_MIN_CHARS = 12
+DEFAULT_REPEAT_DOMINANT_RATIO = 0.85
+DEFAULT_REPEAT_MAX_UNIQUE_CHARS = 3
+DEFAULT_REPEAT_MAX_COMPRESSION_RATIO = 8.0
+DEFAULT_REPEAT_MAX_CHARS_PER_SECOND = 35.0
 DEFAULT_API_SYSTEM_PROMPT = (
     "你是 Mira。"
     "你是一个温柔、简短、自然的中文陪伴角色。"
@@ -100,6 +111,8 @@ EMOJI_PATTERN = re.compile(
     "]+",
     flags=re.UNICODE,
 )
+VISIBLE_TEXT_PATTERN = re.compile(r"[^\s，。！？!?,、；：:…~—\-]+", flags=re.UNICODE)
+TOKEN_PATTERN = re.compile(r"[A-Za-z0-9]+|[\u4e00-\u9fff]", flags=re.UNICODE)
 
 @dataclass
 class UtteranceResult:
@@ -203,70 +216,58 @@ def build_messages(session: ConversationSession, transcript: str, *, base_prompt
     return messages
 
 
-def load_reply_api_config() -> dict[str, str]:
-    config_path = Path.home() / ".openclaw" / "openclaw.json"
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    provider = payload["models"]["providers"]["volcengine-coding"]
-    api_key_ref = str(provider.get("apiKey") or "").strip()
-    api_key = os.environ.get(api_key_ref, "") if api_key_ref else ""
-    if not api_key:
-        raise VoiceToClawError(
-            f"Missing API key for cloud reply backend: expected env var '{api_key_ref or 'VOLCANO_ENGINE_API_KEY'}'"
-        )
-    model_id = str(provider["models"][0]["id"])
-    return {
-        "baseUrl": str(provider["baseUrl"]).rstrip("/"),
-        "model": model_id,
-        "apiKey": api_key,
-        "provider": "volcengine-coding",
-    }
+def build_openclaw_reply_prompt(messages: list[dict[str, str]]) -> str:
+    lines = [
+        "你现在只负责为展位里的 Mira 生成直接说给用户听的简短中文回复。",
+        "只输出 Mira 最终要说的话。",
+        "不要解释任务，不要复述规则，不要输出分析、标签、引号或多余前缀。",
+        "尽量只用 1 到 2 句。",
+        "",
+        "以下是当前会话上下文：",
+    ]
+    for message in messages:
+        role = str(message.get("role") or "").strip().lower()
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        if role == "system":
+            lines.append(f"[系统设定]\n{content}")
+        elif role == "assistant":
+            lines.append(f"[Mira]\n{content}")
+        else:
+            lines.append(f"[用户]\n{content}")
+    lines.append("")
+    lines.append("请直接继续这段对话，只输出 Mira 会说的最终正文。")
+    return "\n".join(lines).strip()
 
 
-def send_via_cloud_messages(
+def send_via_openclaw_messages(
     messages: list[dict[str, str]],
     *,
+    agent: str,
+    thinking: str,
     timeout_seconds: int,
 ) -> tuple[str, dict[str, Any]]:
-    config = load_reply_api_config()
-    endpoint = f"{config['baseUrl']}/chat/completions"
-    request_payload = {
-        "model": config["model"],
-        "messages": messages,
-        "temperature": 0.4,
-        "max_tokens": 160,
-        "stream": False,
-    }
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(request_payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config['apiKey']}",
-        },
-        method="POST",
+    reply_prompt = build_openclaw_reply_prompt(messages)
+    code, stdout, stderr = send_to_openclaw(
+        reply_prompt,
+        agent=agent,
+        session_id=None,
+        thinking=thinking,
+        timeout_seconds=timeout_seconds,
+        json_output=True,
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        raise VoiceToClawError(f"Cloud reply API HTTP {exc.code}: {detail}") from exc
-    except urllib.error.URLError as exc:
-        raise VoiceToClawError(f"Cloud reply API request failed: {exc}") from exc
-
-    payload = json.loads(raw)
-    choices = payload.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise VoiceToClawError("Cloud reply API returned no choices")
-    message = choices[0].get("message", {})
-    content = str(message.get("content") or "").strip()
-    if not content:
-        raise VoiceToClawError("Cloud reply API returned empty content")
-    return content, {
-        "provider": config["provider"],
-        "model": config["model"],
-        "endpoint": endpoint,
-        "payload": payload,
+    if code != 0:
+        raise VoiceToClawError(stderr.strip() or stdout.strip() or "openclaw agent reply failed")
+    parsed = parse_openclaw_agent_response(stdout)
+    meta = parsed.get("meta") or {}
+    agent_meta = meta.get("agentMeta") if isinstance(meta, dict) else {}
+    return str(parsed["text"]).strip(), {
+        "provider": str(agent_meta.get("provider") or "openclaw-agent"),
+        "model": str(agent_meta.get("model") or ""),
+        "agent": agent,
+        "thinking": thinking,
+        "payload": parsed.get("payload"),
     }
 
 
@@ -279,6 +280,8 @@ def fallback_reply_for_intent(intent: str) -> str:
         return "好呀，那我们下次见。"
     if intent == "praise":
         return "谢谢你，我会把这句夸奖记在心里。"
+    if intent == "criticism":
+        return "我听见了，我会再努力一点。"
     return "我听见你了，我们继续。"
 
 
@@ -343,6 +346,117 @@ def rms_level(samples: np.ndarray) -> float:
     if mono.size == 0:
         return 0.0
     return float(np.sqrt(np.mean(np.square(mono), dtype=np.float64)))
+
+
+def peak_level(samples: np.ndarray) -> float:
+    mono = ensure_mono_float32(samples)
+    if mono.size == 0:
+        return 0.0
+    return float(np.max(np.abs(mono)))
+
+
+def build_audio_metrics(samples: np.ndarray, *, sample_rate: int) -> dict[str, float]:
+    mono = ensure_mono_float32(samples)
+    duration_ms = (len(mono) / sample_rate * 1000.0) if sample_rate > 0 else 0.0
+    return {
+        "durationMs": round(duration_ms, 3),
+        "rms": round(rms_level(mono), 6),
+        "peak": round(peak_level(mono), 6),
+    }
+
+
+def low_energy_skip_reason(source_meta: dict[str, Any], audio_metrics: dict[str, float]) -> str | None:
+    if source_meta.get("captureMode") != "continuous":
+        return None
+    if audio_metrics["durationMs"] > 1500:
+        return None
+    if audio_metrics["rms"] >= DEFAULT_SKIP_LOW_RMS:
+        return None
+    if audio_metrics["peak"] >= DEFAULT_SKIP_LOW_PEAK:
+        return None
+    return "low-energy-utterance"
+
+
+def visible_transcript_text(text: str) -> str:
+    return "".join(VISIBLE_TEXT_PATTERN.findall(text or ""))
+
+
+def repetitive_transcript_details(
+    transcript_payload: dict[str, Any],
+    *,
+    audio_metrics: dict[str, float],
+) -> dict[str, float | int | str] | None:
+    visible_text = visible_transcript_text(str(transcript_payload.get("text") or ""))
+    if len(visible_text) < DEFAULT_REPEAT_MIN_CHARS:
+        return None
+
+    counts: dict[str, int] = {}
+    for ch in visible_text:
+        counts[ch] = counts.get(ch, 0) + 1
+    dominant_char, dominant_count = max(counts.items(), key=lambda item: item[1])
+    dominant_ratio = dominant_count / len(visible_text)
+    unique_chars = len(counts)
+
+    segments = transcript_payload.get("segments")
+    compression_ratio = 0.0
+    segment_duration_seconds = 0.0
+    if isinstance(segments, list):
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            compression_ratio = max(compression_ratio, float(segment.get("compression_ratio") or 0.0))
+            start = float(segment.get("start") or 0.0)
+            end = float(segment.get("end") or 0.0)
+            segment_duration_seconds += max(0.0, end - start)
+
+    duration_seconds = max(audio_metrics["durationMs"] / 1000.0, segment_duration_seconds, 1e-6)
+    chars_per_second = len(visible_text) / duration_seconds
+    tokens = TOKEN_PATTERN.findall(str(transcript_payload.get("text") or ""))
+
+    if dominant_ratio < DEFAULT_REPEAT_DOMINANT_RATIO:
+        dominant_char_result = None
+    elif unique_chars > DEFAULT_REPEAT_MAX_UNIQUE_CHARS:
+        dominant_char_result = None
+    elif compression_ratio < DEFAULT_REPEAT_MAX_COMPRESSION_RATIO and chars_per_second < DEFAULT_REPEAT_MAX_CHARS_PER_SECOND:
+        dominant_char_result = None
+    else:
+        dominant_char_result = {
+            "reason": "repetitive-transcript",
+            "mode": "character",
+            "dominantChar": dominant_char,
+            "dominantRatio": round(dominant_ratio, 4),
+            "uniqueChars": unique_chars,
+            "compressionRatio": round(compression_ratio, 4),
+            "charsPerSecond": round(chars_per_second, 3),
+            "visibleChars": len(visible_text),
+        }
+
+    if dominant_char_result:
+        return dominant_char_result
+
+    if len(tokens) < 6:
+        return None
+    token_counts: dict[str, int] = {}
+    for token in tokens:
+        token_counts[token] = token_counts.get(token, 0) + 1
+    dominant_token, dominant_token_count = max(token_counts.items(), key=lambda item: item[1])
+    dominant_token_ratio = dominant_token_count / len(tokens)
+    if dominant_token_ratio < 0.75:
+        return None
+    if len(token_counts) > DEFAULT_REPEAT_MAX_UNIQUE_CHARS:
+        return None
+    if compression_ratio < DEFAULT_REPEAT_MAX_COMPRESSION_RATIO and chars_per_second < DEFAULT_REPEAT_MAX_CHARS_PER_SECOND:
+        return None
+    return {
+        "reason": "repetitive-transcript",
+        "mode": "token",
+        "dominantToken": dominant_token,
+        "dominantRatio": round(dominant_token_ratio, 4),
+        "uniqueTokens": len(token_counts),
+        "compressionRatio": round(compression_ratio, 4),
+        "charsPerSecond": round(chars_per_second, 3),
+        "tokenCount": len(tokens),
+    }
 
 
 def capture_continuous_utterance(args: argparse.Namespace) -> UtteranceResult | None:
@@ -514,22 +628,52 @@ def run_turn(
         return {"idleTimeoutReached": True}
 
     audio_path = save_wav(utterance.samples, sample_rate=int(utterance.sample_rate), path=turn_dir / "input.wav")
-    transcript_payload = transcribe_utterance(utterance, args=args)
+    audio_metrics = build_audio_metrics(utterance.samples, sample_rate=int(utterance.sample_rate))
+
+    result: dict[str, Any] = {
+        "audioPath": str(audio_path),
+        "inputMeta": utterance.source_meta,
+        "audioMetrics": audio_metrics,
+    }
+
+    low_energy_reason = low_energy_skip_reason(utterance.source_meta, audio_metrics)
+    if low_energy_reason:
+        result["skipped"] = True
+        result["skipReason"] = low_energy_reason
+        return result
+
+    try:
+        transcript_payload = transcribe_utterance(utterance, args=args)
+    except VoiceToClawError as exc:
+        if "empty text" not in str(exc).lower():
+            raise
+        result["skipped"] = True
+        result["skipReason"] = "empty-transcript"
+        result["transcriptionError"] = str(exc)
+        return result
+
     transcript = str(transcript_payload["text"]).strip()
     raw_transcript = str(transcript_payload.get("rawText") or "").strip()
 
     (turn_dir / "transcript.txt").write_text(transcript + "\n", encoding="utf-8")
     write_json(turn_dir / "transcript.json", transcript_payload)
 
-    result: dict[str, Any] = {
-        "audioPath": str(audio_path),
-        "transcript": transcript,
-        "rawTranscript": raw_transcript,
-        "normalizationApplied": bool(transcript_payload.get("normalizationApplied")),
-        "inputMeta": utterance.source_meta,
-        "modelRepo": transcript_payload.get("modelRepo"),
-        "initialPrompt": transcript_payload.get("initialPrompt"),
-    }
+    result.update(
+        {
+            "transcript": transcript,
+            "rawTranscript": raw_transcript,
+            "normalizationApplied": bool(transcript_payload.get("normalizationApplied")),
+            "modelRepo": transcript_payload.get("modelRepo"),
+            "initialPrompt": transcript_payload.get("initialPrompt"),
+        }
+    )
+
+    repetitive_details = repetitive_transcript_details(transcript_payload, audio_metrics=audio_metrics)
+    if repetitive_details:
+        result["skipped"] = True
+        result["skipReason"] = str(repetitive_details["reason"])
+        result["skipDetails"] = repetitive_details
+        return result
 
     if should_exit(transcript):
         result["exitRequested"] = True
@@ -550,8 +694,13 @@ def run_turn(
     result["messages"] = messages
 
     try:
-        raw_reply_text, api_meta = send_via_cloud_messages(messages, timeout_seconds=args.timeout)
-        reply_backend = "cloud-api"
+        raw_reply_text, api_meta = send_via_openclaw_messages(
+            messages,
+            agent=args.reply_agent,
+            thinking=args.reply_thinking,
+            timeout_seconds=args.timeout,
+        )
+        reply_backend = "openclaw-agent"
     except Exception as exc:  # noqa: BLE001
         raw_reply_text = fallback_reply_for_intent(intent)
         api_meta = {"provider": "fallback", "error": str(exc), "payload": {"fallback": True, "intent": intent}}
@@ -593,8 +742,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-repo", help="Override the MLX Whisper model repo.")
     parser.add_argument("--language", default=DEFAULT_LANGUAGE, help="Language hint for STT.")
     parser.add_argument("--initial-prompt", help="Optional STT terminology prompt.")
-    parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for cloud replies.")
-    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Cloud reply timeout in seconds.")
+    parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for reply generation.")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="OpenClaw reply timeout in seconds.")
+    parser.add_argument("--reply-agent", default=os.environ.get("MIRA_LIGHT_REPLY_AGENT", DEFAULT_REPLY_AGENT), help="OpenClaw agent id for reply generation.")
+    parser.add_argument("--reply-thinking", default=os.environ.get("MIRA_LIGHT_REPLY_THINKING", DEFAULT_REPLY_THINKING), help="Thinking level for OpenClaw reply generation.")
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Audio voice mode for speaker playback.")
     parser.add_argument("--runtime-dir", default=str(DEFAULT_RUNTIME_DIR), help="Directory for saved session artifacts.")
     parser.add_argument("--history-turns", type=int, default=DEFAULT_HISTORY_TURNS, help="How many recent turns to keep in context.")
@@ -629,6 +780,8 @@ def save_session_snapshot(session_dir: Path, session: ConversationSession, args:
                 "bridgeUrl": args.bridge_url,
                 "triggerDisabled": args.no_trigger,
                 "historyTurns": args.history_turns,
+                "replyAgent": args.reply_agent,
+                "replyThinking": args.reply_thinking,
             },
             "session": session.snapshot(),
         },
@@ -649,6 +802,7 @@ def main() -> int:
     print(f"Capture mode: {args.mode}")
     print(f"Input device: {args.device}")
     print(f"STT profile: {args.profile} @ {args.sample_rate} Hz")
+    print(f"Reply backend: openclaw-agent ({args.reply_agent})")
     print(f"Bridge: {args.bridge_url} (trigger enabled={not args.no_trigger})")
     if args.mode == "ptt":
         print("Press Enter to start recording, then Enter again to stop. Say '退出对话' to exit.")
@@ -675,6 +829,21 @@ def main() -> int:
             if turn_result.get("idleTimeoutReached"):
                 print(f"[turn {turn_index:03d}] idle timeout reached. Ending session.")
                 break
+
+            if turn_result.get("skipped"):
+                reason = str(turn_result.get("skipReason") or "skipped")
+                metrics = turn_result.get("audioMetrics") or {}
+                metrics_hint = ""
+                if isinstance(metrics, dict) and metrics:
+                    metrics_hint = (
+                        f" duration={metrics.get('durationMs')}ms"
+                        f" rms={metrics.get('rms')}"
+                        f" peak={metrics.get('peak')}"
+                    )
+                print(f"[turn {turn_index:03d}] skipped: {reason}{metrics_hint}")
+                if args.file or args.once:
+                    break
+                continue
 
             transcript = str(turn_result.get("transcript") or "").strip()
             if transcript:

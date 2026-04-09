@@ -26,6 +26,9 @@
 7. [Embodied Speech and Formal Speak Tool Progress](./15-embodied-speech-and-formal-speak-tool-progress.md)
 8. [Speech-to-Text and Claw Voice Ingress Progress](./16-speech-to-text-and-claw-voice-ingress-progress.md)
 9. [Camera CV and Runtime Bridge Progress](./20-camera-cv-runtime-bridge-progress.md)
+10. [Bus Servo Protocol and Four-Joint Mapping Memo](./21-bus-servo-protocol-and-four-joint-mapping-memo.md)
+11. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
+12. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
 
 ## Integration and Operations
 

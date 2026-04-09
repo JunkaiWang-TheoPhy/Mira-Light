@@ -18,6 +18,7 @@ WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
 DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
+DEFAULT_VISION_OPERATOR_STATE_PATH = Path(__file__).resolve().parent.parent / "runtime" / "vision.operator.json"
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -29,12 +30,14 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         bridge_base_url: str,
         bridge_token: str,
         bridge_timeout_seconds: float,
+        vision_operator_state_path: Path,
     ):
         super().__init__(server_address, handler_class)
         self.web_root = web_root
         self.bridge_base_url = bridge_base_url.rstrip("/")
         self.bridge_token = bridge_token
         self.bridge_timeout_seconds = bridge_timeout_seconds
+        self.vision_operator_state_path = vision_operator_state_path
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -83,6 +86,39 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    def _load_vision_operator_state(self) -> dict:
+        path = self.server.vision_operator_state_path
+        if not path.is_file():
+            return {"lockSelectedTrackId": None}
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            if not raw:
+                return {"lockSelectedTrackId": None}
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {"lockSelectedTrackId": None}
+        except Exception:
+            return {"lockSelectedTrackId": None}
+
+    def _save_vision_operator_state(self, payload: dict) -> dict:
+        path = self.server.vision_operator_state_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        current = self._load_vision_operator_state()
+        current.update(payload)
+        normalized = {
+            "lockSelectedTrackId": None,
+            "updatedAt": current.get("updatedAt"),
+            "note": current.get("note"),
+        }
+        raw_track_id = current.get("lockSelectedTrackId")
+        if raw_track_id not in {None, "", False}:
+            try:
+                value = int(raw_track_id)
+                normalized["lockSelectedTrackId"] = value if value > 0 else None
+            except (TypeError, ValueError):
+                normalized["lockSelectedTrackId"] = None
+        path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return normalized
 
     def _proxy_json(self, method: str, bridge_path: str, payload: dict | None = None) -> None:
         data = None if payload is None else json.dumps(payload).encode("utf-8")
@@ -152,6 +188,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/runtime")
             return
 
+        if path == "/api/vision-operator":
+            self._send_json(200, {"ok": True, "state": self._load_vision_operator_state()})
+            return
+
         self._serve_static(path)
 
     def do_POST(self) -> None:  # noqa: N802
@@ -203,6 +243,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("POST", "/v1/mira-light/profile/set-servo-meta", self._read_json_body())
             return
 
+        if path == "/api/vision-operator":
+            body = self._read_json_body()
+            state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
+            self._send_json(200, {"ok": True, "state": state})
+            return
+
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})
 
 
@@ -243,6 +289,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         help="Bridge proxy timeout in seconds",
     )
+    parser.add_argument(
+        "--vision-operator-state-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_OPERATOR_STATE_PATH", DEFAULT_VISION_OPERATOR_STATE_PATH)),
+        help="Local JSON file used for director-console target lock state.",
+    )
     return parser
 
 
@@ -262,6 +313,7 @@ def main() -> int:
         bridge_base_url=args.bridge_base_url,
         bridge_token=bridge_token,
         bridge_timeout_seconds=args.bridge_timeout,
+        vision_operator_state_path=Path(args.vision_operator_state_path).expanduser().resolve(),
     )
     try:
         server.serve_forever()

@@ -30,6 +30,12 @@ First single-camera live-follow demo:
 bash scripts/run_mira_light_live_follow_demo.sh --mock-device --replay-demo --receiver-port 18000
 ```
 
+Reuse the current `8000` receiver + preview window:
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh --attach-existing-receiver --base-url http://172.20.10.3
+```
+
 Runbook:
 
 - [docs/mira-light-live-follow-demo-runbook.md](./docs/mira-light-live-follow-demo-runbook.md)

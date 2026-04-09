@@ -1,0 +1,28 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T14-18-02-000937/turn-001/input.wav",
+  "inputMeta": {
+    "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-002/input.wav"
+  },
+  "audioMetrics": {
+    "durationMs": 618.667,
+    "rms": 0.043194,
+    "peak": 0.235138
+  },
+  "transcript": "词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词�",
+  "rawTranscript": "词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词词�",
+  "normalizationApplied": false,
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "skipped": true,
+  "skipReason": "repetitive-transcript",
+  "skipDetails": {
+    "reason": "repetitive-transcript",
+    "mode": "character",
+    "dominantChar": "词",
+    "dominantRatio": 0.9911,
+    "uniqueChars": 2,
+    "compressionRatio": 17.6842,
+    "charsPerSecond": 181.034,
+    "visibleChars": 112
+  }
+}

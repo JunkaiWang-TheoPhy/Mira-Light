@@ -1,0 +1,351 @@
+{
+  "text": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 3.2,
+      "text": "有 lawmakers lawmakers lawmakers",
+      "tokens": [
+        50364,
+        2412,
+        40988,
+        40988,
+        40988,
+        50524
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 1,
+      "seek": 0,
+      "start": 3.2,
+      "end": 4.34,
+      "text": " lawmakers",
+      "tokens": [
+        50524,
+        40988,
+        50581
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 2,
+      "seek": 0,
+      "start": 4.34,
+      "end": 6.28,
+      "text": " lawmakers",
+      "tokens": [
+        50581,
+        40988,
+        50678
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 3,
+      "seek": 0,
+      "start": 6.28,
+      "end": 7.26,
+      "text": " lawmakers",
+      "tokens": [
+        50678,
+        40988,
+        50727
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 4,
+      "seek": 0,
+      "start": 7.26,
+      "end": 8.92,
+      "text": " lawmakers",
+      "tokens": [
+        50727,
+        40988,
+        50810
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 5,
+      "seek": 0,
+      "start": 8.92,
+      "end": 10.200000000000001,
+      "text": " lawmakers",
+      "tokens": [
+        50810,
+        40988,
+        50874
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 6,
+      "seek": 0,
+      "start": 10.200000000000001,
+      "end": 11.32,
+      "text": " lawmakers",
+      "tokens": [
+        50874,
+        40988,
+        50930
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 7,
+      "seek": 0,
+      "start": 11.32,
+      "end": 13.040000000000001,
+      "text": " lawmakers",
+      "tokens": [
+        50930,
+        40988,
+        51016
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 8,
+      "seek": 0,
+      "start": 13.040000000000001,
+      "end": 13.96,
+      "text": " lawmakers",
+      "tokens": [
+        51016,
+        40988,
+        51062
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 9,
+      "seek": 0,
+      "start": 13.96,
+      "end": 15.02,
+      "text": " lawmakers",
+      "tokens": [
+        51062,
+        40988,
+        51115
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 10,
+      "seek": 0,
+      "start": 15.02,
+      "end": 16.42,
+      "text": " lawmakers",
+      "tokens": [
+        51115,
+        40988,
+        51185
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 11,
+      "seek": 0,
+      "start": 16.42,
+      "end": 17.64,
+      "text": " lawmakers",
+      "tokens": [
+        51185,
+        40988,
+        51246
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 12,
+      "seek": 0,
+      "start": 17.64,
+      "end": 19.02,
+      "text": " lawmakers",
+      "tokens": [
+        51246,
+        40988,
+        51315
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 13,
+      "seek": 0,
+      "start": 19.02,
+      "end": 20.34,
+      "text": " lawmakers",
+      "tokens": [
+        51315,
+        40988,
+        51381
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 14,
+      "seek": 0,
+      "start": 20.34,
+      "end": 21.06,
+      "text": " lawmakers",
+      "tokens": [
+        51381,
+        40988,
+        51417
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 15,
+      "seek": 0,
+      "start": 21.06,
+      "end": 22.2,
+      "text": " lawmakers",
+      "tokens": [
+        51417,
+        40988,
+        51474
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 16,
+      "seek": 0,
+      "start": 22.2,
+      "end": 23.400000000000002,
+      "text": " lawmakers",
+      "tokens": [
+        51474,
+        40988,
+        51534
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 17,
+      "seek": 0,
+      "start": 23.400000000000002,
+      "end": 24.88,
+      "text": " lawmakers",
+      "tokens": [
+        51534,
+        40988,
+        51608
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 18,
+      "seek": 0,
+      "start": 24.88,
+      "end": 26.3,
+      "text": " lawmakers",
+      "tokens": [
+        51608,
+        40988,
+        51679
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 19,
+      "seek": 0,
+      "start": 26.3,
+      "end": 27.96,
+      "text": " lawmakers",
+      "tokens": [
+        51679,
+        40988,
+        51762
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    },
+    {
+      "id": 20,
+      "seek": 0,
+      "start": 27.96,
+      "end": 29.46,
+      "text": " lawmakers",
+      "tokens": [
+        51762,
+        40988,
+        51837
+      ],
+      "temperature": 1.0,
+      "avg_logprob": -2.3951384600471046,
+      "compression_ratio": 10.130434782608695,
+      "no_speech_prob": 0.3618604242801666
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers",
+  "normalizationApplied": false,
+  "captureMode": null,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

@@ -10,6 +10,15 @@ const runtimeStep = document.getElementById("runtime-step");
 const runtimeDevice = document.getElementById("runtime-device");
 const runtimeError = document.getElementById("runtime-error");
 const runtimeBaseUrl = document.getElementById("runtime-base-url");
+const visionTargetTitle = document.getElementById("vision-target-title");
+const visionTargetSubtitle = document.getElementById("vision-target-subtitle");
+const visionZone = document.getElementById("vision-zone");
+const visionDistance = document.getElementById("vision-distance");
+const visionDetector = document.getElementById("vision-detector");
+const visionConfidence = document.getElementById("vision-confidence");
+const visionLastTrigger = document.getElementById("vision-last-trigger");
+const visionOperatorLock = document.getElementById("vision-operator-lock");
+const visionOperatorNote = document.getElementById("vision-operator-note");
 
 const summarySceneTitle = document.getElementById("summary-scene-title");
 const summarySceneId = document.getElementById("summary-scene-id");
@@ -48,6 +57,7 @@ let runtimeState = null;
 let statusState = null;
 let ledState = null;
 let actionsState = null;
+let visionOperatorState = null;
 
 const DIRECTOR_SCENE_IDS = [
   "wake_up",
@@ -156,8 +166,39 @@ function renderRuntime(runtime) {
 
   renderSceneGrid();
   renderDirectorSummary();
+  renderVisionSummary();
   updateSceneAccent();
   renderMockOverview();
+}
+
+function renderVisionSummary() {
+  const target = runtimeState?.trackingTarget || {};
+  const targetActive = Boolean(runtimeState?.trackingActive);
+  const targetCount = target.targetCount ?? "-";
+  const trackId = target.trackId ?? "-";
+  const lockState = target.selectedLockState || (targetActive ? "tracking" : "-");
+  const horizontal = target.horizontalZone || "-";
+  const vertical = target.verticalZone || "-";
+  const distanceBand = target.distanceBand || "-";
+  const detector = target.detector || "-";
+  const confidence = typeof target.confidence === "number" ? target.confidence.toFixed(2) : "-";
+  const lastTrigger = runtimeState?.lastTrigger;
+
+  visionTargetTitle.textContent = targetActive ? `track ${trackId} · ${lockState}` : "无 live tracking";
+  visionTargetSubtitle.textContent = `targets ${targetCount} · class ${target.targetClass || "-"}`;
+  visionZone.textContent = `${horizontal} / ${vertical}`;
+  visionDistance.textContent = `${distanceBand} · ${target.approachState || "-"}`;
+  visionDetector.textContent = detector;
+  visionConfidence.textContent = confidence;
+  if (lastTrigger?.event) {
+    visionLastTrigger.textContent = `${lastTrigger.event} -> ${lastTrigger.scene || "-"}`;
+  } else {
+    visionLastTrigger.textContent = "-";
+  }
+
+  const lockedTrackId = visionOperatorState?.lockSelectedTrackId;
+  visionOperatorLock.textContent = lockedTrackId ? `track ${lockedTrackId}` : "未锁定";
+  visionOperatorNote.textContent = visionOperatorState?.note || (lockedTrackId ? "导演台手动锁定中" : "跟随当前自动选择");
 }
 
 function setProfileFlash(message, tone = "default") {
@@ -573,6 +614,12 @@ async function refreshRuntime() {
   renderRuntime(data.runtime);
 }
 
+async function refreshVisionOperator() {
+  const data = await fetchJson("/api/vision-operator");
+  visionOperatorState = data.state || {};
+  renderVisionSummary();
+}
+
 async function refreshScenes() {
   const data = await fetchJson("/api/scenes");
   const sceneMap = new Map((data.items || []).map((item) => [item.id, item]));
@@ -705,6 +752,24 @@ async function triggerEvent(eventName, payload = {}) {
   }
 }
 
+async function setVisionOperatorLock(lockSelectedTrackId, note = "") {
+  try {
+    const data = await fetchJson("/api/vision-operator", {
+      method: "POST",
+      body: JSON.stringify({
+        lockSelectedTrackId,
+        note,
+        updatedAt: new Date().toISOString(),
+      }),
+    });
+    visionOperatorState = data.state || {};
+    renderVisionSummary();
+    appendLocalLog(`vision operator lock updated: ${visionOperatorState.lockSelectedTrackId ?? "none"}`);
+  } catch (error) {
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
 async function stopScene() {
   try {
     await fetchJson("/api/stop", { method: "POST" });
@@ -773,6 +838,26 @@ document.getElementById("trigger-multi-person").addEventListener("click", () =>
 document.getElementById("trigger-farewell").addEventListener("click", () =>
   triggerEvent("farewell_detected", { direction: farewellDirectionInput.value, cueMode: readCueMode() }),
 );
+document.getElementById("trigger-startle").addEventListener("click", () =>
+  triggerEvent("startle_detected", { transcript: "突然一声响动", cueMode: readCueMode() }),
+);
+document.getElementById("trigger-praise").addEventListener("click", () =>
+  triggerEvent("praise_detected", { transcript: "你好可爱", cueMode: readCueMode() }),
+);
+document.getElementById("trigger-criticism").addEventListener("click", () =>
+  triggerEvent("criticism_detected", { transcript: "你今天有点不太行", cueMode: readCueMode() }),
+);
+document.getElementById("vision-lock-current").addEventListener("click", () => {
+  const trackId = runtimeState?.trackingTarget?.trackId;
+  if (!trackId) {
+    appendLocalLog("[ui-error] 当前没有可锁定的 tracking target");
+    return;
+  }
+  setVisionOperatorLock(trackId, "lock current target from director console");
+});
+document.getElementById("vision-unlock").addEventListener("click", () =>
+  setVisionOperatorLock(null, "operator lock cleared"),
+);
 document.getElementById("capture-pose").addEventListener("click", capturePose);
 document.getElementById("refresh-profile").addEventListener("click", refreshProfile);
 
@@ -788,6 +873,7 @@ async function bootstrap() {
     await refreshActions();
     await refreshProfile();
     await refreshLogs();
+    await refreshVisionOperator();
   } catch (error) {
     appendLocalLog(`[bootstrap-error] ${error.message}`);
   }
@@ -795,6 +881,7 @@ async function bootstrap() {
   setInterval(async () => {
     try {
       await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed(), refreshActions()]);
+      await refreshVisionOperator();
     } catch (error) {
       appendLocalLog(`[poll-error] ${error.message}`);
     }

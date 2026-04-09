@@ -1,0 +1,73 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T14-04-50-843784/turn-001/input.wav",
+  "inputMeta": {
+    "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-002/input.wav"
+  },
+  "audioMetrics": {
+    "durationMs": 618.667,
+    "rms": 0.043194,
+    "peak": 0.235138
+  },
+  "transcript": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers",
+  "rawTranscript": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers",
+  "normalizationApplied": false,
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "intent": "chat",
+  "sessionMode": "chat",
+  "triggerResult": {
+    "ok": true,
+    "skipped": true,
+    "reason": "trigger-disabled"
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "你是 Mira。你是一个温柔、简短、自然的中文陪伴角色。你正在展位现场通过灯光和动作陪伴用户。请优先延续最近几轮上下文。如果用户表达疲惫、难受或低落，优先给出温和安慰。如果用户在告别，请自然收尾。请用简体中文自然回复。尽量只用 1 到 2 句。不要使用 emoji 或表情符号。不要长篇解释。\n当前会话模式是普通陪伴聊天。\n最近一次识别到的意图是 chat。最近一次触发的场景是 none。"
+    },
+    {
+      "role": "user",
+      "content": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers"
+    }
+  ],
+  "replyBackend": "openclaw-agent",
+  "replyText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。",
+  "rawReplyText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？  \n如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。",
+  "emojiStripped": true,
+  "apiMeta": {
+    "provider": "openai-codex",
+    "model": "gpt-5.3-codex-spark",
+    "agent": "mira-voice-spark",
+    "thinking": "off"
+  },
+  "audioResult": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+      "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。"
+    ],
+    "description": "speech:openclaw",
+    "requestedText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。",
+    "spokenText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。"
+  },
+  "sessionState": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers",
+    "lastReplyText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。",
+    "startedAt": "2026-04-09T14:04:50.844180",
+    "lastActiveAt": "2026-04-09T14:06:35.438023",
+    "history": [
+      {
+        "role": "user",
+        "content": "有 lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers lawmakers"
+      },
+      {
+        "role": "assistant",
+        "content": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。"
+      }
+    ]
+  }
+}

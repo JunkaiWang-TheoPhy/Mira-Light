@@ -1,0 +1,14 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T14-18-16-523974/turn-001/input.wav",
+  "inputMeta": {
+    "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-003/input.wav"
+  },
+  "audioMetrics": {
+    "durationMs": 1269.333,
+    "rms": 0.003872,
+    "peak": 0.032471
+  },
+  "skipped": true,
+  "skipReason": "empty-transcript",
+  "transcriptionError": "Local transcription returned empty text"
+}

@@ -11,8 +11,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-import urllib.error
-import urllib.request
 
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
@@ -24,11 +22,13 @@ from openclaw_voice_to_claw import (
     DEFAULT_SAMPLE_RATE,
     VoiceToClawError,
     load_audio_file,
+    parse_openclaw_agent_response,
     print_input_devices,
     record_fixed_duration,
     record_push_to_talk,
     resolve_input_device,
     save_wav,
+    send_to_openclaw,
     transcribe_local,
 )
 
@@ -38,8 +38,10 @@ DEFAULT_RUNTIME_DIR = ROOT / "runtime" / "realtime-claw-chat"
 DEFAULT_VOICE = "openclaw"
 DEFAULT_TIMEOUT = 45
 DEFAULT_AGENT = "main"
+DEFAULT_REPLY_AGENT = "mira-voice-spark"
 DEFAULT_CAPTURE_SAMPLE_RATE = 48000
 DEFAULT_STT_PROFILE = DEFAULT_MODEL_PROFILE
+DEFAULT_REPLY_THINKING = "off"
 DEFAULT_REPLY_STYLE_HINT = "请用简短自然的中文回复，不要使用 emoji 或表情符号。"
 DEFAULT_API_SYSTEM_PROMPT = (
     "你是 Mira。"
@@ -109,69 +111,46 @@ def build_agent_message(transcript: str) -> str:
     return f"{DEFAULT_REPLY_STYLE_HINT}\n\n用户刚刚说：{transcript}"
 
 
-def load_reply_api_config() -> dict[str, str]:
-    config_path = Path.home() / ".openclaw" / "openclaw.json"
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    provider = payload["models"]["providers"]["volcengine-coding"]
-    api_key_ref = str(provider.get("apiKey") or "").strip()
-    api_key = os.environ.get(api_key_ref, "") if api_key_ref else ""
-    if not api_key:
-        raise VoiceToClawError(
-            f"Missing API key for cloud reply backend: expected env var '{api_key_ref or 'VOLCANO_ENGINE_API_KEY'}'"
-        )
-    model_id = str(provider["models"][0]["id"])
-    return {
-        "baseUrl": str(provider["baseUrl"]).rstrip("/"),
-        "model": model_id,
-        "apiKey": api_key,
-        "provider": "volcengine-coding",
-    }
-
-
-def send_via_cloud_agent(transcript: str, *, timeout_seconds: int, system_prompt: str | None = None) -> tuple[str, dict[str, Any]]:
-    config = load_reply_api_config()
-    endpoint = f"{config['baseUrl']}/chat/completions"
-    request_payload = {
-        "model": config["model"],
-        "messages": [
-            {"role": "system", "content": system_prompt or DEFAULT_API_SYSTEM_PROMPT},
-            {"role": "user", "content": transcript},
-        ],
-        "temperature": 0.4,
-        "max_tokens": 160,
-        "stream": False,
-    }
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(request_payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config['apiKey']}",
-        },
-        method="POST",
+def build_openclaw_reply_prompt(transcript: str, *, system_prompt: str | None = None) -> str:
+    prompt = system_prompt or DEFAULT_API_SYSTEM_PROMPT
+    return (
+        "你现在只负责为展位里的 Mira 生成直接说给用户听的简短中文回复。\n"
+        "只输出 Mira 最终要说的话，不要解释任务，不要复述规则，不要输出分析、标签、引号或多余前缀。\n"
+        "尽量只用 1 到 2 句。\n\n"
+        f"[系统设定]\n{prompt}\n\n"
+        f"[用户]\n{transcript}\n\n"
+        "请直接输出 Mira 的最终回复正文。"
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        raise VoiceToClawError(f"Cloud reply API HTTP {exc.code}: {detail}") from exc
-    except urllib.error.URLError as exc:
-        raise VoiceToClawError(f"Cloud reply API request failed: {exc}") from exc
 
-    payload = json.loads(raw)
-    choices = payload.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise VoiceToClawError("Cloud reply API returned no choices")
-    message = choices[0].get("message", {})
-    content = str(message.get("content") or "").strip()
-    if not content:
-        raise VoiceToClawError("Cloud reply API returned empty content")
-    return content, {
-        "provider": config["provider"],
-        "model": config["model"],
-        "endpoint": endpoint,
-        "payload": payload,
+
+def send_via_openclaw_agent(
+    transcript: str,
+    *,
+    agent: str,
+    thinking: str,
+    timeout_seconds: int,
+    system_prompt: str | None = None,
+) -> tuple[str, dict[str, Any]]:
+    prompt = build_openclaw_reply_prompt(transcript, system_prompt=system_prompt)
+    code, stdout, stderr = send_to_openclaw(
+        prompt,
+        agent=agent,
+        session_id=None,
+        thinking=thinking,
+        timeout_seconds=timeout_seconds,
+        json_output=True,
+    )
+    if code != 0:
+        raise VoiceToClawError(stderr.strip() or stdout.strip() or "openclaw agent reply failed")
+    parsed = parse_openclaw_agent_response(stdout)
+    meta = parsed.get("meta") or {}
+    agent_meta = meta.get("agentMeta") if isinstance(meta, dict) else {}
+    return str(parsed["text"]).strip(), {
+        "provider": str(agent_meta.get("provider") or "openclaw-agent"),
+        "model": str(agent_meta.get("model") or ""),
+        "agent": agent,
+        "thinking": thinking,
+        "payload": parsed.get("payload"),
     }
 
 
@@ -249,15 +228,17 @@ def run_turn(
     agent_message = build_agent_message(transcript)
     result["agentMessage"] = agent_message
 
-    raw_reply_text, api_meta = send_via_cloud_agent(
+    raw_reply_text, api_meta = send_via_openclaw_agent(
         transcript,
+        agent=args.reply_agent,
+        thinking=args.reply_thinking,
         timeout_seconds=args.timeout,
         system_prompt=args.api_system_prompt,
     )
     reply_text = strip_emoji(raw_reply_text)
     (turn_dir / "reply.txt").write_text(reply_text + "\n", encoding="utf-8")
     write_json(turn_dir / "reply.api.json", api_meta["payload"])
-    result["replyBackend"] = "cloud-api"
+    result["replyBackend"] = "openclaw-agent"
     result["replyText"] = reply_text
     result["rawReplyText"] = raw_reply_text
     result["emojiStripped"] = reply_text != raw_reply_text
@@ -292,8 +273,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-repo", help="Override the MLX Whisper model repo.")
     parser.add_argument("--language", default=DEFAULT_LANGUAGE, help="Language hint for STT.")
     parser.add_argument("--initial-prompt", help="Optional STT prompt.")
-    parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for cloud replies.")
+    parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for reply generation.")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="OpenClaw agent timeout in seconds.")
+    parser.add_argument("--reply-agent", default=os.environ.get("MIRA_LIGHT_REPLY_AGENT", DEFAULT_REPLY_AGENT), help="OpenClaw agent id for reply generation.")
+    parser.add_argument("--reply-thinking", default=os.environ.get("MIRA_LIGHT_REPLY_THINKING", DEFAULT_REPLY_THINKING), help="Thinking level for OpenClaw reply generation.")
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Audio voice mode for speaker playback.")
     parser.add_argument("--runtime-dir", default=str(DEFAULT_RUNTIME_DIR), help="Directory for saved turn artifacts.")
     parser.add_argument("--dry-run-audio", action="store_true", help="Do not actually play speaker audio.")
@@ -318,7 +301,7 @@ def main() -> int:
         else:
             print(f"Recording fixed {args.seconds:.1f}s turns from '{args.device}'. Say '退出对话' to exit.")
     print(f"STT profile: {args.profile} @ {args.sample_rate} Hz")
-    print("Reply backend: cloud-api")
+    print(f"Reply backend: openclaw-agent ({args.reply_agent})")
 
     turn_index = 0
     try:

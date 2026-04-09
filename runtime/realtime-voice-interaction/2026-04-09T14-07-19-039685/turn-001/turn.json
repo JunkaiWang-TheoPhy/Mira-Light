@@ -1,0 +1,28 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T14-07-19-039685/turn-001/input.wav",
+  "inputMeta": {
+    "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-002/input.wav"
+  },
+  "audioMetrics": {
+    "durationMs": 618.667,
+    "rms": 0.043194,
+    "peak": 0.235138
+  },
+  "transcript": "在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在",
+  "rawTranscript": "在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在在",
+  "normalizationApplied": false,
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "skipped": true,
+  "skipReason": "repetitive-transcript",
+  "skipDetails": {
+    "reason": "repetitive-transcript",
+    "mode": "character",
+    "dominantChar": "在",
+    "dominantRatio": 1.0,
+    "uniqueChars": 1,
+    "compressionRatio": 37.1667,
+    "charsPerSecond": 360.452,
+    "visibleChars": 223
+  }
+}

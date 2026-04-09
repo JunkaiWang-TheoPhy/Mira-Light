@@ -158,34 +158,76 @@
             </div>
           </section>
 
-          <section class="panel trigger-panel">
-            <div class="panel-header">
-              <div>
-                <h2>实时触发</h2>
-                <p>把手部、叹气、疲惫语音和离场方向，先收敛成这组稳定入口。</p>
-              </div>
-            </div>
-            <div class="mini-controls">
-              <label for="farewell-direction">送别方向</label>
-              <select id="farewell-direction">
+	          <section class="panel trigger-panel">
+	            <div class="panel-header">
+	              <div>
+	                <h2>实时触发</h2>
+	                <p>把手部、情绪、送别和导演兜底触发，先收敛成这组稳定入口。</p>
+	              </div>
+	            </div>
+	            <div class="mini-controls">
+	              <label for="farewell-direction">送别方向</label>
+	              <select id="farewell-direction">
                 <option value="left">左侧离场</option>
                 <option value="center">正前方离场</option>
                 <option value="right" selected>右侧离场</option>
               </select>
             </div>
-            <div class="operator-grid">
-              <button id="trigger-touch" type="button">触发摸一摸</button>
-              <button id="trigger-sigh" type="button">触发叹气安慰</button>
-              <button id="trigger-voice-tired" type="button">触发我好累了</button>
-              <button id="trigger-multi-person" type="button">触发多人纠结</button>
-              <button id="trigger-farewell" type="button">触发动态送别</button>
-            </div>
-          </section>
+	            <div class="operator-grid">
+	              <button id="trigger-touch" type="button">触发摸一摸</button>
+	              <button id="trigger-sigh" type="button">触发叹气安慰</button>
+	              <button id="trigger-voice-tired" type="button">触发我好累了</button>
+	              <button id="trigger-multi-person" type="button">触发多人纠结</button>
+	              <button id="trigger-farewell" type="button">触发动态送别</button>
+	              <button id="trigger-startle" type="button">触发受惊一下</button>
+	              <button id="trigger-praise" type="button">触发被夸开心</button>
+	              <button id="trigger-criticism" type="button">触发有点委屈</button>
+	            </div>
+	          </section>
 
-          <section class="panel mock-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Mock 设备状态</h2>
+	          <section class="panel vision-panel">
+	            <div class="panel-header">
+	              <div>
+	                <h2>Vision / Tracking 摘要</h2>
+	                <p>优先让操作员看清当前锁定的是谁、稳定不稳定、有没有在 live tracking。</p>
+	              </div>
+	            </div>
+	            <div class="summary-stack">
+	              <div class="summary-card">
+	                <span class="summary-label">目标与锁定</span>
+	                <strong id="vision-target-title">-</strong>
+	                <small id="vision-target-subtitle">-</small>
+	              </div>
+	              <div class="summary-card">
+	                <span class="summary-label">位置与距离</span>
+	                <strong id="vision-zone">-</strong>
+	                <small id="vision-distance">-</small>
+	              </div>
+	              <div class="summary-card">
+	                <span class="summary-label">Detector / 置信度</span>
+	                <strong id="vision-detector">-</strong>
+	                <small id="vision-confidence">-</small>
+	              </div>
+	              <div class="summary-card">
+	                <span class="summary-label">最近触发</span>
+	                <p id="vision-last-trigger" class="summary-text">-</p>
+	              </div>
+	              <div class="summary-card">
+	                <span class="summary-label">Operator Lock</span>
+	                <strong id="vision-operator-lock">-</strong>
+	                <small id="vision-operator-note">-</small>
+	              </div>
+	            </div>
+	            <div class="operator-grid">
+	              <button id="vision-lock-current" type="button">锁定当前目标</button>
+	              <button id="vision-unlock" type="button">解除目标锁定</button>
+	            </div>
+	          </section>
+
+	          <section class="panel mock-panel">
+	            <div class="panel-header">
+	              <div>
+	                <h2>Mock 设备状态</h2>
                 <p>不接真灯时，优先在这里看四关节、灯效模式和 40 灯像素条。</p>
               </div>
             </div>

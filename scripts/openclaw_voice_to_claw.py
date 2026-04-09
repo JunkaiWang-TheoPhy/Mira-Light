@@ -325,6 +325,48 @@ def send_to_openclaw(
     return completed.returncode, completed.stdout, completed.stderr
 
 
+def extract_openclaw_agent_reply_text(payload: dict[str, Any]) -> str:
+    result = payload.get("result")
+    if not isinstance(result, dict):
+        return ""
+    payloads = result.get("payloads")
+    if not isinstance(payloads, list):
+        return ""
+    texts: list[str] = []
+    for item in payloads:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        if text:
+            texts.append(text)
+    return "\n".join(texts).strip()
+
+
+def parse_openclaw_agent_response(stdout: str) -> dict[str, Any]:
+    text = stdout.strip()
+    if not text:
+        raise VoiceToClawError("OpenClaw agent returned empty stdout")
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return {
+            "text": text,
+            "payload": None,
+            "meta": {},
+        }
+
+    reply_text = extract_openclaw_agent_reply_text(payload)
+    if not reply_text:
+        raise VoiceToClawError("OpenClaw agent returned no reply text")
+    result = payload.get("result")
+    meta = result.get("meta") if isinstance(result, dict) else {}
+    return {
+        "text": reply_text,
+        "payload": payload,
+        "meta": meta if isinstance(meta, dict) else {},
+    }
+
+
 def build_runtime_dir(base_dir: Path) -> Path:
     run_dir = base_dir / timestamp_slug()
     run_dir.mkdir(parents=True, exist_ok=True)

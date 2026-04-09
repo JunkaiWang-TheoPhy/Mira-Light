@@ -11,6 +11,10 @@
 
 这份文档不是动作真值本身。
 
+如果你现在要基于 `Mira Light 展位交互方案5.pdf` 和发布版当前代码继续往下写，建议同时阅读：
+
+- [`docs/mira-light-pdf5-10-scene-code-concretization.md`](/Users/huhulitong/Documents/GitHub/Mira-Light/docs/mira-light-pdf5-10-scene-code-concretization.md)
+
 当前动作真值仍然优先以：
 
 - [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)

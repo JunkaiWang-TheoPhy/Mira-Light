@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+    "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。"
+  ],
+  "description": "speech:openclaw",
+  "requestedText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。",
+  "spokenText": "我听到你在连续说 “lawmakers”，是在测试我的反应吗？ 如果你愿意，我可以陪你聊点别的，也可以继续听你接下来的想法。"
+}

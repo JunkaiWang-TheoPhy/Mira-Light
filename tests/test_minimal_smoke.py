@@ -125,6 +125,30 @@ class MinimalSmokeTest(unittest.TestCase):
                     "voice_demo_tired",
                     {triggered["runtime"]["runningScene"], triggered["runtime"]["lastFinishedScene"]},
                 )
+
+                status, praise = request_json(
+                    f"{base_url}/v1/mira-light/trigger",
+                    method="POST",
+                    payload={"event": "praise_detected", "payload": {"transcript": "你好可爱"}},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(praise["ok"])
+                self.assertIn(
+                    "praise_demo",
+                    {praise["runtime"]["runningScene"], praise["runtime"]["lastFinishedScene"]},
+                )
+
+                status, startle = request_json(
+                    f"{base_url}/v1/mira-light/trigger",
+                    method="POST",
+                    payload={"event": "startle_detected", "payload": {"transcript": "突然一声响动"}},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(startle["ok"])
+                self.assertIn(
+                    "startle_sound",
+                    {startle["runtime"]["runningScene"], startle["runtime"]["lastFinishedScene"]},
+                )
             finally:
                 server.shutdown()
                 server.server_close()

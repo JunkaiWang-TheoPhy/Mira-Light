@@ -1,0 +1,790 @@
+openapi: 3.1.0
+info:
+  title: Mira Light Bridge API
+  version: 0.2.0
+  summary: Swagger UI / Redoc friendly draft for the current Mira Light bridge control surface.
+  description: |
+    This OpenAPI draft describes the current bridge-backed Mira Light control API.
+
+    It intentionally documents the stable semantic bridge layer rather than:
+
+    - runtime-private implementation details
+    - OpenClaw plugin internals
+    - bus-servo command transport details
+
+    Recommended integration boundary:
+
+    OpenClaw -> local plugin -> bridge HTTP API -> runtime -> device adapter -> real lamp
+servers:
+  - url: http://127.0.0.1:9783
+    description: Local bridge default
+tags:
+  - name: Health
+    description: Liveness and profile visibility
+  - name: Scenes
+    description: Scene discovery and orchestration state
+  - name: Runtime
+    description: Runtime state and device-facing status
+  - name: Control
+    description: Scene, speech, LED, and joint control requests
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Read bridge health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Bridge health payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    service: mira-light-bridge
+                    runtime:
+                      baseUrl: http://172.20.10.3
+                      dryRun: true
+                      running: false
+                      runningScene: null
+                      lastFinishedScene: farewell
+                    profile:
+                      path: /Users/example/.openclaw/workspace/mira-light-profile.json
+                      exists: true
+                      loaded: true
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/scenes:
+    get:
+      tags: [Scenes]
+      summary: List available Mira Light scenes
+      operationId: listScenes
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Scene list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SceneListResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    items:
+                      - id: cute_probe
+                        title: Cute Probe
+                        hostLine: 你看，它会有点胆小地探头看你。
+                        emotionTags: [卖萌, 胆小]
+                        readiness: ready
+                        priority: P1
+                        accent: curious
+                        durationMs: 2520
+                        requirements: []
+                        requirementIds: []
+                        fallbackHint: 只保留 tilt_left / tilt_right 版本
+                        operatorCue: 适合在讲故事时穿插
+                        hostLineAudioReady: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/runtime:
+    get:
+      tags: [Runtime]
+      summary: Read runtime state
+      operationId: getRuntime
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Runtime snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    runtime:
+                      baseUrl: http://172.20.10.3
+                      dryRun: false
+                      running: true
+                      runningScene: wake_up
+                      lastError: null
+                      lastStartedAt: "2026-04-09T15:00:01+08:00"
+                      lastFinishedAt: "2026-04-09T14:58:11+08:00"
+                      lastFinishedScene: farewell
+                      currentStepIndex: 2
+                      currentStepTotal: 8
+                      currentStepLabel: pose:neutral
+                      currentStepType: control
+                      lastCommand: run-scene:wake_up
+                      deviceOnline: true
+                      lastStatusAt: "2026-04-09T15:00:00+08:00"
+                      sceneCount: 10
+                      cueMode: scene
+                      sceneContext: {}
+                      lastSceneContext: {}
+                      lastTrigger: null
+                      autoRecoverPose: neutral
+                      trackingActive: false
+                      trackingLastUpdateAt: null
+                      trackingTarget: {}
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/status:
+    get:
+      tags: [Runtime]
+      summary: Read current device servo status
+      operationId: getStatus
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current device status as returned through the runtime client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    data:
+                      servos:
+                        - name: servo1
+                          angle: 90
+                        - name: servo2
+                          angle: 96
+                        - name: servo3
+                          angle: 98
+                        - name: servo4
+                          angle: 90
+                      led:
+                        mode: solid
+                        brightness: 120
+                        color:
+                          r: 255
+                          g: 220
+                          b: 180
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/run-scene:
+    post:
+      tags: [Control]
+      summary: Run a named scene
+      description: |
+        Starts or runs a scene through the bridge/runtime orchestration layer.
+
+        For async scene starts, the runtime returns immediately with the updated runtime state.
+        For blocking scene runs, the runtime returns after the scene finishes or fails.
+      operationId: runScene
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunSceneRequest"
+            examples:
+              async:
+                value:
+                  scene: wake_up
+                  async: true
+                  cueMode: scene
+              blocking:
+                value:
+                  scene: farewell
+                  async: false
+                  cueMode: director
+                  context:
+                    departureDirection: right
+      responses:
+        "200":
+          description: Scene start accepted or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/speak:
+    post:
+      tags: [Control]
+      summary: Speak a short public line
+      description: Prefer scene-based behavior for expressive multi-step interactions.
+      operationId: speak
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpeakRequest"
+            examples:
+              tts:
+                value:
+                  text: 你好，我是 Mira。
+                  voice: openclaw
+                  wait: true
+      responses:
+        "200":
+          description: Speak request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpeakResponse"
+              examples:
+                ok:
+                  value:
+                    ok: true
+                    data:
+                      payload:
+                        text: 你好，我是 Mira。
+                        voice: openclaw
+                        wait: true
+                      audio:
+                        ok: true
+                        dry_run: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/led:
+    post:
+      tags: [Control]
+      summary: Set LED state
+      operationId: setLed
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedRequest"
+            examples:
+              solid:
+                value:
+                  mode: solid
+                  brightness: 120
+                  color:
+                    r: 255
+                    g: 220
+                    b: 180
+              vector:
+                value:
+                  mode: vector
+                  pixels:
+                    - { r: 255, g: 0, b: 0 }
+                    - { r: 255, g: 128, b: 0 }
+                    - { r: 255, g: 255, b: 0 }
+                    - { r: 0, g: 255, b: 0 }
+                    - { r: 0, g: 0, b: 255 }
+                    - { r: 128, g: 0, b: 255 }
+                    - { r: 255, g: 0, b: 255 }
+                    - { r: 255, g: 255, b: 255 }
+                    - { r: 255, g: 0, b: 0 }
+                    - { r: 255, g: 128, b: 0 }
+                    - { r: 255, g: 255, b: 0 }
+                    - { r: 0, g: 255, b: 0 }
+                    - { r: 0, g: 0, b: 255 }
+                    - { r: 128, g: 0, b: 255 }
+                    - { r: 255, g: 0, b: 255 }
+                    - { r: 255, g: 255, b: 255 }
+                    - { r: 255, g: 0, b: 0 }
+                    - { r: 255, g: 128, b: 0 }
+                    - { r: 255, g: 255, b: 0 }
+                    - { r: 0, g: 255, b: 0 }
+                    - { r: 0, g: 0, b: 255 }
+                    - { r: 128, g: 0, b: 255 }
+                    - { r: 255, g: 0, b: 255 }
+                    - { r: 255, g: 255, b: 255 }
+                    - { r: 255, g: 0, b: 0 }
+                    - { r: 255, g: 128, b: 0 }
+                    - { r: 255, g: 255, b: 0 }
+                    - { r: 0, g: 255, b: 0 }
+                    - { r: 0, g: 0, b: 255 }
+                    - { r: 128, g: 0, b: 255 }
+                    - { r: 255, g: 0, b: 255 }
+                    - { r: 255, g: 255, b: 255 }
+                    - { r: 255, g: 0, b: 0 }
+                    - { r: 255, g: 128, b: 0 }
+                    - { r: 255, g: 255, b: 0 }
+                    - { r: 0, g: 255, b: 0 }
+                    - { r: 0, g: 0, b: 255 }
+                    - { r: 128, g: 0, b: 255 }
+                    - { r: 255, g: 0, b: 255 }
+                    - { r: 255, g: 255, b: 255 }
+      responses:
+        "200":
+          description: LED request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/mira-light/control:
+    post:
+      tags: [Control]
+      summary: Directly control logical joints
+      description: |
+        Direct logical joint control for `servo1` to `servo4`.
+
+        Callers should use this semantic control layer rather than bus-servo strings.
+        Range enforcement and scene safety still happen in the runtime.
+      operationId: controlJoints
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ControlRequest"
+            examples:
+              absolute:
+                value:
+                  mode: absolute
+                  servo1: 90
+                  servo4: 92
+              relative:
+                value:
+                  mode: relative
+                  servo4: 5
+      responses:
+        "200":
+          description: Joint control accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  responses:
+    BadRequest:
+      description: Request schema or runtime validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            validation:
+              value:
+                ok: false
+                error: scene is required
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            unauthorized:
+              value:
+                ok: false
+                error: Unauthorized
+    NotFound:
+      description: Unknown endpoint or missing resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            unknown:
+              value:
+                ok: false
+                error: Unknown endpoint
+    Conflict:
+      description: Runtime conflict, such as a scene already running
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            running:
+              value:
+                ok: false
+                error: "Another scene is already running: farewell"
+    InternalServerError:
+      description: Unexpected runtime or device-side failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            device:
+              value:
+                ok: false
+                error: Failed to reach Mira Light at http://172.20.10.3/status
+  schemas:
+    GenericObject:
+      type: object
+      additionalProperties: true
+    GenericArray:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: object
+            additionalProperties: true
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+          default: false
+        error:
+          type: string
+      required: [ok, error]
+    DataEnvelope:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/GenericObject"
+            - $ref: "#/components/schemas/GenericArray"
+            - type: string
+            - type: number
+            - type: boolean
+      required: [ok]
+    RuntimeResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        runtime:
+          $ref: "#/components/schemas/RuntimeState"
+      required: [ok, runtime]
+    StatusResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/GenericObject"
+      required: [ok, data]
+    HealthResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        service:
+          type: string
+        runtime:
+          $ref: "#/components/schemas/RuntimeState"
+        profile:
+          $ref: "#/components/schemas/ProfileInfo"
+      required: [ok, service, runtime, profile]
+    ProfileInfo:
+      type: object
+      additionalProperties: true
+      properties:
+        path:
+          type: string
+        exists:
+          type: boolean
+        loaded:
+          type: boolean
+    SceneSummary:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        hostLine:
+          type: string
+        emotionTags:
+          type: array
+          items:
+            type: string
+        readiness:
+          type: string
+        priority:
+          type: string
+        accent:
+          type: string
+        durationMs:
+          type: integer
+        requirements:
+          type: array
+          items:
+            type: string
+        requirementIds:
+          type: array
+          items:
+            type: string
+        fallbackHint:
+          type: string
+        operatorCue:
+          type: string
+        hostLineAudioReady:
+          type: boolean
+      required:
+        - id
+        - title
+        - readiness
+    SceneListResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneSummary"
+      required: [ok, items]
+    RuntimeState:
+      type: object
+      additionalProperties: true
+      properties:
+        baseUrl:
+          type: string
+        dryRun:
+          type: boolean
+        running:
+          type: boolean
+        runningScene:
+          type: string
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+        lastStartedAt:
+          type: string
+          nullable: true
+        lastFinishedAt:
+          type: string
+          nullable: true
+        lastFinishedScene:
+          type: string
+          nullable: true
+        currentStepIndex:
+          type: integer
+          nullable: true
+        currentStepTotal:
+          type: integer
+          nullable: true
+        currentStepLabel:
+          type: string
+          nullable: true
+        currentStepType:
+          type: string
+          nullable: true
+        lastCommand:
+          type: string
+          nullable: true
+        deviceOnline:
+          type: boolean
+        lastStatusAt:
+          type: string
+          nullable: true
+        sceneCount:
+          type: integer
+        cueMode:
+          type: string
+        sceneContext:
+          type: object
+          additionalProperties: true
+        lastSceneContext:
+          type: object
+          additionalProperties: true
+        lastTrigger:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
+        autoRecoverPose:
+          type: string
+          nullable: true
+        trackingActive:
+          type: boolean
+        trackingLastUpdateAt:
+          type: string
+          nullable: true
+        trackingTarget:
+          type: object
+          additionalProperties: true
+      required:
+        - baseUrl
+        - dryRun
+        - running
+        - deviceOnline
+        - sceneCount
+        - trackingActive
+        - trackingTarget
+    RunSceneRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        scene:
+          type: string
+          minLength: 1
+        async:
+          type: boolean
+          default: true
+        cueMode:
+          type: string
+          default: scene
+        allowUnavailable:
+          type: boolean
+          default: false
+        context:
+          type: object
+          additionalProperties: true
+      required: [scene]
+    SpeakRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 80
+        voice:
+          type: string
+          enum: [tts, openclaw, say, default, host, narration]
+          default: tts
+        wait:
+          type: boolean
+          default: true
+      required: [text]
+    SpeakResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/SpeakResult"
+      required: [ok, data]
+    SpeakResult:
+      type: object
+      additionalProperties: true
+      properties:
+        payload:
+          $ref: "#/components/schemas/SpeakRequest"
+        audio:
+          type: object
+          additionalProperties: true
+      required: [payload, audio]
+    RgbColor:
+      type: object
+      additionalProperties: false
+      properties:
+        r:
+          type: integer
+          minimum: 0
+          maximum: 255
+        g:
+          type: integer
+          minimum: 0
+          maximum: 255
+        b:
+          type: integer
+          minimum: 0
+          maximum: 255
+      required: [r, g, b]
+    LedRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [off, solid, breathing, rainbow, rainbow_cycle, vector]
+        brightness:
+          type: integer
+          minimum: 0
+          maximum: 255
+        color:
+          $ref: "#/components/schemas/RgbColor"
+        pixels:
+          type: array
+          minItems: 40
+          maxItems: 40
+          items:
+            $ref: "#/components/schemas/RgbColor"
+      required: [mode]
+    ControlRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [absolute, relative]
+        servo1:
+          type: number
+        servo2:
+          type: number
+        servo3:
+          type: number
+        servo4:
+          type: number
+      required: [mode]

@@ -1060,7 +1060,13 @@ class MiraLightRuntime:
                 "distanceBand": tracking.get("distance_band"),
                 "approachState": tracking.get("approach_state"),
                 "targetClass": tracking.get("target_class"),
+                "targetCount": tracking.get("target_count"),
+                "trackId": tracking.get("track_id"),
+                "detector": tracking.get("detector"),
                 "confidence": tracking.get("confidence"),
+                "selectedLockState": tracking.get("selected_lock_state"),
+                "bboxNorm": tracking.get("bbox_norm"),
+                "centerNorm": tracking.get("center_norm"),
                 "controlHint": {
                     "yawErrorNorm": yaw_error,
                     "pitchErrorNorm": pitch_error,
@@ -1273,6 +1279,15 @@ class MiraLightRuntime:
         elif event_key in {"voice_tired", "tired", "voice_demo_tired"}:
             scene_name = "voice_demo_tired"
             scene_context = {"transcript": event_payload.get("transcript") or "今天好累啊"}
+        elif event_key in {"praise", "praise_detected", "praised"}:
+            scene_name = "praise_demo"
+            scene_context = {"transcript": event_payload.get("transcript") or "你好可爱"}
+        elif event_key in {"criticism", "criticism_detected", "criticized", "negative_feedback"}:
+            scene_name = "criticism_demo"
+            scene_context = {"transcript": event_payload.get("transcript") or "你今天表现一般"}
+        elif event_key in {"startle", "startle_detected", "startle_sound", "sound_startle"}:
+            scene_name = "startle_sound"
+            scene_context = {"transcript": event_payload.get("transcript") or "突然的声响"}
         elif event_key in {"multi_person", "multi_person_detected"}:
             scene_name = "multi_person_demo"
             scene_context = {

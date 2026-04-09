@@ -151,12 +151,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scene-allowed-detectors",
-        default="haar_face",
+        default="haar_face,hog_person",
         help="Comma-separated detector allowlist for scene starts.",
     )
     parser.add_argument(
         "--tracking-allowed-detectors",
-        default="haar_face,background_motion",
+        default="haar_face,hog_person,background_motion",
         help="Comma-separated detector allowlist for live tracking updates.",
     )
     parser.add_argument(
@@ -322,7 +322,7 @@ def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[s
         return effective, None
 
     lock_state = str(selected.get("lock_state") or "candidate")
-    if lock_state not in {"candidate", "locked"}:
+    if lock_state not in {"candidate", "locked", "held", "operator_locked"}:
         return effective, None
 
     effective.update(
@@ -396,7 +396,7 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
     target_count = int(tracking.get("target_count") or payload.get("targetCount") or 0)
     selected_lock_state = None if selected is None else str(selected.get("lock_state") or "candidate")
 
-    if selected_lock_state != "locked" and (
+    if selected_lock_state not in {"locked", "held", "operator_locked"} and (
         target_count >= 2 or event_type == "multi_target_seen" or scene_hint == "multi_person_demo"
     ):
         return "multi_person_demo", "multi-target detection"
