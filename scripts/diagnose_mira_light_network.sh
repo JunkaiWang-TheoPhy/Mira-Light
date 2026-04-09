@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_IP="${1:-172.20.10.3}"
+TARGET_INPUT="${1:-tcp://192.168.31.10:9527}"
+TARGET_IP="$(printf '%s\n' "${TARGET_INPUT}" | sed -E 's#^[a-z]+://([^/:]+).*$#\1#; s#:.*$##')"
 
 echo "** route"
 route -n get "$TARGET_IP" || true
@@ -23,6 +24,9 @@ echo
 echo "** tcp port 9527"
 nc -vz -w 3 "$TARGET_IP" 9527 || true
 echo
+
+echo "** tcp port 9528"
+nc -vz -w 3 "$TARGET_IP" 9528 || true
 echo
 
 echo "** tcp raw command"

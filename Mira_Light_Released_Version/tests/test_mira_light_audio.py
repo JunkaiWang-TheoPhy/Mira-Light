@@ -63,29 +63,30 @@ class MiraLightAudioVoicePresetTests(unittest.TestCase):
         self.assertEqual(command[2], "zh-CN-XiaoyiNeural")
         self.assertEqual(command[8], "-20%")
 
-    def test_prepare_command_prefers_hp_then_bose_then_builtin(self) -> None:
+    def test_prepare_command_prefers_hp_then_beosound_then_builtin(self) -> None:
         player = AudioCuePlayer(dry_run=True)
 
         def fake_find(name: str) -> str | None:
             mapping = {
-                "speaker-bose-use": "/tmp/speaker-bose-use",
+                "speaker-beosound-use": "/tmp/speaker-beosound-use",
             }
             return mapping.get(name)
 
         with patch.object(player, "_find_command", side_effect=fake_find):
             command = player._resolve_prepare_command()
-        self.assertEqual(command, ["/tmp/speaker-bose-use"])
+        self.assertEqual(command, ["/tmp/speaker-beosound-use"])
 
-    def test_play_command_falls_back_to_builtin_afplay(self) -> None:
+    def test_play_command_prefers_builtin_helper_before_afplay(self) -> None:
         def fake_find(name: str) -> str | None:
             mapping = {
+                "speaker-builtin-play": "/tmp/speaker-builtin-play",
                 "afplay": "/usr/bin/afplay",
             }
             return mapping.get(name)
 
         with patch.object(self.player, "_find_command", side_effect=fake_find):
             command = self.player._build_play_command(Path("/tmp/test.wav"))
-        self.assertEqual(command, ["/usr/bin/afplay", "/tmp/test.wav"])
+        self.assertEqual(command, ["/tmp/speaker-builtin-play", "/tmp/test.wav"])
 
 
 if __name__ == "__main__":

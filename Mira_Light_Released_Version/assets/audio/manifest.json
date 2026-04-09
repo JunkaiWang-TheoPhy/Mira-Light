@@ -9,6 +9,24 @@
       "requiredByScenes": [
         "celebrate"
       ]
+    },
+    {
+      "cueId": "preset_speech_assets",
+      "defaultRequestName": "speech/*.aiff",
+      "resolvedFile": "speech/",
+      "description": "Bundled prerecorded host lines and key scene speech assets used before falling back to say/TTS.",
+      "requiredByScenes": [
+        "wake_up",
+        "curious_observe",
+        "touch_affection",
+        "cute_probe",
+        "daydream",
+        "standup_reminder",
+        "track_target",
+        "celebrate",
+        "farewell",
+        "sleep"
+      ]
     }
   ]
 }

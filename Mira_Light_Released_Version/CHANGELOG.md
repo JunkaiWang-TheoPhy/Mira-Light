@@ -8,3 +8,8 @@
 - added machine-readable deploy manifest under `deploy/repo-manifest.json`
 - added release docs index and getting-started docs
 - added release-side doctor and OpenClaw plugin install wrappers
+- stabilized scene host-line playback by preferring bundled prerecorded speech assets before falling back to local `say`
+- switched key release scene lines (`celebrate`, `farewell`, comfort demos) to the more stable local-speech path
+- documented the unified release signal contract across raw TCP servo frames, `pixelSignals`, and `headCapacitive`
+- tightened mock/offline release docs so `/status`, `/led`, `/sensors`, and `/health` now have clearer responsibilities
+- added a release integration summary to explain what from the latest development round is intentionally kept in the release tree

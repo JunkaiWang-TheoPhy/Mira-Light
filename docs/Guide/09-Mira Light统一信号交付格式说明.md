@@ -9,11 +9,13 @@
 1. `9527` 原始 TCP 总线舵机帧
 2. `40` 灯 `pixelSignals`
 3. 头部电容 `headCapacitive`
+4. 现场补充调试口 `9528` 文本命令
 
 它要解决的是一个现实问题：
 
 - 9527 原始舵机帧已经有单独文档
 - 40 灯和电容信息分散在 mock 排练、导演台和代码里
+- 现场还出现过一条便于人工联调的 `9528` 行文本灯光调试口
 - 调用方容易误以为这些信号都走同一种协议
 
 这份文档给出的统一结论是：
@@ -46,6 +48,7 @@
 | 层级 | 主要入口 | 负责什么 |
 | --- | --- | --- |
 | raw device transport | `tcp://192.168.31.10:9527` | 四关节舵机动作底层帧 |
+| debug text transport | `tcp://192.168.31.10:9528` | 现场人工联调用的灯光文本命令 |
 | device HTTP / mock device | `/status` `/control` `/led` `/sensors` `/actions` | 设备状态、40 灯、电容、动作 |
 | local bridge HTTP | `/v1/mira-light/*` | 给导演台、脚本、插件的统一语义接口 |
 
@@ -56,6 +59,7 @@
 | 四关节目标动作 | `#IDPWWWWTTTT!` / `{...}` | raw TCP transport | 是 |
 | 四关节语义控制 | JSON：`mode + servo1~servo4` | bridge / HTTP device | 否 |
 | 40 灯逐像素信号 | JSON：`pixels` / `pixelSignals` | HTTP device / mock / status | 否 |
+| 灯光现场调试命令 | 文本：`ALL` `ONE` `BRI` `OFF` `THR` `HELP` `ONEBRI` | debug TCP text service | 否 |
 | 头部电容 | JSON：`headCapacitive: 0|1` | HTTP device / mock / bridge | 否 |
 | 汇总设备状态 | JSON：`servos + sensors + led` | HTTP device / bridge | 否 |
 
@@ -393,6 +397,58 @@ mock 设备在 `GET /led` 或 `GET /status` 里会返回：
 - 上层调用方永远发 `pixels`
 - 展示层和状态层统一读 `pixelSignals`
 
+### 4.8 `9528` 文本调试口补充说明
+
+根据 `2026-04-09` 现场联调记录，`RDK_X5` 侧还暴露过一条：
+
+```text
+tcp://192.168.31.10:9528
+```
+
+这是一条“按行发送”的文本调试口，适合人工用 `nc` 快速验证灯链路是否可达。
+
+它的定位是：
+
+- 补充调试链路，不是上层正式推荐的主交付接口
+- 适合硬件联调、网络连通性验证、快速点灯
+- 不替代 bridge / HTTP 上的 `pixels` / `pixelSignals` 正式口径
+
+当前现场样例里出现过这些命令：
+
+```text
+ALL,255,255,255,255
+ONE,0,0,0,255,0,200
+BRI,50
+OFF
+THR,300
+HELP
+ONEBRI,50,0,0,0,255,0,200
+```
+
+按当前联调记录，可以先按下面的口径理解：
+
+| 命令 | 当前理解 | 说明 |
+| --- | --- | --- |
+| `ALL,R,G,B,brightness` | 设置所有灯为同一颜色 | 例如 `ALL,255,255,255,255` 表示全白全亮 |
+| `ONE,...` | 设置单个灯或单个定位目标 | 颜色和亮度字段可从样例中读出，但前置定位字段的精确定义仍待硬件侧固化 |
+| `BRI,value` | 设置全局亮度 | 例如 `BRI,50` |
+| `OFF` | 所有灯关闭 | 无参数 |
+| `THR,value` | 设置阈值 | 例如 `THR,300`，通常是内部阈值，不是颜色命令 |
+| `HELP` | 打印命令帮助 | 用于让设备端回显支持的命令格式 |
+| `ONEBRI,...` | 组合命令 | 可理解为 `BRI + ONE` 的合并写法 |
+
+其中：
+
+- `ONE,0,0,0,255,0,200` 从颜色字段上看，可先理解为“把某个目标灯设置为绿色，亮度 `200`”
+- `ONEBRI,50,0,0,0,255,0,200` 可先理解为“先把亮度设为 `50`，再执行对应的单灯设置”
+- `ONE` 和 `ONEBRI` 里前面的若干 `0` 当前只确认是“定位字段”，可能对应灯带编号、分组编号或像素索引
+- 在硬件侧未给出正式参数表前，上层系统不要把 `ONE` 的参数位顺序当作稳定公开协议
+
+因此这条链路的推荐使用方式是：
+
+- 现场人工联调时，可以直接用 `nc` 发文本命令快速确认灯是否可控
+- 产品层、脚本层、导演台层仍统一对接 `/led` 的 `pixels` / `pixelSignals`
+
 ## 5. `headCapacitive` 交付格式
 
 ### 5.1 请求格式
@@ -571,6 +627,28 @@ curl -X POST http://127.0.0.1:9783/v1/mira-light/led \
   }'
 ```
 
+### 8.3.1 通过 `9528` 文本调试口快速点灯
+
+如果现场设备暴露了 `9528` 文本调试端口，也可以直接连上去逐行发送：
+
+```bash
+nc 192.168.31.10 9528
+```
+
+连上后可逐行输入：
+
+```text
+ALL,255,255,255,255
+ONE,0,0,0,255,0,200
+BRI,50
+OFF
+THR,300
+HELP
+ONEBRI,50,0,0,0,255,0,200
+```
+
+这组命令更适合“网络通不通、灯能不能亮”的人工快测，不建议替代正式的 `HTTP / pixelSignals` 控制入口。
+
 ### 8.4 写入头部电容状态
 
 ```bash
@@ -601,4 +679,4 @@ curl http://127.0.0.1:9783/v1/mira-light/status \
 
 如果要对外发给联调方或硬件方，建议统一使用下面这段话：
 
-> Mira Light 当前采用分层交付：四关节底层运动使用 9527 raw TCP 舵机帧 `#IDPWWWWTTTT!`；40 灯逐像素信号使用 HTTP JSON `pixels` / `pixelSignals`，当前固定为 40 个灯、每个像素为 `[R,G,B,brightness]`；头部电容使用 HTTP JSON `headCapacitive: 0|1`。上层调用方建议统一对接 bridge HTTP，而不要直接混用 raw TCP 和设备内部实现细节。
+> Mira Light 当前采用分层交付：四关节底层运动使用 9527 raw TCP 舵机帧 `#IDPWWWWTTTT!`；40 灯逐像素信号使用 HTTP JSON `pixels` / `pixelSignals`，当前固定为 40 个灯、每个像素为 `[R,G,B,brightness]`；头部电容使用 HTTP JSON `headCapacitive: 0|1`。若现场存在 `9528` 文本灯光调试口，应视为补充联调链路，而不是主交付协议。上层调用方建议统一对接 bridge HTTP，而不要直接混用 raw TCP、文本调试命令和设备内部实现细节。

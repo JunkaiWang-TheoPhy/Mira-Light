@@ -49,9 +49,9 @@
 例如：
 
 ```bash
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 wake_up
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 celebrate
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 wake_up
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 celebrate
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 farewell
 ```
 
 如果后面真的做网页控制台、物理按钮或快捷键，那应该视作后续增强，而不是当前默认前提。
@@ -69,7 +69,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 先暖色微光，再过渡到柔和常亮 |
 | 建议代码原语 | `light_dim_warm`, `arm_raise_slow`, `micro_shiver`, `act_stretch`, `pose_normal` |
 | 依赖能力 | 人体接近检测；如果还没接传感器，则由 Claw 或终端直接触发 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 wake_up`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 wake_up`；终端：直接运行同一命令 |
 | 失败回退 | 若传感器失效，直接用终端命令或 Claw 命令触发固定动作序列 |
 | 验收标准 | 动作总时长约 `4~6s`；视觉效果是“醒来”，不是“突然弹起” |
 
@@ -86,7 +86,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 柔和暖白，不抢动作戏份 |
 | 建议代码原语 | `pose_curious_half_turn`, `turn_to_target_full`, `pose_head_tilt_left`, `act_nod` |
 | 依赖能力 | 目标方向估计，或预设左/中/右方向 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 curious_observe`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 curious_observe`；终端：直接运行同一命令 |
 | 失败回退 | 如果目标定位失败，固定朝主持人预设方向执行 |
 | 验收标准 | 必须有“半转 + 停顿 + 歪头 + 点头”四段节奏 |
 
@@ -103,7 +103,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 切到最暖色温，亮度略升 |
 | 建议代码原语 | `pose_extend`, `rub_motion`, `follow_target_once`, `pose_normal`, `light_warmest` |
 | 依赖能力 | 手部位置检测、触摸传感器；如果没有，则由 Claw 或终端直接切场景 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 touch_affection`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 touch_affection`；终端：直接运行同一命令 |
 | 失败回退 | 如果检测不到手，直接演“前探 + 左右轻蹭”固定版本 |
 | 验收标准 | 动作应小而亲密，不能像攻击或撞击 |
 
@@ -121,7 +121,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 暖白常亮 |
 | 建议代码原语 | `pose_head_tilt_left`, `pose_head_tilt_right`, `pose_extend`, `pose_retract` |
 | 依赖能力 | 无强依赖，可完全通过 Claw 或终端触发 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 cute_probe`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 cute_probe`；终端：直接运行同一命令 |
 | 失败回退 | 只保留左右歪头版，降低复杂度 |
 | 验收标准 | 节奏要慢，动作幅度不能太大，否则会丢掉“萌感” |
 
@@ -139,7 +139,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 保持当前工作光，或略降亮度 |
 | 建议代码原语 | `look_random_direction`, `hold`, `snap_back_to_normal`, `sleepy_drop_and_bounce` |
 | 依赖能力 | 计时器即可 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 daydream`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 daydream`；终端：直接运行同一命令 |
 | 失败回退 | 用版本 A 固定角度模拟，不依赖随机目标 |
 | 验收标准 | 重点是“停住那几秒”，要有空白感 |
 
@@ -156,7 +156,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 柔和工作光，不喧宾夺主 |
 | 建议代码原语 | `turn_to_target_full`, `pawing_bump`, `act_nod`, `act_shake` |
 | 依赖能力 | 久坐检测逻辑；如果还没接入，则由 Claw 或终端直接触发 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 standup_reminder`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 standup_reminder`；终端：直接运行同一命令 |
 | 失败回退 | 固定朝前执行 `蹭蹭 + 点头` |
 | 验收标准 | “蹭蹭”必须是三次有节奏前顶，不是乱抖 |
 
@@ -173,7 +173,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 光照中心尽量随目标移动，亮度保持功能性 |
 | 建议代码原语 | `track_target_loop`, `gentle_follow`, `beam_focus_update` |
 | 依赖能力 | 摄像头、视觉目标识别、目标坐标到关节角度映射 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 track_target`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 track_target`；终端：直接运行同一命令 |
 | 失败回退 | 若视觉失败，改为主持人从终端触发固定版追踪说明，或用滑杆模拟目标方向 |
 | 验收标准 | 目标移动时灯头必须连续跟，而不是一步一跳 |
 
@@ -190,7 +190,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | `rainbow_cycle` 或 disco 感闪烁 |
 | 建议代码原语 | `light_disco`, `act_dance`, `decelerate_to_normal`, `play_music` |
 | 依赖能力 | 本地音频播放器、假邮件页面；场景本身由 Claw 或终端触发 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 celebrate`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 celebrate`；终端：直接运行同一命令 |
 | 失败回退 | 如果音乐失败，仍保留灯光 + `dance` 动作 |
 | 验收标准 | 必须有明显“开心过头”的节奏对比，结束后要慢慢收回来 |
 
@@ -207,7 +207,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 亮度略降，情绪变柔 |
 | 建议代码原语 | `follow_departing_direction`, `act_wave`, `head_lower_gently` |
 | 依赖能力 | 离场方向估计；如果没有，则由 Claw 或终端直接触发固定告别版本 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 farewell`；终端：直接运行同一命令 |
 | 失败回退 | 直接执行固定 `wave + 低头` |
 | 验收标准 | 重点是“先目送，再挥手”，而不是上来就 wave |
 
@@ -224,7 +224,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 亮度逐步降低到微光 |
 | 建议代码原语 | `act_stretch`, `pose_sleep`, `light_sleep_fade` |
 | 依赖能力 | 无强依赖 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 sleep`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 sleep`；终端：直接运行同一命令 |
 | 失败回退 | 直接执行 `reset + 灯光调暗` |
 | 验收标准 | 从“在场”回到“休息”必须是平滑过渡 |
 
@@ -241,7 +241,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 暖色、低频呼吸 |
 | 建议代码原语 | `pose_head_tilt_left`, `head_lower_gently`, `light_breath_warm` |
 | 依赖能力 | 麦克风 + 音频模式识别 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 sigh_demo`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 sigh_demo`；终端：直接运行同一命令 |
 | 失败回退 | 直接从终端或 Claw 触发固定安慰反应 |
 | 优先级 | 二期 |
 
@@ -258,7 +258,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 常规暖白 |
 | 建议代码原语 | `scan_targets`, `select_primary_target`, `face_target` |
 | 依赖能力 | 多目标检测 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 multi_person_demo`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 multi_person_demo`；终端：直接运行同一命令 |
 | 失败回退 | 用固定左右摇摆代替真实多目标输入 |
 | 优先级 | 二期 |
 
@@ -275,7 +275,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 | 灯光设计 | 暖色缓慢呼吸 |
 | 建议代码原语 | `speech_emotion_detected`, `head_lower_gently`, `light_breath_warm`, `act_nod` |
 | 依赖能力 | 语音识别 + 情绪分类 |
-| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url http://172.20.10.3 voice_demo_tired`；终端：直接运行同一命令 |
+| 触发方式 | `OpenClaw`：运行 `python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 voice_demo_tired`；终端：直接运行同一命令 |
 | 失败回退 | 直接从终端或 Claw 触发“疲惫安慰”动画 |
 | 优先级 | 二期 |
 

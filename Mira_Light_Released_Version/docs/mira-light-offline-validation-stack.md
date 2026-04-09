@@ -32,11 +32,14 @@ That order matters because each layer becomes the substrate for the next one.
 Use [mock_mira_light_device.py](/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/mock_mira_light_device.py)
 to simulate the raw ESP32 HTTP contract:
 
+- `GET /health`
 - `GET /status`
 - `GET /led`
+- `GET /sensors`
 - `GET /actions`
 - `POST /control`
 - `POST /led`
+- `POST /sensors`
 - `POST /action`
 - `POST /action/stop`
 - `POST /reset`
@@ -48,6 +51,15 @@ It also exposes admin endpoints for observability and fault control:
 - `GET /__admin/faults`
 - `POST /__admin/faults`
 - `POST /__admin/reset-state`
+- `POST /__admin/device-state`
+
+The signal contract follows
+[09-Mira Light统一信号交付格式说明.md](/Users/huhulitong/Documents/GitHub/Mira-Light/Mira_Light_Released_Version/docs/Guide/09-Mira%20Light统一信号交付格式说明.md):
+
+- `/status` is the formal unified read surface: `servos + sensors + led`
+- LED writes should send `pixels`
+- LED reads should inspect `pixelSignals`
+- `headCapacitive` remains `0 | 1`
 
 Example:
 

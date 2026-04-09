@@ -798,9 +798,9 @@ wake_up:
 推荐的最小触发方式是：
 
 ```bash
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 wake_up
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 curious_observe
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 celebrate
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 wake_up
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 curious_observe
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 celebrate
 ```
 
 如果未来接入 `OpenClaw`，推荐方式也不是额外发明一套触发器，而是让 `OpenClaw` 最终调用这同一条终端命令。

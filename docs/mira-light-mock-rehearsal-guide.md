@@ -10,6 +10,7 @@
 
 - [`mock_lamp_server.py`](/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/mock_lamp_server.py)
 - [`run_mock_lamp.sh`](/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/run_mock_lamp.sh)
+- [`09-Mira Light统一信号交付格式说明.md`](/Users/huhulitong/Documents/GitHub/Mira-Light/docs/Guide/09-Mira%20Light统一信号交付格式说明.md)
 
 它不是简单的 `dry-run`，而是一台有状态的本地“假灯”。
 
@@ -61,6 +62,13 @@ curl http://127.0.0.1:9791/sensors
 curl http://127.0.0.1:9791/actions
 ```
 
+当前推荐把这几个接口理解成两层：
+
+- `/status`：统一状态面，只读 `servos + sensors + led`
+- `/led`：单独读灯效状态，展示层统一读 `pixelSignals`
+- `/sensors`：单独读或写 `headCapacitive`
+- `/health`：健康检查和整机快照，不拿它当正式状态面
+
 ## 第 2 步：让 bridge 指向 mock 灯
 
 如果你的 bridge 已经在运行，最方便的是直接调用配置接口。
@@ -99,6 +107,43 @@ curl http://127.0.0.1:9783/v1/mira-light/status \
 ```bash
 curl http://127.0.0.1:9783/v1/mira-light/sensors \
   -H "Authorization: Bearer $MIRA_LIGHT_BRIDGE_TOKEN"
+```
+
+当前 bridge / device 的统一读取口径是：
+
+```json
+{
+  "servos": [
+    {"id": 1, "name": "servo1", "angle": 90, "pin": 18}
+  ],
+  "sensors": {
+    "headCapacitive": 0
+  },
+  "led": {
+    "mode": "solid",
+    "brightness": 128,
+    "color": {"r": 255, "g": 255, "b": 255},
+    "led_count": 40,
+    "pin": 2,
+    "pixelSignals": [[255,255,255,128]]
+  }
+}
+```
+
+而 `/health` 只用于健康检查和快照：
+
+```json
+{
+  "ok": true,
+  "service": "mock-mira-light-device",
+  "time": "2026-04-09T12:00:00+08:00",
+  "snapshot": {
+    "status": {},
+    "led": {},
+    "actions": {},
+    "lastCommandAt": "2026-04-09T12:00:00+08:00"
+  }
+}
 ```
 
 ### 3.2 直接控制四个关节
@@ -150,6 +195,16 @@ curl http://127.0.0.1:9791/sensors
 curl http://127.0.0.1:9791/status
 ```
 
+写传感器成功后的典型返回：
+
+```json
+{
+  "ok": true,
+  "headCapacitive": 1,
+  "sensors": {"headCapacitive": 1}
+}
+```
+
 ### 3.4 触发一个场景
 
 ```bash
@@ -198,6 +253,7 @@ http://127.0.0.1:8765
 - 试 `vector`
 - 确认 40 灯必须整条提交，长度错误时能正确报错
 - 确认 `pixelSignals` 里每一项都是 `[R, G, B, brightness]`
+- 确认上层写灯一律发 `pixels`，读取状态统一看 `pixelSignals`
 - 确认 `headCapacitive` 只能是 `0` 或 `1`
 
 ### 场景层
@@ -219,6 +275,7 @@ mock lamp 可以让你继续做这些事：
 - 校对 `/status` 返回结构
 - 校对 `/led` 返回结构
 - 校对 `/sensors` 返回结构
+- 校对 `/health` 的快照结构
 - 验证 40 灯四通道信号接口
 - 验证 action 播放与停止
 - 验证 scene 执行后设备状态是否真的变化

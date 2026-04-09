@@ -318,7 +318,7 @@ class BoothController:
             self._log(f"[host] {host_line}")
             if self.cue_mode in {"director", "full"}:
                 self._log(f"[cue-host] {host_line}")
-                self.run_step({"type": "audio", "text": host_line, "voice": "tts", "wait": True})
+                self.run_step({"type": "audio", "text": host_line, "voice": "say", "wait": True})
                 self._sleep_ms(140)
 
         for note in scene.get("notes", []):

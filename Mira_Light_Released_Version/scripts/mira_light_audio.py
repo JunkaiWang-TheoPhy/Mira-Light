@@ -27,6 +27,28 @@ SYSTEM_FALLBACK_ASSETS: dict[str, list[Path]] = {
         Path("/System/Library/Sounds/Glass.aiff"),
     ]
 }
+
+PRESET_SPEECH_ASSETS: dict[str, str] = {
+    "当 Mira 感觉到有人靠近，它不会立刻机械转头，而是像刚醒的小动物一样慢慢睁眼、抖一抖、伸个懒腰。": "speech/wake_up_host.aiff",
+    "Mira 不会机械地直接盯着你，它会先试探着转过去一半，停一下，再歪头看你。": "speech/curious_observe_host.aiff",
+    "你可以摸摸它。它会主动靠过来，不只是响应动作，而是在表达亲近。": "speech/touch_affection_host.aiff",
+    "它会像小狗一样歪头研究你，有时还会探头一下又缩回去。": "speech/cute_probe_host.aiff",
+    "它不会一直表演，它也会像人一样走神，盯着某个方向发一会儿呆。": "speech/daydream_host.aiff",
+    "如果你坐太久，它不会直接警报，而是会像宠物一样蹭蹭你，提醒你起来动一动。": "speech/standup_reminder_host.aiff",
+    "你试着在桌上移动这本书，它会一直跟着书看，这一段是用来证明它真的看得见。": "speech/track_target_host.aiff",
+    "当它收到一个超级开心的消息时，它会像真的高兴一样跳起来。": "speech/celebrate_host.aiff",
+    "当你离开时，它会目送你，还会轻轻摆摆头像在说再见。": "speech/farewell_host.aiff",
+    "当人离开后，它会慢慢收回自己，回到休息状态，等下一个人来。": "speech/sleep_host.aiff",
+    "你对着它叹一口气，它就会像听懂了一样看你一下，光也会变暖。": "speech/sigh_demo_host.aiff",
+    "如果同时有两个人，它会短暂纠结，不知道该先看谁，最后才选定一个。": "speech/multi_person_demo_host.aiff",
+    "你只要说一句‘今天好累啊’，它就会用动作和灯光告诉你：它听懂了。": "speech/voice_demo_tired_host.aiff",
+    "太好了，我们来庆祝一下！": "speech/celebrate_line.aiff",
+    "谢谢你来看我，下次见。": "speech/farewell_line.aiff",
+    "我在呢，慢一点也没关系。": "speech/sigh_demo_line.aiff",
+    "辛苦了，要不要先休息一下？": "speech/voice_demo_tired_line.aiff",
+    "谢谢你，我有点开心。": "speech/thank_you_happy_line.aiff",
+    "我会再努力一点。": "speech/try_harder_line.aiff",
+}
 DEFAULT_MIRA_TTS_MODE = "gentle_sister"
 DEFAULT_MIRA_TTS_LANG = "zh-CN"
 VOICE_PRESETS: dict[str, dict[str, str]] = {
@@ -54,34 +76,39 @@ VOICE_MODE_ALIASES = {
 }
 
 PREPARE_COMMAND_CANDIDATES = [
+    "speaker-preferred-use",
     "speaker-hp-use",
-    "speaker-bose-use",
-    "speaker-boss-use",
+    "speaker-beosound-use",
+    "speaker-builtin-use",
 ]
 
 PLAY_COMMAND_CANDIDATES = [
+    "speaker-preferred-play",
     "speaker-hp-play",
-    "speaker-bose-play",
-    "speaker-boss-play",
+    "speaker-beosound-play",
+    "speaker-builtin-play",
     "afplay",
 ]
 
 TTS_PLAY_COMMAND_CANDIDATES = [
+    "speaker-preferred-tts-play",
     "speaker-hp-tts-play",
-    "speaker-bose-tts-play",
-    "speaker-boss-tts-play",
+    "speaker-beosound-tts-play",
+    "speaker-builtin-tts-play",
 ]
 
 OPENCLAW_TTS_PLAY_COMMAND_CANDIDATES = [
+    "speaker-preferred-openclaw-tts-play",
     "speaker-hp-openclaw-tts-play",
-    "speaker-bose-openclaw-tts-play",
-    "speaker-boss-openclaw-tts-play",
+    "speaker-beosound-openclaw-tts-play",
+    "speaker-builtin-openclaw-tts-play",
 ]
 
 SAY_COMMAND_CANDIDATES = [
+    "speaker-preferred-say",
     "speaker-hp-say",
-    "speaker-bose-say",
-    "speaker-boss-say",
+    "speaker-beosound-say",
+    "speaker-builtin-say",
     "say",
 ]
 
@@ -188,6 +215,15 @@ class AudioCuePlayer:
 
         return None
 
+    def _resolve_preset_speech_asset(self, text: str) -> tuple[str, Path] | None:
+        asset_name = PRESET_SPEECH_ASSETS.get(text)
+        if not asset_name:
+            return None
+        asset_path = self._resolve_asset_path(asset_name)
+        if asset_path is None:
+            return None
+        return asset_name, asset_path
+
     def _ensure_output_ready(self) -> None:
         if self._output_prepared or not self.prepare_command:
             return
@@ -233,7 +269,7 @@ class AudioCuePlayer:
 
         raise RuntimeError(
             "No local audio playback command found "
-            "(expected speaker-hp-play, speaker-bose-play, speaker-boss-play, or afplay)"
+            "(expected speaker-hp-play, speaker-beosound-play, speaker-builtin-play, or afplay)"
         )
 
     def _resolve_voice_mode(self, requested: str) -> str:
@@ -305,7 +341,7 @@ class AudioCuePlayer:
 
         raise RuntimeError(
             "No local speech command found "
-            "(expected HP/Bose/Boss TTS helpers or say)"
+            "(expected HP/Beosound/Built-in TTS helpers or say)"
         )
 
     def play_asset(
@@ -336,6 +372,17 @@ class AudioCuePlayer:
         spoken_text = normalize_public_speech_text(cleaned)
         if spoken_text != cleaned:
             self._log(f"[audio-normalized] {cleaned} -> {spoken_text}")
+
+        preset_asset = self._resolve_preset_speech_asset(spoken_text)
+        if preset_asset is not None:
+            asset_name, asset_path = preset_asset
+            self._ensure_output_ready()
+            command = self._build_play_command(asset_path)
+            result = self._run(command, wait=wait, description=f"speech-asset:{asset_path.name}")
+            result["requestedText"] = cleaned
+            result["spokenText"] = spoken_text
+            result["presetAsset"] = asset_name
+            return result
 
         self._ensure_output_ready()
         command = self._build_speech_command(spoken_text, voice=voice)

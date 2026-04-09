@@ -62,7 +62,7 @@ tail -f ./runtime/live-follow-demo-mock/vision.events.jsonl
 ```bash
 cd /Users/huhulitong/Documents/GitHub/Mira-Light
 bash scripts/run_mira_light_live_follow_demo.sh \
-  --base-url http://172.20.10.3 \
+  --base-url tcp://192.168.31.10:9527 \
   --receiver-port 8000 \
   --runtime-dir ./runtime/live-follow-demo-real
 ```
@@ -96,7 +96,7 @@ http://这台Mac的IP:8000
 cd /Users/huhulitong/Documents/GitHub/Mira-Light
 bash scripts/run_mira_light_live_follow_demo.sh \
   --attach-existing-receiver \
-  --base-url http://172.20.10.3 \
+  --base-url tcp://192.168.31.10:9527 \
   --runtime-dir ./runtime/live-follow-demo-real
 ```
 
@@ -231,7 +231,7 @@ bash scripts/run_mira_light_live_follow_demo.sh \
 
 ```bash
 bash scripts/run_mira_light_live_follow_demo.sh \
-  --base-url http://172.20.10.3 \
+  --base-url tcp://192.168.31.10:9527 \
   --tracking-update-ms 240 \
   --warmup-frames 10
 ```

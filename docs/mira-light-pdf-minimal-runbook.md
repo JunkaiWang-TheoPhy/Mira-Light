@@ -1,164 +1,156 @@
-# Mira Light 严格按 PDF 的最小跑通步骤
+# Mira Light 当前 TCP 链路的最小跑通步骤
 
 ## 文档目的
 
-这份文档只保留“严格按 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 跑通”的最小步骤。
+这份文档只保留“按当前仓库已经统一的 TCP 设备链路跑通”的最小步骤。
 
 它明确排除这些额外方案：
 
 - `simple_lamp_receiver.py`
-- 本地 bridge
+- 本地 bridge HTTP
+- 历史 REST / `curl /status` 调法
 - OpenClaw 插件
 - 路由器中转枢纽
-- 图片上传或状态回传扩展接口
 
 也就是说，这份文档只处理一件事：
 
-> 用这台电脑直接调用单片机 PDF 中已有的 REST API，确认灯能被控制。
+> 用这台电脑直接连 `192.168.31.10:9527`，确认 raw TCP 灯链路能被控制。
 
 ## 适用前提
 
 开始前默认以下条件成立：
 
-- 电脑和 `ESP32 Mira Light` 在同一个局域网
-- 你已经知道单片机地址
-- 单片机固件是按 PDF 中那套接口实现的
+- 电脑和 `Mira Light / RDK_X5` 在同一个局域网
+- 当前目标地址为 `192.168.31.10`
+- 设备已经开放 raw TCP `9527` 端口
 
 如果设备地址还不确定，先不要继续做下面命令。
 
 ## 一句话原则
 
-先只验证 PDF 里的原始控制面：
+先只验证当前的 raw TCP 控制面：
 
-- `GET /status`
-- `GET /led`
-- `GET /actions`
-- `POST /led`
-- `POST /action`
-- `POST /control`
+- `tcp://192.168.31.10:9527` 原始舵机帧
+- 可选的 `tcp://192.168.31.10:9528` 文本调试口
 
-其它扩展接口一律先不碰。
+HTTP 设备接口一律先不碰。
 
 ## 最小跑通命令
 
-先把设备地址写成一个变量。
-
-如果你当前设备地址就是文档里常用的 `172.20.10.3`，可以直接执行：
+先把设备地址写成变量：
 
 ```bash
-export LAMP_BASE_URL="http://172.20.10.3"
+export LAMP_HOST="192.168.31.10"
+export LAMP_BASE_URL="tcp://192.168.31.10:9527"
 ```
 
-如果你的设备地址不是这个，就把它改成实际 IP。
-
-### 1. 读取当前舵机状态
-
-这是第一条必须成功的命令。
+### 1. 先检查端口是否可达
 
 ```bash
-curl "$LAMP_BASE_URL/status"
+nc -vz -w 3 "$LAMP_HOST" 9527
 ```
 
 预期：
 
-- 返回 JSON
-- 能看到 `servo1` 到 `servo4` 的当前角度
+- 终端显示 `succeeded`
+- 说明 raw TCP 主控制口在线
 
-### 2. 读取当前灯光状态
+### 2. 可选检查 `9528` 文本调试口
 
 ```bash
-curl "$LAMP_BASE_URL/led"
+nc -vz -w 3 "$LAMP_HOST" 9528
 ```
 
 预期：
 
-- 返回 JSON
-- 能看到 `mode`、`brightness`、`color`
+- 终端显示 `succeeded`
+- 说明文本联调口在线
 
-### 3. 读取预设动作列表
+### 3. 发送一条单舵机 raw 帧
 
 ```bash
-curl "$LAMP_BASE_URL/actions"
+printf '#003P1500T1000!\n' | nc -w 3 "$LAMP_HOST" 9527
 ```
 
 预期：
 
-- 返回 JSON
-- 能看到 `nod`、`shake`、`wave`、`dance`、`stretch`、`curious`
+- 灯头或对应关节有动作
+- 这条命令能正常发完，不报连接错误
 
-### 4. 切换为暖白常亮
-
-这是最小灯光写操作。
+### 4. 发送一条多舵机 raw 帧
 
 ```bash
-curl -X POST "$LAMP_BASE_URL/led" \
-  -H 'Content-Type: application/json' \
-  -d '{"mode":"solid","color":{"r":255,"g":200,"b":120},"brightness":180}'
+printf '{#001P1500T1000!#003P1500T1000!}\n' | nc -w 3 "$LAMP_HOST" 9527
 ```
 
 预期：
 
-- 灯光变成暖白常亮
+- 多个关节能同时收到动作帧
+- 命令能正常返回，不报连接错误
 
-### 5. 执行一次 wave
-
-这是最小动作写操作。
+### 5. 用 runtime 再走一遍场景入口
 
 ```bash
-curl -X POST "$LAMP_BASE_URL/action" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"wave","loops":1}'
+python3 scripts/booth_controller.py --base-url "$LAMP_BASE_URL" wake_up
 ```
 
 预期：
 
-- 灯执行一次打招呼动作
+- scene 入口能成功把动作下沉到 `9527`
+- 若设备在线，应能看到起床场景动作开始执行
 
-### 6. 控制一次关节角度
+### 6. 可选用 `9528` 做单灯联调
 
-这是最小舵机写操作。
+如果现场已经开放文本调试口，可以手动连上：
 
 ```bash
-curl -X POST "$LAMP_BASE_URL/control" \
-  -H 'Content-Type: application/json' \
-  -d '{"mode":"absolute","servo1":90,"servo3":45}'
+nc "$LAMP_HOST" 9528
+```
+
+然后逐行发送：
+
+```text
+ALL,255,255,255,255
+ONE,0,0,0,255,0,200
+BRI,50
+OFF
 ```
 
 预期：
 
-- 指定关节转到目标角度
+- 灯光能跟随文本命令变化
+- 这条链路只用于联调，不替代正式 `9527` raw 运动链路
 
 ## 跑通标准
 
-如果下面 4 件事都成立，就可以认为“严格按 PDF 最小跑通”已经完成：
+如果下面 4 件事都成立，就可以认为“当前 TCP 最小跑通”已经完成：
 
-1. `curl "$LAMP_BASE_URL/status"` 成功返回 JSON
-2. `curl "$LAMP_BASE_URL/led"` 成功返回 JSON
-3. `POST /led` 后灯光有明显变化
-4. `POST /action` 或 `POST /control` 后机械动作确实发生
+1. `nc -vz -w 3 "$LAMP_HOST" 9527` 成功
+2. 单舵机 raw 帧发送成功
+3. 多舵机 raw 帧发送成功
+4. `python3 scripts/booth_controller.py --base-url "$LAMP_BASE_URL" wake_up` 能触发场景
 
 ## 失败时先排查什么
 
 如果命令没有返回或设备没有动作，先只查这 4 项：
 
-1. 电脑和单片机是否在同一局域网
-2. `LAMP_BASE_URL` 是否写成了正确 IP
-3. 单片机是否已经连上 `2.4GHz Wi‑Fi`
-4. 单片机固件是否真的按 PDF 实现了对应接口
+1. 电脑和设备是否在同一局域网
+2. `LAMP_HOST` 是否写成了正确 IP
+3. `9527` 端口是否真的在监听
+4. 当前设备是否确实接受仓库定义的 raw TCP 舵机帧
 
 ## 当前阶段不建议做的事
 
 在这条最小跑通链路完成之前，先不要引入：
 
-- `simple_lamp_receiver.py`
+- bridge HTTP
+- 历史 REST API 验证
 - 图片上传
-- Base64 上传
 - OpenClaw 插件
-- 本地 bridge
 - 反向隧道
 
-因为这些都会增加额外变量，不利于先确认“PDF 控制面本身是否工作”。
+因为这些都会增加额外变量，不利于先确认“当前 raw TCP 控制面本身是否工作”。
 
 ## 一句话总结
 
-当前最稳的起点不是扩展协议，而是先用这台电脑直接把 PDF 里原始的 `status / led / actions / action / control` 调通。
+当前最稳的起点不是旧 HTTP 接口，而是先用这台电脑把 `tcp://192.168.31.10:9527` 的 raw TCP 链路调通。

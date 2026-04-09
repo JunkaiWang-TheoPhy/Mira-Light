@@ -5,6 +5,7 @@
 当前默认包含：
 
 - `dance.wav`
+- `speech/*.aiff`
 
 说明：
 
@@ -25,3 +26,18 @@ assets/audio/dance.wav
 ```
 
 如果后面你拿到了正式版 `dance.mp3`，可以直接替换或并存。
+
+## 预录主持词 / 关键台词
+
+发布版现在还携带了一组预录语音：
+
+- `assets/audio/speech/wake_up_host.aiff`
+- `assets/audio/speech/celebrate_host.aiff`
+- `assets/audio/speech/farewell_line.aiff`
+
+这组资产的用途是：
+
+- 已知主持词和少量关键台词优先直接播本地音频
+- 没有命中预录音资产时，再回退到 `say` / TTS
+
+这样做是为了让发布版在现场更稳，不把“主持词能不能及时播出来”完全压在临场 TTS 上。

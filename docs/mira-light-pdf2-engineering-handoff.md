@@ -215,16 +215,16 @@ python3 scripts/booth_controller.py --list
 ### 第 2 步：先用 dry-run 看动作
 
 ```bash
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run wake_up
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run curious_observe
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run touch_affection
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run cute_probe
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run daydream
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run standup_reminder
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run track_target
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run celebrate
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run farewell
-python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run sleep
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run wake_up
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run curious_observe
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run touch_affection
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run cute_probe
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run daydream
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run standup_reminder
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run track_target
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run celebrate
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run farewell
+python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --dry-run sleep
 ```
 
 目标：

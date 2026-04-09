@@ -46,7 +46,7 @@ paths:
                     ok: true
                     service: mira-light-bridge
                     runtime:
-                      baseUrl: http://172.20.10.3
+                      baseUrl: tcp://192.168.31.10:9527
                       dryRun: true
                       running: false
                       runningScene: null
@@ -114,7 +114,7 @@ paths:
                   value:
                     ok: true
                     runtime:
-                      baseUrl: http://172.20.10.3
+                      baseUrl: tcp://192.168.31.10:9527
                       dryRun: false
                       running: true
                       runningScene: wake_up
@@ -471,7 +471,7 @@ components:
             device:
               value:
                 ok: false
-                error: Failed to reach Mira Light at http://172.20.10.3/status
+                error: Failed to reach Mira Light at tcp://192.168.31.10:9527
   schemas:
     GenericObject:
       type: object

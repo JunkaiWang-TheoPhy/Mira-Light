@@ -551,7 +551,7 @@ class BoothController:
             self._log(f"[host] {host_line}")
             if self.cue_mode in {"director", "full"} and not self.silent_mode:
                 self._log(f"[cue-host] {host_line}")
-                self.run_step({"type": "audio", "text": host_line, "voice": "tts", "wait": True})
+                self.run_step({"type": "audio", "text": host_line, "voice": "say", "wait": True})
                 self._sleep_ms(140)
             elif self.cue_mode in {"director", "full"} and self.silent_mode:
                 self._log(f"[cue-host-muted] {host_line}")
