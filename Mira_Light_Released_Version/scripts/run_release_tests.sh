@@ -27,6 +27,7 @@ fi
 
 exec "${PYTHON_BIN}" -m unittest \
   tests.test_minimal_smoke \
+  tests.test_dynamic_farewell \
   tests.test_embodied_memory \
   tests.test_release_startup_contract \
   tests.test_release_preflight \

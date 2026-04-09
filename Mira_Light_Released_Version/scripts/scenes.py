@@ -170,6 +170,11 @@ DEFAULT_POSES: Dict[str, Dict[str, Any]] = {
 WARM_AMBER = {"r": 255, "g": 180, "b": 120}
 SOFT_WARM = {"r": 255, "g": 220, "b": 180}
 COMFORT_WARM = {"r": 255, "g": 170, "b": 110}
+DIRECTION_YAW = {
+    "left": 78,
+    "center": 92,
+    "right": 106,
+}
 
 
 SCENE_META: Dict[str, Dict[str, Any]] = {
@@ -483,6 +488,78 @@ def fade_to_sleep(color: Dict[str, int]) -> List[Step]:
         delay(380),
         led("off", brightness=0),
     ]
+
+
+def _normalize_direction(raw: Any, *, default: str = "right") -> str:
+    value = str(raw or "").strip().lower()
+    if value in {"left", "l", "west"}:
+        return "left"
+    if value in {"center", "centre", "mid", "middle", "c"}:
+        return "center"
+    if value in {"right", "r", "east"}:
+        return "right"
+    return default
+
+
+def _direction_from_context(scene_context: Dict[str, Any], *, default: str = "right") -> str:
+    for key in ("departureDirection", "direction", "horizontalZone", "primaryDirection", "side"):
+        if key in scene_context:
+            return _normalize_direction(scene_context.get(key), default=default)
+    return default
+
+
+def _build_dynamic_farewell_scene(scene_context: Dict[str, Any]) -> Dict[str, Any]:
+    direction = _direction_from_context(scene_context, default="right")
+    look_yaw = DIRECTION_YAW[direction]
+    bow_yaw = {"left": 82, "center": 92, "right": 102}[direction]
+    label = {"left": "左侧", "center": "正前方", "right": "右侧"}[direction]
+
+    scene = deepcopy(SCENES["farewell"])
+    base_notes = [
+        note
+        for note in scene.get("notes", [])
+        if "离场方向识别接入后" not in str(note)
+    ]
+    scene["notes"] = [
+        f"当前按评委离场的{label}做动态目送。",
+        *base_notes,
+    ]
+    scene["steps"] = [
+        pose("neutral"),
+        led("solid", brightness=108, color={"r": 255, "g": 214, "b": 176}),
+        comment(f"先目送评委离开的{label}。"),
+        absolute(servo1=look_yaw, servo2=96, servo3=100, servo4=92),
+        delay(420),
+        comment("再做两次慢慢点头，像挥手说再见。"),
+        nudge(servo4=5),
+        delay(180),
+        nudge(servo4=-10),
+        delay(180),
+        nudge(servo4=5),
+        delay(220),
+        nudge(servo4=5),
+        delay(180),
+        nudge(servo4=-10),
+        delay(180),
+        nudge(servo4=5),
+        delay(220),
+        comment("最后微微低头，像有点舍不得。"),
+        absolute(servo1=bow_yaw, servo2=92, servo3=96, servo4=100),
+        delay(180),
+        pose("neutral"),
+        led("solid", brightness=90, color={"r": 255, "g": 210, "b": 170}),
+    ]
+    return scene
+
+
+def build_scene(scene_name: str, scene_context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    if scene_name not in SCENES:
+        raise KeyError(f"Unknown scene: {scene_name}")
+
+    resolved_context = deepcopy(scene_context or {})
+    if scene_name == "farewell":
+        return _build_dynamic_farewell_scene(resolved_context)
+    return deepcopy(SCENES[scene_name])
 
 
 SCENES: Dict[str, Dict[str, Any]] = {

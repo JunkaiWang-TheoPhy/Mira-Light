@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 DEFAULT_SERVICE_ROOT="$HOME/.openclaw/mira-light-service"
 DEFAULT_WORKSPACE_RUNTIME_DIR="$HOME/.openclaw/workspace/runtime"
@@ -56,21 +56,12 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   exit 1
 fi
 
-append_optional_flag() {
-  local flag="$1"
-  local value="${2:-}"
-  if [[ -n "$value" ]]; then
-    printf '%s %s ' "$flag" "$value"
-  fi
-}
-
-append_bool_flag() {
-  local flag="$1"
-  local value="${2:-0}"
-  case "${value,,}" in
-    1|true|yes|on)
-      printf '%s ' "$flag"
-      ;;
+is_truthy() {
+  local value="${1:-0}"
+  value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+  case "$value" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
   esac
 }
 
@@ -103,11 +94,7 @@ BRIDGE_ARGS=(
   --base-url "$BASE_URL"
 )
 
-if [[ "$(append_bool_flag --dry-run "${MIRA_LIGHT_VISION_DRY_RUN:-0}")" != "" ]]; then
-  BRIDGE_ARGS+=(--dry-run)
-fi
-
-if [[ "$(append_bool_flag --allow-experimental "${MIRA_LIGHT_ALLOW_EXPERIMENTAL:-0}")" != "" ]]; then
+if is_truthy "${MIRA_LIGHT_ALLOW_EXPERIMENTAL:-0}"; then
   BRIDGE_ARGS+=(--allow-experimental)
 fi
 
@@ -120,6 +107,10 @@ cleanup() {
   exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
+
+if is_truthy "${MIRA_LIGHT_VISION_DRY_RUN:-0}"; then
+  BRIDGE_ARGS+=(--dry-run)
+fi
 
 "$PYTHON_BIN" "$ROOT_DIR/scripts/cam_receiver_service.py" "${RECEIVER_ARGS[@]}" &
 RECEIVER_PID=$!

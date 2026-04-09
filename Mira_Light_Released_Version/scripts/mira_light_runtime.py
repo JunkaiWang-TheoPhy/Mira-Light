@@ -23,6 +23,7 @@ ESP32 REST API:
 from __future__ import annotations
 
 from collections import deque
+from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import os
@@ -35,7 +36,7 @@ from typing import Any, Callable, Dict
 
 from audio_cue_player import AudioCuePlayer
 from mira_light_safety import MiraLightSafetyController, SafetyDecision, SafetyViolation
-from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
+from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION, build_scene
 
 
 DEFAULT_TIMEOUT_SECONDS = 3.0
@@ -186,11 +187,11 @@ class BoothController:
             remaining = deadline - time.monotonic()
             time.sleep(min(0.05, max(0.0, remaining)))
 
-    def run_scene(self, scene_name: str) -> None:
-        if scene_name not in SCENES:
+    def run_scene(self, scene_name: str, scene_definition: dict[str, Any] | None = None) -> None:
+        if scene_name not in SCENES and scene_definition is None:
             raise KeyError(f"Unknown scene: {scene_name}")
 
-        scene = SCENES[scene_name]
+        scene = deepcopy(scene_definition or SCENES[scene_name])
         self._log(f"=== Scene: {scene_name} / {scene['title']} ===")
 
         host_line = scene.get("host_line")
@@ -373,6 +374,8 @@ class MiraLightRuntime:
         self._last_command: str | None = None
         self._device_online: bool | None = None
         self._last_status_at: str | None = None
+        self._active_scene_context: dict[str, Any] = {}
+        self._last_scene_context: dict[str, Any] = {}
         self._tracking_active = False
         self._tracking_last_update_at: str | None = None
         self._tracking_target: dict[str, Any] = {"active": False}
@@ -536,6 +539,8 @@ class MiraLightRuntime:
                 "sceneBundleAvailable": sorted(self._scene_bundles),
                 "audioCueRoot": str(self._audio_cue_root),
                 "estimatedServoState": self._safety.snapshot(),
+                "sceneContext": deepcopy(self._active_scene_context),
+                "lastSceneContext": deepcopy(self._last_scene_context),
                 "trackingActive": self._tracking_active,
                 "trackingLastUpdateAt": self._tracking_last_update_at,
                 "trackingTarget": self._tracking_target,
@@ -570,6 +575,9 @@ class MiraLightRuntime:
             "servoCalibration": SERVO_CALIBRATION,
             "poses": POSES,
         }
+
+    def preview_scene(self, scene_name: str, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
+        return build_scene(scene_name, scene_context)
 
     def sync_safety_from_status(self, payload: Any) -> bool:
         return self._safety.sync_from_status(payload)
@@ -796,7 +804,7 @@ class MiraLightRuntime:
             self.log(f"[runtime-error] stop_action failed: {exc}")
         return self.get_runtime_state()
 
-    def _prepare_run(self, scene_name: str) -> None:
+    def _prepare_run(self, scene_name: str, *, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
         if scene_name not in SCENES:
             raise KeyError(f"Unknown scene: {scene_name}")
         if not self.is_scene_available(scene_name):
@@ -811,19 +819,23 @@ class MiraLightRuntime:
             raise RuntimeError(f"Another scene is already running: {running_scene}")
 
         self._clear_tracking_state(reason=f"scene:{scene_name}", set_command=False, log_message=False)
+        scene_definition = build_scene(scene_name, scene_context)
         with self._state_lock:
             self._stop_event.clear()
             self._running_scene = scene_name
             self._last_error = None
             self._last_started_at = self._now()
             self._current_step_index = 0
-            self._current_step_total = len(SCENES[scene_name].get("steps", []))
+            self._current_step_total = len(scene_definition.get("steps", []))
             self._current_step_label = "scene:start"
             self._current_step_type = "scene"
             self._last_command = f"run-scene:{scene_name}"
+            self._active_scene_context = deepcopy(scene_context or {})
         self.log(f"[runtime] start scene {scene_name}")
+        return scene_definition
 
     def _finish_run(self, scene_name: str, error: str | None = None) -> None:
+        active_context = deepcopy(self._active_scene_context)
         with self._state_lock:
             self._running_scene = None
             self._last_finished_at = self._now()
@@ -833,6 +845,8 @@ class MiraLightRuntime:
             self._current_step_total = None
             self._current_step_label = None
             self._current_step_type = None
+            self._last_scene_context = active_context
+            self._active_scene_context = {}
         if error:
             self.log(f"[runtime-error] scene {scene_name}: {error}")
         else:
@@ -843,8 +857,8 @@ class MiraLightRuntime:
         self._record_scene_outcome(scene_name, status, error)
         self._run_lock.release()
 
-    def run_scene_blocking(self, scene_name: str) -> dict[str, Any]:
-        self._prepare_run(scene_name)
+    def run_scene_blocking(self, scene_name: str, *, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
+        scene_definition = self._prepare_run(scene_name, scene_context=scene_context)
         error_text = None
         try:
             controller = BoothController(
@@ -860,7 +874,7 @@ class MiraLightRuntime:
                 reset_lamp=self.reset_lamp,
                 play_audio=self.play_audio,
             )
-            controller.run_scene(scene_name)
+            controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
             error_text = str(exc)
         except Exception as exc:  # noqa: BLE001
@@ -870,7 +884,7 @@ class MiraLightRuntime:
             self._finish_run(scene_name, error_text)
         return self.get_runtime_state()
 
-    def _run_scene_worker(self, scene_name: str) -> None:
+    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any]) -> None:
         error_text = None
         try:
             controller = BoothController(
@@ -884,8 +898,9 @@ class MiraLightRuntime:
                     update_last_command=False,
                 ),
                 reset_lamp=self.reset_lamp,
+                play_audio=self.play_audio,
             )
-            controller.run_scene(scene_name)
+            controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
             error_text = str(exc)
         except Exception as exc:  # noqa: BLE001
@@ -893,9 +908,9 @@ class MiraLightRuntime:
         finally:
             self._finish_run(scene_name, error_text)
 
-    def start_scene(self, scene_name: str) -> dict[str, Any]:
-        self._prepare_run(scene_name)
-        worker = threading.Thread(target=self._run_scene_worker, args=(scene_name,), daemon=True)
+    def start_scene(self, scene_name: str, *, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
+        scene_definition = self._prepare_run(scene_name, scene_context=scene_context)
+        worker = threading.Thread(target=self._run_scene_worker, args=(scene_name, scene_definition), daemon=True)
         with self._state_lock:
             self._runner_thread = worker
         worker.start()

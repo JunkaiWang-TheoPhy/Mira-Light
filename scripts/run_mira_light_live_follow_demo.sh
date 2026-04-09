@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON_BIN="${REPO_ROOT}/.venv/bin/python"
 
@@ -33,6 +33,7 @@ MOTION_NEAR_AREA_RATIO="0.16"
 MOTION_MID_AREA_RATIO="0.05"
 MIN_MOTION_AREA_RATIO="0.012"
 WARMUP_FRAMES="8"
+WARMUP_FRAMES_EXPLICIT="0"
 
 usage() {
   cat <<'EOF'
@@ -150,6 +151,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --warmup-frames)
       WARMUP_FRAMES="$2"
+      WARMUP_FRAMES_EXPLICIT="1"
       shift 2
       ;;
     --no-experimental)
@@ -168,10 +170,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "${REPLAY_DEMO}" == "1" && "${WARMUP_FRAMES_EXPLICIT}" != "1" ]]; then
+  WARMUP_FRAMES="1"
+fi
+
 if [[ -z "${CAPTURES_DIR}" ]]; then
   CAPTURES_DIR="${RUNTIME_DIR}/captures"
 fi
 
+mkdir -p "$(dirname "${RUNTIME_DIR}")" "$(dirname "${CAPTURES_DIR}")"
 RUNTIME_DIR="$(cd "$(dirname "${RUNTIME_DIR}")" && pwd)/$(basename "${RUNTIME_DIR}")"
 CAPTURES_DIR="$(cd "$(dirname "${CAPTURES_DIR}")" && pwd)/$(basename "${CAPTURES_DIR}")"
 REPLAY_SOURCE="$(cd "$(dirname "${REPLAY_SOURCE}")" && pwd)/$(basename "${REPLAY_SOURCE}")"
@@ -229,7 +236,7 @@ export MIRA_LIGHT_WARMUP_FRAMES="${WARMUP_FRAMES}"
 export MIRA_LIGHT_ALLOW_EXPERIMENTAL="${ALLOW_EXPERIMENTAL}"
 export MIRA_LIGHT_VISION_DRY_RUN="${DRY_RUN}"
 
-/bin/zsh "${REPO_ROOT}/scripts/run_mira_light_vision_stack.sh" >"${STACK_LOG}" 2>&1 &
+bash "${REPO_ROOT}/scripts/run_mira_light_vision_stack.sh" >"${STACK_LOG}" 2>&1 &
 STACK_PID=$!
 
 sleep 1
