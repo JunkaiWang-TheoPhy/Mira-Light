@@ -1,0 +1,41 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T15-42-11-965041/turn-001/input.wav",
+  "transcript": "你好。",
+  "rawTranscript": "你好。",
+  "normalizationApplied": false,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-001/input.wav",
+  "agentMessage": "请用简短自然的中文回复，不要使用 emoji 或表情符号。\n\n用户刚刚说：你好。",
+  "replyBackend": "lingzhu-live-adapter",
+  "replyText": "你好呀，我在这儿。 今天你想先聊点什么，还是让我陪你先放松一下？",
+  "rawReplyText": "你好呀，我在这儿。  \n今天你想先聊点什么，还是让我陪你先放松一下？",
+  "emojiStripped": true,
+  "apiMeta": {
+    "provider": "lingzhu-live-adapter",
+    "model": "openclaw",
+    "agent": "main",
+    "userId": "2026-04-09T15-42-11-965041",
+    "sessionId": "2026-04-09T15-42-11-965041",
+    "additionalUserIds": [
+      "mira-light-bridge"
+    ]
+  },
+  "audioResult": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+      "--voice",
+      "zh-CN-XiaoyiNeural",
+      "--lang",
+      "zh-CN",
+      "--rate",
+      "+8%",
+      "你好呀，我在这儿。 今天你想先聊点什么，还是让我陪你先放松一下？"
+    ],
+    "description": "speech:tts",
+    "requestedText": "你好呀，我在这儿。 今天你想先聊点什么，还是让我陪你先放松一下？",
+    "spokenText": "你好呀，我在这儿。 今天你想先聊点什么，还是让我陪你先放松一下？"
+  }
+}

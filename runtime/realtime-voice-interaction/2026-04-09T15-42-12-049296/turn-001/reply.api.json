@@ -1,0 +1,105 @@
+{
+  "ok": true,
+  "text": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。",
+  "sessionKey": "agent:main:mira-lingzhu-prod_mira-light-live-20260409154212049620",
+  "promptPack": {
+    "explicitMemories": [],
+    "embodiedMemories": [
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light 刚刚完成了 welcome 灯光动作，当前状态稳定。",
+        "structured_value_json": null,
+        "confidence": null,
+        "salience": 0.92,
+        "sensitivity": null,
+        "tags_json": "[\"mira-light\",\"scene:welcome\"]",
+        "evidence_refs_json": "[]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T07:22:24.582Z",
+        "structured_value": null,
+        "tags": [
+          "mira-light",
+          "scene:welcome"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light device 'mira-light-local' reported status, scene=comfort, playing=False, ledMode=breathing.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"reportType\":\"status\",\"deviceId\":\"mira-light-local\",\"payload\":{\"deviceId\":\"mira-light-local\",\"scene\":\"comfort\",\"playing\":false,\"ledMode\":\"breathing\"},\"stored\":{\"stored\":true,\"deviceId\":\"mira-light-local\",\"reportType\":\"status\",\"inboxPath\":\"/Users/huhulitong/Documents/Mira-Light-Runtime/inbox/2026-04-09/2026-04-09T15-41-59_mira-light-local_status.json\"}}",
+        "confidence": 0.86,
+        "salience": 0.72,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"device-status\",\"device:mira-light-local\"]",
+        "evidence_refs_json": "[\"mira-light:device:mira-light-local:status\"]",
+        "expires_at": "2026-04-09T15:56:59+08:00",
+        "updated_at": "2026-04-09T07:41:59.991Z",
+        "structured_value": {
+          "system": "mira-light",
+          "reportType": "status",
+          "deviceId": "mira-light-local",
+          "payload": {
+            "deviceId": "mira-light-local",
+            "scene": "comfort",
+            "playing": false,
+            "ledMode": "breathing"
+          },
+          "stored": {
+            "stored": true,
+            "deviceId": "mira-light-local",
+            "reportType": "status",
+            "inboxPath": "/Users/huhulitong/Documents/Mira-Light-Runtime/inbox/2026-04-09/2026-04-09T15-41-59_mira-light-local_status.json"
+          }
+        },
+        "tags": [
+          "mira-light",
+          "device-status",
+          "device:mira-light-local"
+        ],
+        "evidence_refs": [
+          "mira-light:device:mira-light-local:status"
+        ]
+      }
+    ],
+    "sessionNotes": [
+      {
+        "user_id": "mira-light-bridge",
+        "session_id": "mira-light-runtime",
+        "note": {
+          "title": "Mira Light runtime",
+          "currentState": "welcome 场景已完成，灯体回到稳定陪伴状态。",
+          "nextStep": "如果用户继续互动，可以自然接话并保持轻柔动作。"
+        },
+        "updated_at": "2026-04-09T07:22:24.588Z"
+      }
+    ],
+    "additionalUserIds": [
+      "mira-light-bridge"
+    ]
+  },
+  "upstream": {
+    "id": "chatcmpl_9d746b5c-801d-47a9-a9d3-3001a029477e",
+    "object": "chat.completion",
+    "created": 1775720536,
+    "model": "openclaw",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    }
+  }
+}

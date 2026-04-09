@@ -15,4 +15,8 @@ if [[ -f "${LOCAL_ENV_FILE}" ]]; then
   source "${LOCAL_ENV_FILE}"
 fi
 
+if [[ "${MIRA_LIGHT_LINGZHU_AUTO_TUNNEL:-0}" == "1" ]]; then
+  /bin/bash "${ROOT}/scripts/ensure_mira_lingzhu_tunnel.sh"
+fi
+
 exec "${PYTHON_BIN}" "${ROOT}/scripts/mira_realtime_claw_chat.py" "$@"

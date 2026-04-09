@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from mira_lingzhu_client import send_via_lingzhu_messages
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
 from openclaw_voice_to_claw import (
@@ -39,6 +40,7 @@ DEFAULT_VOICE = "tts"
 DEFAULT_TIMEOUT = 45
 DEFAULT_AGENT = "main"
 DEFAULT_REPLY_AGENT = "mira-voice-spark"
+DEFAULT_REPLY_BACKEND = "openclaw-agent"
 DEFAULT_CAPTURE_SAMPLE_RATE = 48000
 DEFAULT_STT_PROFILE = DEFAULT_MODEL_PROFILE
 DEFAULT_REPLY_THINKING = "off"
@@ -154,6 +156,35 @@ def send_via_openclaw_agent(
     }
 
 
+def send_reply(
+    transcript: str,
+    *,
+    args: argparse.Namespace,
+    session_id: str,
+) -> tuple[str, dict[str, Any], str]:
+    if args.reply_backend == "lingzhu":
+        text, meta = send_via_lingzhu_messages(
+            [{"role": "system", "content": args.api_system_prompt}, {"role": "user", "content": transcript}],
+            base_url=args.lingzhu_base_url,
+            auth_ak=args.lingzhu_auth_ak,
+            agent_id=args.lingzhu_agent_id,
+            user_id=args.lingzhu_user_id or session_id,
+            session_id=session_id,
+            additional_user_ids=args.lingzhu_additional_user_ids,
+            timeout_seconds=args.timeout,
+        )
+        return text, meta, "lingzhu-live-adapter"
+
+    text, meta = send_via_openclaw_agent(
+        transcript,
+        agent=args.reply_agent,
+        thinking=args.reply_thinking,
+        timeout_seconds=args.timeout,
+        system_prompt=args.api_system_prompt,
+    )
+    return text, meta, "openclaw-agent"
+
+
 def should_exit(transcript: str) -> bool:
     lowered = " ".join(transcript.strip().lower().split())
     return lowered in EXIT_PHRASES
@@ -189,6 +220,7 @@ def run_turn(
     turn_dir: Path,
     args: argparse.Namespace,
     audio_player: AudioCuePlayer,
+    session_id: str,
 ) -> dict[str, Any]:
     samples, sample_rate, source_meta = capture_audio_for_turn(args)
     audio_path = save_wav(samples, sample_rate=sample_rate, path=turn_dir / "input.wav")
@@ -228,17 +260,11 @@ def run_turn(
     agent_message = build_agent_message(transcript)
     result["agentMessage"] = agent_message
 
-    raw_reply_text, api_meta = send_via_openclaw_agent(
-        transcript,
-        agent=args.reply_agent,
-        thinking=args.reply_thinking,
-        timeout_seconds=args.timeout,
-        system_prompt=args.api_system_prompt,
-    )
+    raw_reply_text, api_meta, reply_backend = send_reply(transcript, args=args, session_id=session_id)
     reply_text = strip_emoji(raw_reply_text)
     (turn_dir / "reply.txt").write_text(reply_text + "\n", encoding="utf-8")
     write_json(turn_dir / "reply.api.json", api_meta["payload"])
-    result["replyBackend"] = "openclaw-agent"
+    result["replyBackend"] = reply_backend
     result["replyText"] = reply_text
     result["rawReplyText"] = raw_reply_text
     result["emojiStripped"] = reply_text != raw_reply_text
@@ -275,8 +301,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--initial-prompt", help="Optional STT prompt.")
     parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for reply generation.")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="OpenClaw agent timeout in seconds.")
+    parser.add_argument(
+        "--reply-backend",
+        choices=["openclaw-agent", "lingzhu"],
+        default=os.environ.get("MIRA_LIGHT_REPLY_BACKEND", DEFAULT_REPLY_BACKEND),
+        help="Reply backend for Mira dialogue.",
+    )
     parser.add_argument("--reply-agent", default=os.environ.get("MIRA_LIGHT_REPLY_AGENT", DEFAULT_REPLY_AGENT), help="OpenClaw agent id for reply generation.")
     parser.add_argument("--reply-thinking", default=os.environ.get("MIRA_LIGHT_REPLY_THINKING", DEFAULT_REPLY_THINKING), help="Thinking level for OpenClaw reply generation.")
+    parser.add_argument("--lingzhu-base-url", default=os.environ.get("MIRA_LIGHT_LINGZHU_BASE_URL", ""), help="Lingzhu live adapter base URL.")
+    parser.add_argument("--lingzhu-auth-ak", default=os.environ.get("MIRA_LIGHT_LINGZHU_AUTH_AK", ""), help="Lingzhu live adapter auth AK.")
+    parser.add_argument("--lingzhu-agent-id", default=os.environ.get("MIRA_LIGHT_LINGZHU_AGENT_ID", "main"), help="Lingzhu agent id.")
+    parser.add_argument("--lingzhu-user-id", default=os.environ.get("MIRA_LIGHT_LINGZHU_USER_ID", ""), help="Override Lingzhu user id for the whole session.")
+    parser.add_argument(
+        "--lingzhu-additional-user-ids",
+        default=os.environ.get("MIRA_LIGHT_LINGZHU_ADDITIONAL_USER_IDS", "mira-light-bridge"),
+        help="Comma-separated additional user ids for Lingzhu prompt-pack memory.",
+    )
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Audio voice mode for speaker playback.")
     parser.add_argument("--runtime-dir", default=str(DEFAULT_RUNTIME_DIR), help="Directory for saved turn artifacts.")
     parser.add_argument("--dry-run-audio", action="store_true", help="Do not actually play speaker audio.")
@@ -301,7 +342,10 @@ def main() -> int:
         else:
             print(f"Recording fixed {args.seconds:.1f}s turns from '{args.device}'. Say '退出对话' to exit.")
     print(f"STT profile: {args.profile} @ {args.sample_rate} Hz")
-    print(f"Reply backend: openclaw-agent ({args.reply_agent})")
+    if args.reply_backend == "lingzhu":
+        print(f"Reply backend: lingzhu ({args.lingzhu_base_url or '-'})")
+    else:
+        print(f"Reply backend: openclaw-agent ({args.reply_agent})")
 
     turn_index = 0
     try:
@@ -311,7 +355,7 @@ def main() -> int:
             turn_dir.mkdir(parents=True, exist_ok=True)
 
             print(f"\n[turn {turn_index:03d}] listening...")
-            turn_result = run_turn(turn_dir=turn_dir, args=args, audio_player=audio_player)
+            turn_result = run_turn(turn_dir=turn_dir, args=args, audio_player=audio_player, session_id=session_dir.name)
             write_json(turn_dir / "turn.json", turn_result)
 
             transcript = str(turn_result.get("transcript") or "").strip()

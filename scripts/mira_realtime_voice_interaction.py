@@ -19,6 +19,7 @@ from typing import Any
 import urllib.error
 import urllib.request
 
+from mira_lingzhu_client import send_via_lingzhu_messages
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
 from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent
@@ -53,6 +54,7 @@ DEFAULT_TIMEOUT = 45
 DEFAULT_MODE = "continuous"
 DEFAULT_HISTORY_TURNS = 4
 DEFAULT_REPLY_AGENT = "mira-voice-spark"
+DEFAULT_REPLY_BACKEND = "openclaw-agent"
 DEFAULT_REPLY_THINKING = "off"
 DEFAULT_IDLE_TIMEOUT_SECONDS = 30.0
 DEFAULT_TRIGGER_COOLDOWN_SECONDS = 8.0
@@ -124,6 +126,7 @@ class UtteranceResult:
 @dataclass
 class ConversationSession:
     max_history_turns: int
+    conversation_id: str = field(default_factory=lambda: f"mira-light-live-{datetime.now().strftime('%Y%m%d%H%M%S%f')}")
     mode: str = "chat"
     last_intent: str = "none"
     last_scene: str | None = None
@@ -269,6 +272,34 @@ def send_via_openclaw_messages(
         "thinking": thinking,
         "payload": parsed.get("payload"),
     }
+
+
+def send_reply(
+    messages: list[dict[str, str]],
+    *,
+    session: ConversationSession,
+    args: argparse.Namespace,
+) -> tuple[str, dict[str, Any], str]:
+    if args.reply_backend == "lingzhu":
+        text, meta = send_via_lingzhu_messages(
+            messages,
+            base_url=args.lingzhu_base_url,
+            auth_ak=args.lingzhu_auth_ak,
+            agent_id=args.lingzhu_agent_id,
+            user_id=args.lingzhu_user_id or session.conversation_id,
+            session_id=session.conversation_id,
+            additional_user_ids=args.lingzhu_additional_user_ids,
+            timeout_seconds=args.timeout,
+        )
+        return text, meta, "lingzhu-live-adapter"
+
+    text, meta = send_via_openclaw_messages(
+        messages,
+        agent=args.reply_agent,
+        thinking=args.reply_thinking,
+        timeout_seconds=args.timeout,
+    )
+    return text, meta, "openclaw-agent"
 
 
 def fallback_reply_for_intent(intent: str) -> str:
@@ -694,13 +725,7 @@ def run_turn(
     result["messages"] = messages
 
     try:
-        raw_reply_text, api_meta = send_via_openclaw_messages(
-            messages,
-            agent=args.reply_agent,
-            thinking=args.reply_thinking,
-            timeout_seconds=args.timeout,
-        )
-        reply_backend = "openclaw-agent"
+        raw_reply_text, api_meta, reply_backend = send_reply(messages, session=session, args=args)
     except Exception as exc:  # noqa: BLE001
         raw_reply_text = fallback_reply_for_intent(intent)
         api_meta = {"provider": "fallback", "error": str(exc), "payload": {"fallback": True, "intent": intent}}
@@ -744,8 +769,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--initial-prompt", help="Optional STT terminology prompt.")
     parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for reply generation.")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="OpenClaw reply timeout in seconds.")
+    parser.add_argument(
+        "--reply-backend",
+        choices=["openclaw-agent", "lingzhu"],
+        default=os.environ.get("MIRA_LIGHT_REPLY_BACKEND", DEFAULT_REPLY_BACKEND),
+        help="Reply backend for Mira dialogue.",
+    )
     parser.add_argument("--reply-agent", default=os.environ.get("MIRA_LIGHT_REPLY_AGENT", DEFAULT_REPLY_AGENT), help="OpenClaw agent id for reply generation.")
     parser.add_argument("--reply-thinking", default=os.environ.get("MIRA_LIGHT_REPLY_THINKING", DEFAULT_REPLY_THINKING), help="Thinking level for OpenClaw reply generation.")
+    parser.add_argument("--lingzhu-base-url", default=os.environ.get("MIRA_LIGHT_LINGZHU_BASE_URL", ""), help="Lingzhu live adapter base URL.")
+    parser.add_argument("--lingzhu-auth-ak", default=os.environ.get("MIRA_LIGHT_LINGZHU_AUTH_AK", ""), help="Lingzhu live adapter auth AK.")
+    parser.add_argument("--lingzhu-agent-id", default=os.environ.get("MIRA_LIGHT_LINGZHU_AGENT_ID", "main"), help="Lingzhu agent id.")
+    parser.add_argument("--lingzhu-user-id", default=os.environ.get("MIRA_LIGHT_LINGZHU_USER_ID", ""), help="Override Lingzhu user id for the whole session.")
+    parser.add_argument(
+        "--lingzhu-additional-user-ids",
+        default=os.environ.get("MIRA_LIGHT_LINGZHU_ADDITIONAL_USER_IDS", "mira-light-bridge"),
+        help="Comma-separated additional user ids for Lingzhu prompt-pack memory.",
+    )
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Audio voice mode for speaker playback.")
     parser.add_argument("--runtime-dir", default=str(DEFAULT_RUNTIME_DIR), help="Directory for saved session artifacts.")
     parser.add_argument("--history-turns", type=int, default=DEFAULT_HISTORY_TURNS, help="How many recent turns to keep in context.")
@@ -780,6 +820,7 @@ def save_session_snapshot(session_dir: Path, session: ConversationSession, args:
                 "bridgeUrl": args.bridge_url,
                 "triggerDisabled": args.no_trigger,
                 "historyTurns": args.history_turns,
+                "replyBackend": args.reply_backend,
                 "replyAgent": args.reply_agent,
                 "replyThinking": args.reply_thinking,
             },
@@ -802,7 +843,10 @@ def main() -> int:
     print(f"Capture mode: {args.mode}")
     print(f"Input device: {args.device}")
     print(f"STT profile: {args.profile} @ {args.sample_rate} Hz")
-    print(f"Reply backend: openclaw-agent ({args.reply_agent})")
+    if args.reply_backend == "lingzhu":
+        print(f"Reply backend: lingzhu ({args.lingzhu_base_url or '-'})")
+    else:
+        print(f"Reply backend: openclaw-agent ({args.reply_agent})")
     print(f"Bridge: {args.bridge_url} (trigger enabled={not args.no_trigger})")
     if args.mode == "ptt":
         print("Press Enter to start recording, then Enter again to stop. Say '退出对话' to exit.")

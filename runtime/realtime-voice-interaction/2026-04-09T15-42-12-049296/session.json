@@ -1,0 +1,35 @@
+{
+  "savedAt": "2026-04-09T15:42:16.823616",
+  "args": {
+    "mode": "continuous",
+    "device": "DJI MIC MINI",
+    "sampleRate": 48000,
+    "channels": 1,
+    "profile": "small",
+    "bridgeUrl": "http://127.0.0.1:9783",
+    "triggerDisabled": true,
+    "historyTurns": 4,
+    "replyBackend": "lingzhu",
+    "replyAgent": "mira-voice-spark",
+    "replyThinking": "off"
+  },
+  "session": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "你好。",
+    "lastReplyText": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。",
+    "startedAt": "2026-04-09T15:42:12.049627",
+    "lastActiveAt": "2026-04-09T15:42:14.206127",
+    "history": [
+      {
+        "role": "user",
+        "content": "你好。"
+      },
+      {
+        "role": "assistant",
+        "content": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。"
+      }
+    ]
+  }
+}

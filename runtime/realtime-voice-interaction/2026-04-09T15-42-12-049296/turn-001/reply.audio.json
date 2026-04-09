@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "你好呀。今天你先坐下来休息一下吧，我在这儿呢。"
+  ],
+  "description": "speech:tts",
+  "requestedText": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。",
+  "spokenText": "你好呀。今天你先坐下来休息一下吧，我在这儿呢。"
+}
