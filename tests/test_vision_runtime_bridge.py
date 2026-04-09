@@ -60,6 +60,12 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
             "wake_up_cooldown_ms": 6000,
             "sleep_grace_ms": 4000,
             "tracking_update_ms": 200,
+            "scene_persistence_frames": 1,
+            "tracking_persistence_frames": 1,
+            "scene_min_confidence": 0.70,
+            "tracking_min_confidence": 0.50,
+            "scene_allowed_detectors": "haar_face",
+            "tracking_allowed_detectors": "haar_face,background_motion",
             "log_json": False,
             "memory_session_id": "mira-light-vision",
         }
@@ -81,6 +87,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
             "scene_hint": {"name": "track_target"},
             "tracking": {
                 "target_present": True,
+                "detector": "haar_face",
+                "confidence": 0.90,
                 "horizontal_zone": "left",
                 "vertical_zone": "middle",
                 "distance_band": "mid",
@@ -131,6 +139,112 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertEqual(runtime.triggered_events[0]["payload"]["primaryDirection"], "left")
         self.assertEqual(runtime.triggered_events[0]["payload"]["secondaryDirection"], "right")
         self.assertIn("multi_person_demo", runtime.started_scenes)
+
+    def test_low_confidence_motion_blob_does_not_trigger_scene(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(scene_cooldown_ms=0)
+        event = {
+            "event_type": "target_seen",
+            "scene_hint": {"name": "wake_up", "reason": "weak motion blob"},
+            "tracking": {
+                "target_present": True,
+                "detector": "background_motion",
+                "target_class": "motion_blob",
+                "horizontal_zone": "center",
+                "vertical_zone": "middle",
+                "distance_band": "mid",
+                "confidence": 0.55
+            },
+            "control_hint": {
+                "yaw_error_norm": 0.0,
+                "pitch_error_norm": 0.0,
+                "lift_intent": 0.5,
+                "reach_intent": 0.5
+            }
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertFalse(runtime.started_scenes)
+        self.assertFalse(runtime.tracking_events)
+
+    def test_locked_selected_target_prefers_tracking_over_multi_person_demo(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(scene_cooldown_ms=0)
+        event = {
+            "event_type": "target_updated",
+            "scene_hint": {"name": "track_target", "reason": "selected target moving right"},
+            "tracking": {
+                "target_present": True,
+                "target_count": 2,
+                "target_class": "person",
+                "detector": "haar_face",
+                "horizontal_zone": "left",
+                "vertical_zone": "middle",
+                "distance_band": "mid",
+                "confidence": 0.92,
+            },
+            "tracks": [
+                {
+                    "track_id": 3,
+                    "target_class": "person",
+                    "detector": "haar_face",
+                    "confidence": 0.91,
+                    "bbox_norm": {"x": 0.12, "y": 0.22, "w": 0.18, "h": 0.26},
+                    "center_norm": {"x": 0.21, "y": 0.35},
+                    "horizontal_zone": "left",
+                    "vertical_zone": "middle",
+                    "size_norm": 0.046,
+                    "distance_band": "mid",
+                    "approach_state": "stable",
+                    "selection_score": 1.08
+                },
+                {
+                    "track_id": 4,
+                    "target_class": "person",
+                    "detector": "haar_face",
+                    "confidence": 0.92,
+                    "bbox_norm": {"x": 0.60, "y": 0.20, "w": 0.20, "h": 0.28},
+                    "center_norm": {"x": 0.70, "y": 0.34},
+                    "horizontal_zone": "right",
+                    "vertical_zone": "middle",
+                    "size_norm": 0.056,
+                    "distance_band": "mid",
+                    "approach_state": "approaching",
+                    "selection_score": 1.25
+                }
+            ],
+            "selected_target": {
+                "track_id": 4,
+                "lock_state": "locked",
+                "reason": "operator selected and still visible",
+                "target_class": "person",
+                "detector": "haar_face",
+                "confidence": 0.92,
+                "bbox_norm": {"x": 0.60, "y": 0.20, "w": 0.20, "h": 0.28},
+                "center_norm": {"x": 0.70, "y": 0.34},
+                "horizontal_zone": "right",
+                "vertical_zone": "middle",
+                "size_norm": 0.056,
+                "distance_band": "mid",
+                "approach_state": "approaching",
+                "selection_score": 1.25
+            },
+            "control_hint": {
+                "yaw_error_norm": 0.40,
+                "pitch_error_norm": -0.16,
+                "lift_intent": 0.58,
+                "reach_intent": 0.57,
+            },
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertFalse(runtime.started_scenes)
+        self.assertEqual(len(runtime.tracking_events), 1)
+        self.assertEqual(runtime.tracking_events[0]["event"]["tracking"]["track_id"], 4)
 
 
 if __name__ == "__main__":

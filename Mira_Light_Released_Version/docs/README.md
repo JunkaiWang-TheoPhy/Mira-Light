@@ -13,10 +13,12 @@
 5. [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
 6. [release-local-stack-runbook.md](./release-local-stack-runbook.md)
 7. [release-network-diagnostics.md](./release-network-diagnostics.md)
-8. [release-environment-reference.md](./release-environment-reference.md)
-9. [release-layout.md](./release-layout.md)
-10. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
-11. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
+8. [release-demo-readiness-checklist.md](./release-demo-readiness-checklist.md)
+9. [release-failure-playbook.md](./release-failure-playbook.md)
+10. [release-environment-reference.md](./release-environment-reference.md)
+11. [release-layout.md](./release-layout.md)
+12. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
+13. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 
 ## 当前文档分组
 
@@ -29,6 +31,8 @@
 - [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
 - [release-local-stack-runbook.md](./release-local-stack-runbook.md)
 - [release-network-diagnostics.md](./release-network-diagnostics.md)
+- [release-demo-readiness-checklist.md](./release-demo-readiness-checklist.md)
+- [release-failure-playbook.md](./release-failure-playbook.md)
 - [release-environment-reference.md](./release-environment-reference.md)
 - [release-layout.md](./release-layout.md)
 - [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
@@ -62,5 +66,5 @@
 
 ## 说明
 
-当前 release docs 里有一部分文件是从原型仓复制过来的，内容仍然有效，但个别超链接可能还保留旧仓绝对路径。  
-在真正拆成独立 repo 的最后一轮整理里，应该把这些链接全部改成相对路径。
+当前 release docs 已优先改成 release 目录内可解析的相对链接。  
+如果后续继续拆成独立 repo，仍建议再做一轮链接与命令示例的最终校对。

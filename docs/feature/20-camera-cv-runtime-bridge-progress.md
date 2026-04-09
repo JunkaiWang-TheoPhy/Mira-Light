@@ -93,6 +93,7 @@ What it does:
 
 - reads the latest vision event JSON
 - applies scene cooldowns and sleep grace periods
+- applies detector allowlists, minimum confidence thresholds, and consecutive-frame gating before scene starts or tracking updates
 - starts stable scenes like `wake_up`, `curious_observe`, and `sleep`
 - upgrades `track_target` from scene-only triggering into live tracking updates through `runtime.apply_tracking_event(...)`
 
@@ -139,7 +140,15 @@ The following evidence has already been observed on the development machine:
 
 Result:
 
-- `2/2` tests passed
+- `5/5` tests passed
+
+Coverage now includes:
+
+- `target_seen` -> `wake_up`
+- `target_updated + track_target` -> live tracking update
+- low-confidence / motion-only false positives blocked from scene start
+- dynamic `farewell` trigger
+- `multi_person_demo` trigger
 
 ### 2. Offline replay bench runs end-to-end
 
@@ -165,6 +174,12 @@ This proves the repository now has a reproducible offline path for:
 ```text
 saved frames -> event extractor -> bridge -> runtime decision
 ```
+
+It also confirms the bridge can now carry:
+
+- `wake_up`
+- `track_target`
+- `farewell`
 
 ### 3. Live tracking path already exists in runtime
 
@@ -240,21 +255,22 @@ Impact:
 
 This is the single most important perception gap to close next.
 
-### 2. Scene routing still trusts weak detections too easily
+### 2. Scene routing is safer now, but still still detector-limited
 
-Current bridge logic can start `wake_up` on the first `target_seen`, even if the underlying detector is only a motion blob.
+The bridge now includes:
+
+- minimum confidence gating
+- detector allowlists
+- persistence across N frames
 
 Impact:
 
-- booth false positives
-- noisy wake-up triggers
-- unstable audience experience
+- obvious motion-blob false positives are reduced
+- `wake_up` is less trigger-happy
 
-The bridge needs stronger gating:
+Remaining issue:
 
-- minimum confidence
-- detector class allowlist
-- persistence across N frames
+- if the upstream detector is weak, the bridge can only reject bad events, not recover missing good ones
 
 ### 3. Tracking uses control hints, but target state is still minimal
 

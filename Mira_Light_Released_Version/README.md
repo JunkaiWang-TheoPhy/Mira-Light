@@ -258,6 +258,8 @@ Mira_Light_Released_Version/
 5. [docs/release-scene-bundles.md](./docs/release-scene-bundles.md)
 6. [docs/release-control-safety-and-openclaw-rollback.md](./docs/release-control-safety-and-openclaw-rollback.md)
 7. [docs/release-local-stack-runbook.md](./docs/release-local-stack-runbook.md)
+8. [docs/release-demo-readiness-checklist.md](./docs/release-demo-readiness-checklist.md)
+9. [docs/release-failure-playbook.md](./docs/release-failure-playbook.md)
 8. [docs/release-network-diagnostics.md](./docs/release-network-diagnostics.md)
 9. [docs/release-environment-reference.md](./docs/release-environment-reference.md)
 10. [docs/mira-light-pdf2-engineering-handoff.md](./docs/mira-light-pdf2-engineering-handoff.md)

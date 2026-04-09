@@ -2,24 +2,24 @@
 
 ## 文档目的
 
-这份文档记录当前仓库针对 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf) 的实现状态、修复记录和剩余缺口。
+这份文档记录当前仓库针对 [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf) 的实现状态、修复记录和剩余缺口。
 
 如果你需要把当前状态完整交给另一台电脑继续执行，请优先再看：
 
-- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+- [`docs/mira-light-pdf2-engineering-handoff.md`](../docs/mira-light-pdf2-engineering-handoff.md)
 
 ## 当前真值来源
 
 当前动作设计、关节理解和场景审核，一律以：
 
-- [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
+- [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)
 
 为准。
 
 辅助参考材料：
 
-- [`Mira Light 展位交互方案1.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案1.pdf)
-- [`Mira Light 展位交互方案3.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案3.pdf)
+- [`Mira Light 展位交互方案1.pdf`](../docs/Mira%20Light%20展位交互方案1.pdf)
+- [`Mira Light 展位交互方案3.pdf`](../docs/Mira%20Light%20展位交互方案3.pdf)
 
 说明：
 
@@ -40,7 +40,7 @@
 
 这个结论已同步到：
 
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
+- [`scripts/scenes.py`](../scripts/scenes.py)
 - 当前 release 侧说明文档
 
 ## 这轮已经修掉的问题
@@ -66,7 +66,7 @@
 
 ### 3. 第六到第十个场景已进入代码
 
-当前这几个场景已经细化进 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)：
+当前这几个场景已经细化进 [`scripts/scenes.py`](../scripts/scenes.py)：
 
 - `standup_reminder`
 - `track_target`
@@ -284,8 +284,8 @@
 
 目前这两份文档仍然保留早期口径：
 
-- [`docs/mira-light-scene-to-code-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-to-code-spec.md)
-- [`docs/mira-light-booth-scene-table.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-booth-scene-table.md)
+- [`docs/mira-light-scene-to-code-spec.md`](../docs/mira-light-scene-to-code-spec.md)
+- [`docs/mira-light-booth-scene-table.md`](../docs/mira-light-booth-scene-table.md)
 
 它们仍有价值，但用途是：
 

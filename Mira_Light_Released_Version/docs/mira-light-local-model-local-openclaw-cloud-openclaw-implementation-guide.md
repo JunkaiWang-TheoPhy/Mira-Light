@@ -55,7 +55,7 @@ python3 scripts/simple_lamp_receiver.py
 
 参考：
 
-- [`mira-light-vision-stream-and-gemini-summary.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-vision-stream-and-gemini-summary.md)
+- [`mira-light-vision-stream-and-gemini-summary.md`](../docs/mira-light-vision-stream-and-gemini-summary.md)
 
 当前图像流入口是：
 
@@ -133,7 +133,7 @@ curl http://127.0.0.1:9783/health
 
 插件目录：
 
-- [`tools/mira_light_bridge/openclaw_mira_light_plugin/`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+- [`tools/mira_light_bridge/openclaw_mira_light_plugin/`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 应暴露的工具包括：
 
@@ -204,15 +204,15 @@ curl http://127.0.0.1:9783/v1/mira-light/status
 
 ```bash
 MIRA_LIGHT_BRIDGE_REMOTE=ubuntu@43.160.217.153 \
-MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=19783 \
+MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=9783 \
 zsh tools/mira_light_bridge/start_tunnel.sh
 ```
 
 #### C3. 在服务器上验证
 
 ```bash
-curl http://127.0.0.1:19783/health
-curl http://127.0.0.1:19783/v1/mira-light/scenes
+curl http://127.0.0.1:9783/health
+curl http://127.0.0.1:9783/v1/mira-light/scenes
 ```
 
 #### C4. 云端 OpenClaw 插件配置
@@ -221,7 +221,7 @@ curl http://127.0.0.1:19783/v1/mira-light/scenes
 
 ```json
 {
-  "bridgeBaseUrl": "http://127.0.0.1:19783",
+  "bridgeBaseUrl": "http://127.0.0.1:9783",
   "bridgeToken": "<your-token>"
 }
 ```

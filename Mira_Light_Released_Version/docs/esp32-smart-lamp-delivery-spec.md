@@ -10,7 +10,7 @@
 - 交付时应该把哪些接口、参数、调用格式和验收项说清楚
 - 调用方应该如何通过 HTTP 直接控制这盏灯
 
-本文内容基于 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html) 整理。
+本文内容基于 [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](../docs/danpianji.html) 整理。
 
 ## 一句话定义这次要交付的东西
 
@@ -517,8 +517,8 @@ curl --location --request POST 'http://172.20.10.3/reset'
 如果你的目标是把这盏灯正式交给别人接入或调用，我建议最终交付包至少包括：
 
 - 本文档：接口与验收说明
-- [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
-- [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html)
+- [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf)
+- [`danpianji.html`](../docs/danpianji.html)
 - 设备当前基地址或网络发现说明
 - 4 个关节的物理语义映射表
 - 一份可直接执行的 `curl` 验收脚本

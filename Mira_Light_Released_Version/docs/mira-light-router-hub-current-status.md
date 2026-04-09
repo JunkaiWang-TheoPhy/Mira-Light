@@ -10,7 +10,7 @@
 
 #### 1. ESP32 端已经具备可调用 REST API
 
-根据 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html) 与已有整理文档，目前已经明确 `Mira Light` 支持：
+根据 [`danpianji.html`](../docs/danpianji.html) 与已有整理文档，目前已经明确 `Mira Light` 支持：
 
 - `GET /status`
 - `POST /control`
@@ -27,8 +27,8 @@
 
 仓库里已经有两份关键基础文档：
 
-- [`esp32-smart-lamp-delivery-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/esp32-smart-lamp-delivery-spec.md)
-- [`openclaw-esp32-control-guide.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/openclaw-esp32-control-guide.md)
+- [`esp32-smart-lamp-delivery-spec.md`](../docs/esp32-smart-lamp-delivery-spec.md)
+- [`openclaw-esp32-control-guide.md`](../docs/openclaw-esp32-control-guide.md)
 
 这意味着：
 

@@ -59,7 +59,7 @@ def main() -> int:
     except ImportError as exc:
         raise SystemExit(
             "mlx-lm is not installed in the current Python environment.\n"
-            "Install it with: python3 -m pip install mlx-lm"
+            "Install it with: bash scripts/setup_mlx_qwen_env.sh"
         ) from exc
 
     model, tokenizer = load(str(model_dir))

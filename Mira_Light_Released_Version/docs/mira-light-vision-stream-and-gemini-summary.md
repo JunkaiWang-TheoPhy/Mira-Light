@@ -20,9 +20,9 @@
 
 这条链路的主入口已经切换到：
 
-- [`cam_receiver_new.py`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/cam_receiver_new.py)
-- [`run_cam_receiver.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/run_cam_receiver.sh)
-- [`setup_cam_receiver_env.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/setup_cam_receiver_env.sh)
+- [`cam_receiver_new.py`](../docs/cam_receiver_new.py)
+- [`run_cam_receiver.sh`](../scripts/run_cam_receiver.sh)
+- [`setup_cam_receiver_env.sh`](../scripts/setup_cam_receiver_env.sh)
 
 当前接收端运行特征：
 
@@ -53,7 +53,7 @@
 
 另一条链路是：
 
-- [`simple_lamp_receiver.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/simple_lamp_receiver.py)
+- [`simple_lamp_receiver.py`](../scripts/simple_lamp_receiver.py)
 
 它当前监听：
 
@@ -98,7 +98,7 @@
 
 这里要特别避免混淆。
 
-[`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 定义的是设备控制面：
+[`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf) 定义的是设备控制面：
 
 - `GET /status`
 - `POST /control`
@@ -188,7 +188,7 @@ Gemini API 已可接入
 
 ### 1. 本地接收端延迟
 
-为了测量本地图像接收端延迟，已在 [`cam_receiver_new.py`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/cam_receiver_new.py) 中加入基于 `X-Timestamp` 的延迟统计。
+为了测量本地图像接收端延迟，已在 [`cam_receiver_new.py`](../docs/cam_receiver_new.py) 中加入基于 `X-Timestamp` 的延迟统计。
 
 本机模拟送帧的健康检查返回值示例：
 

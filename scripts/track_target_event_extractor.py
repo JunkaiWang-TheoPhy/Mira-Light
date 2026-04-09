@@ -42,6 +42,13 @@ class ExtractorState:
     last_size_norm: float | None = None
     bg_warmup_count: int = 0
     last_target_count: int = 0
+    next_track_id: int = 1
+    previous_tracks: dict[int, dict[str, Any]] = None  # type: ignore[assignment]
+    selected_track_id: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.previous_tracks is None:
+            self.previous_tracks = {}
 
 
 def parse_args() -> argparse.Namespace:
@@ -182,6 +189,14 @@ def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def candidate_score(*, confidence: float, size_norm: float | None, center_x: float | None, center_y: float | None) -> float:
+    size_component = 0.0 if size_norm is None else min(size_norm * 4.0, 1.0)
+    center_penalty = 0.0
+    if center_x is not None and center_y is not None:
+        center_penalty = abs(center_x - 0.5) + abs(center_y - 0.5)
+    return confidence + size_component - (center_penalty * 0.35)
+
+
 def make_control_hint(center_x: float | None, center_y: float | None, distance_band: str) -> dict[str, float]:
     yaw_error = 0.0 if center_x is None else clamp((center_x - 0.5) * 2.0, -1.0, 1.0)
     pitch_error = 0.0 if center_y is None else clamp((0.5 - center_y) * 2.0, -1.0, 1.0)
@@ -210,6 +225,131 @@ def infer_scene_hint(target_present: bool, distance_band: str, approach_state: s
     if approach_state == "approaching" or horizontal_zone != "center":
         return "track_target", "目标正在移动或偏离中心，适合进入跟随观察。"
     return "curious_observe", "目标稳定停留且距离适中，适合进入好奇观察。"
+
+
+def make_track_entry(
+    *,
+    track_id: int,
+    bbox: tuple[int, int, int, int],
+    detector: str,
+    target_class: str,
+    confidence: float,
+    frame_width: int,
+    frame_height: int,
+    previous_size_norm: float | None,
+) -> dict[str, Any]:
+    x, y, bw, bh = bbox
+    bbox_area_px = bw * bh
+    size_norm = bbox_area_px / float(frame_width * frame_height)
+    center_x = (x + (bw / 2.0)) / frame_width
+    center_y = (y + (bh / 2.0)) / frame_height
+
+    if detector == "haar_face":
+        distance_band = classify_distance_band(size_norm, near_threshold=0.10, mid_threshold=0.03)
+    elif detector == "background_motion":
+        distance_band = classify_distance_band(size_norm, near_threshold=0.18, mid_threshold=0.06)
+    else:
+        distance_band = "unknown"
+
+    approach_state, size_delta_norm = classify_approach_state(size_norm, previous_size_norm)
+    return {
+        "track_id": track_id,
+        "target_class": target_class,
+        "detector": detector,
+        "confidence": round(confidence, 4),
+        "bbox_norm": {
+            "x": round(x / frame_width, 4),
+            "y": round(y / frame_height, 4),
+            "w": round(bw / frame_width, 4),
+            "h": round(bh / frame_height, 4),
+        },
+        "center_norm": {"x": round(center_x, 4), "y": round(center_y, 4)},
+        "horizontal_zone": classify_horizontal_zone(center_x),
+        "vertical_zone": classify_vertical_zone(center_y),
+        "size_norm": round(size_norm, 6),
+        "distance_band": distance_band,
+        "approach_state": approach_state,
+        "bbox_area_px": bbox_area_px,
+        "size_delta_norm": None if size_delta_norm is None else round(size_delta_norm, 6),
+        "selection_score": round(candidate_score(confidence=confidence, size_norm=size_norm, center_x=center_x, center_y=center_y), 4),
+    }
+
+
+def assign_track_ids(candidates: list[dict[str, Any]], state: ExtractorState) -> list[dict[str, Any]]:
+    assigned: list[dict[str, Any]] = []
+    used_previous: set[int] = set()
+
+    for candidate in candidates:
+        center = candidate["center_norm"]
+        detector = candidate["detector"]
+        target_class = candidate["target_class"]
+
+        best_track_id = None
+        best_distance = 999.0
+        for track_id, previous in state.previous_tracks.items():
+            if track_id in used_previous:
+                continue
+            if previous.get("detector") != detector or previous.get("target_class") != target_class:
+                continue
+            prev_center = previous.get("center_norm")
+            if not isinstance(prev_center, dict):
+                continue
+            dx = float(center["x"]) - float(prev_center.get("x", 0.5))
+            dy = float(center["y"]) - float(prev_center.get("y", 0.5))
+            distance = (dx * dx + dy * dy) ** 0.5
+            if distance < 0.18 and distance < best_distance:
+                best_distance = distance
+                best_track_id = track_id
+
+        if best_track_id is None:
+            best_track_id = state.next_track_id
+            state.next_track_id += 1
+
+        used_previous.add(best_track_id)
+        candidate["track_id"] = best_track_id
+        assigned.append(candidate)
+
+    state.previous_tracks = {
+        int(item["track_id"]): {
+            "center_norm": dict(item["center_norm"]),
+            "detector": item["detector"],
+            "target_class": item["target_class"],
+            "size_norm": item["size_norm"],
+        }
+        for item in assigned
+    }
+    return assigned
+
+
+def choose_selected_target(tracks: list[dict[str, Any]], state: ExtractorState) -> dict[str, Any] | None:
+    if not tracks:
+        state.selected_track_id = None
+        return None
+
+    locked_track = None
+    if state.selected_track_id is not None:
+        for item in tracks:
+            if int(item["track_id"]) == state.selected_track_id:
+                locked_track = item
+                break
+
+    if locked_track is not None:
+        selected = dict(locked_track)
+        selected["lock_state"] = "locked"
+        selected["reason"] = "previous selected target still visible"
+        return selected
+
+    ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
+    selected = dict(ranked[0])
+    if len(tracks) == 1:
+        selected["lock_state"] = "locked"
+        selected["reason"] = "single visible target"
+        state.selected_track_id = int(selected["track_id"])
+    else:
+        selected["lock_state"] = "candidate"
+        selected["reason"] = "highest score among multiple visible targets"
+        state.selected_track_id = None
+    return selected
 
 
 def write_event_outputs(event: dict[str, Any], latest_event_out: Path | None, events_jsonl: Path | None) -> None:
@@ -278,6 +418,8 @@ def build_event(
     state: ExtractorState,
     args: argparse.Namespace,
     target_count: int = 0,
+    tracks: list[dict[str, Any]] | None = None,
+    selected_target: dict[str, Any] | None = None,
     multi_target_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     h, w = frame.shape[:2]
@@ -320,7 +462,26 @@ def build_event(
     vertical_zone = classify_vertical_zone(center_y)
     target_present = bbox is not None
 
-    if target_count >= 2:
+    if selected_target is not None:
+        detector = str(selected_target.get("detector") or detector)
+        target_class = str(selected_target.get("target_class") or target_class)
+        confidence = float(selected_target.get("confidence") or confidence)
+        bbox_norm = selected_target.get("bbox_norm")
+        center = selected_target.get("center_norm")
+        if isinstance(center, dict):
+            center_x = float(center.get("x", 0.5))
+            center_y = float(center.get("y", 0.5))
+        horizontal_zone = str(selected_target.get("horizontal_zone") or "unknown")
+        vertical_zone = str(selected_target.get("vertical_zone") or "unknown")
+        size_norm = selected_target.get("size_norm")
+        distance_band = str(selected_target.get("distance_band") or "unknown")
+        approach_state = str(selected_target.get("approach_state") or "unknown")
+        bbox_area_px = selected_target.get("bbox_area_px")
+        size_delta_norm = selected_target.get("size_delta_norm")
+        target_present = True
+
+    selected_lock_state = None if selected_target is None else selected_target.get("lock_state")
+    if target_count >= 2 and selected_lock_state != "locked":
         event_type = "multi_target_seen"
     elif target_present and not state.last_target_present:
         event_type = "target_seen"
@@ -331,7 +492,7 @@ def build_event(
     else:
         event_type = "no_target"
 
-    if target_count >= 2:
+    if target_count >= 2 and selected_lock_state != "locked":
         scene_name, scene_reason = "multi_person_demo", "同一帧检测到两个稳定目标，适合进入多人反应。"
     else:
         scene_name, scene_reason = infer_scene_hint(target_present, distance_band, approach_state, horizontal_zone)
@@ -356,6 +517,7 @@ def build_event(
         "tracking": {
             "target_present": target_present,
             "target_count": target_count if target_count > 0 else (1 if target_present else 0),
+            "track_id": None if selected_target is None else selected_target.get("track_id"),
             "target_class": target_class if target_present else "none",
             "detector": detector,
             "confidence": round(confidence if target_present else 0.0, 4),
@@ -378,6 +540,25 @@ def build_event(
             "size_delta_norm": None if size_delta_norm is None else round(size_delta_norm, 6),
         },
     }
+    if tracks is not None:
+        event["tracks"] = tracks
+    if selected_target is not None:
+        event["selected_target"] = {
+            "track_id": selected_target.get("track_id"),
+            "lock_state": selected_target.get("lock_state"),
+            "reason": selected_target.get("reason"),
+            "target_class": selected_target.get("target_class"),
+            "detector": selected_target.get("detector"),
+            "confidence": selected_target.get("confidence"),
+            "bbox_norm": selected_target.get("bbox_norm"),
+            "center_norm": selected_target.get("center_norm"),
+            "horizontal_zone": selected_target.get("horizontal_zone"),
+            "vertical_zone": selected_target.get("vertical_zone"),
+            "size_norm": selected_target.get("size_norm"),
+            "distance_band": selected_target.get("distance_band"),
+            "approach_state": selected_target.get("approach_state"),
+            "selection_score": selected_target.get("selection_score"),
+        }
     if multi_target_payload:
         event["payload"] = multi_target_payload
     return event
@@ -400,32 +581,22 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     faces = detect_faces(gray, cascade)
-    bbox = max(faces, key=lambda box: box[2] * box[3]) if faces else None
-    detector = "none"
-    target_class = "none"
-    confidence = 0.0
-    target_count = 0
-    multi_target_payload = None
-
-    if len(faces) >= 2:
-        primary, secondary = sorted(faces, key=lambda box: box[2] * box[3], reverse=True)[:2]
-        bbox = primary
-        detector = "haar_face"
-        target_class = "person"
-        confidence = 0.92
-        target_count = len(faces)
-        primary_center_x = (primary[0] + (primary[2] / 2.0)) / frame.shape[1]
-        secondary_center_x = (secondary[0] + (secondary[2] / 2.0)) / frame.shape[1]
-        multi_target_payload = {
-            "targetCount": len(faces),
-            "primaryDirection": classify_horizontal_zone(primary_center_x),
-            "secondaryDirection": classify_horizontal_zone(secondary_center_x),
-        }
-    elif bbox is not None:
-        detector = "haar_face"
-        target_class = "person"
-        confidence = 0.9
-        target_count = 1
+    candidates: list[dict[str, Any]] = []
+    if faces:
+        confidence = 0.92 if len(faces) >= 2 else 0.90
+        for bbox in faces:
+            candidates.append(
+                make_track_entry(
+                    track_id=0,
+                    bbox=bbox,
+                    detector="haar_face",
+                    target_class="person",
+                    confidence=confidence,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
+                )
+            )
     else:
         motion_bbox, warmup_count = detect_motion(
             frame,
@@ -436,11 +607,50 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
         )
         state.bg_warmup_count = warmup_count
         if motion_bbox is not None:
-            bbox = motion_bbox
-            detector = "background_motion"
-            target_class = "motion_blob"
-            confidence = 0.55
-            target_count = 1
+            candidates.append(
+                make_track_entry(
+                    track_id=0,
+                    bbox=motion_bbox,
+                    detector="background_motion",
+                    target_class="motion_blob",
+                    confidence=0.55,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
+                )
+            )
+
+    tracks = assign_track_ids(candidates, state)
+    selected_target = choose_selected_target(tracks, state)
+    bbox = None
+    detector = "none"
+    target_class = "none"
+    confidence = 0.0
+    target_count = len(tracks)
+    multi_target_payload = None
+
+    if selected_target is not None:
+        detector = str(selected_target["detector"])
+        target_class = str(selected_target["target_class"])
+        confidence = float(selected_target["confidence"])
+        bbox_norm = selected_target["bbox_norm"]
+        if isinstance(bbox_norm, dict):
+            bbox = (
+                int(round(float(bbox_norm["x"]) * frame.shape[1])),
+                int(round(float(bbox_norm["y"]) * frame.shape[0])),
+                int(round(float(bbox_norm["w"]) * frame.shape[1])),
+                int(round(float(bbox_norm["h"]) * frame.shape[0])),
+            )
+
+    if len(tracks) >= 2:
+        ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
+        primary = ranked[0]
+        secondary = ranked[1]
+        multi_target_payload = {
+            "targetCount": len(tracks),
+            "primaryDirection": primary["horizontal_zone"],
+            "secondaryDirection": secondary["horizontal_zone"],
+        }
 
     event = build_event(
         path=path,
@@ -452,6 +662,8 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
         state=state,
         args=args,
         target_count=target_count,
+        tracks=tracks,
+        selected_target=selected_target,
         multi_target_payload=multi_target_payload,
     )
 

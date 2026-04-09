@@ -6,7 +6,7 @@
 
 > 如何把 `mira-light-bridge` 插件装进本机 `OpenClaw`，并完成最小配置。
 
-它是 [`mira-light-local-openclaw-step-by-step.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-local-openclaw-step-by-step.md) 的插件专项补充。
+它是 [`mira-light-local-openclaw-step-by-step.md`](../docs/mira-light-local-openclaw-step-by-step.md) 的插件专项补充。
 
 ## 当前本机 OpenClaw 已确认信息
 
@@ -40,13 +40,13 @@ OpenClaw 2026.4.2
 
 仓库内插件源目录是：
 
-[`tools/mira_light_bridge/openclaw_mira_light_plugin/`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+[`tools/mira_light_bridge/openclaw_mira_light_plugin/`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 关键文件：
 
-- [`openclaw.plugin.json`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json)
-- [`index.mjs`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
-- [`package.json`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/package.json)
+- [`openclaw.plugin.json`](../tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json)
+- [`index.mjs`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+- [`package.json`](../tools/mira_light_bridge/openclaw_mira_light_plugin/package.json)
 
 插件 ID 是：
 

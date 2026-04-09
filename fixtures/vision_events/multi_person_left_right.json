@@ -7,10 +7,12 @@
   "tracking": {
     "target_present": true,
     "target_count": 2,
+    "detector": "haar_face",
     "target_class": "person",
     "horizontal_zone": "left",
     "vertical_zone": "middle",
-    "distance_band": "mid"
+    "distance_band": "mid",
+    "confidence": 0.92
   },
   "payload": {
     "primaryDirection": "left",

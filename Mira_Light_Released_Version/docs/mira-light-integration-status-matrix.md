@@ -37,19 +37,19 @@
 
 | 模块 | 当前状态 | 成熟度 | 说明 |
 | --- | --- | --- | --- |
-| 设备原始控制面 | 已明确 | 已经成熟 | `ESP32` 控制接口已由 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html) 定义清楚。 |
-| 设备交付文档 | 已整理 | 已经成熟 | [`esp32-smart-lamp-delivery-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/esp32-smart-lamp-delivery-spec.md) 已能作为设备接口交付文档使用。 |
-| OpenClaw 控制思路 | 已整理 | 已经成熟 | [`openclaw-esp32-control-guide.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/openclaw-esp32-control-guide.md) 已说明插件/bridge 路线。 |
-| 展位场景翻译层 | 已整理 | 已经成熟 | [`mira-light-scene-to-code-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-to-code-spec.md) 已建立自然语言到动作原语映射。 |
-| 展位场景表 | 已整理 | 已经成熟 | [`mira-light-booth-scene-table.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-booth-scene-table.md) 已经支持导演 / 主持人口播 / 失败回退。 |
-| 最小展位 runbook | 已整理 | 半成熟 | [`mira-light-pdf-minimal-runbook.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf-minimal-runbook.md) 适合 smoke test，但还不是完整长期 runbook。 |
-| 场景执行脚本 | 已有 | 半成熟 | [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 和 [`scripts/booth_controller.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/booth_controller.py) 已可跑，但姿态值仍需真实灯校准。 |
-| Pose / 校准体系 | 已有骨架 | 半成熟 | [`scripts/calibrate_lamp.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/calibrate_lamp.py) 和 [`config/mira_light_profile.example.json`](/Users/Zhuanz/Documents/Github/Mira-Light/config/mira_light_profile.example.json) 已就位，但本地真实 profile 还未确认。 |
-| 导演台前端 | 已可运行 | 半成熟 | [`mira-light-director-console-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-director-console-spec.md) 对应的页面已能运行，但更偏“骨架+polish中”。 |
-| 本机最简接收器 | 已可运行 | 已经成熟 | [`scripts/simple_lamp_receiver.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/simple_lamp_receiver.py) 已支持状态与文件上传，对应 docs 已较完整。 |
-| 状态 / 文件接收文档 | 已整理 | 已经成熟 | [`simple-lamp-receiver-overview.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/simple-lamp-receiver-overview.md)、[`simple-lamp-receiver-api.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/simple-lamp-receiver-api.md)、[`simple-lamp-receiver-esp32-examples.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/simple-lamp-receiver-esp32-examples.md) 已适合交付。 |
-| 图像流接收 | 已接入 | 半成熟 | [`mira-light-vision-stream-and-gemini-summary.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-vision-stream-and-gemini-summary.md) 已明确图像流入口，但视觉理解编排未闭环。 |
-| 本机大模型接入思路 | 已整理 | 半成熟 | [`mira-light-local-model-local-openclaw-cloud-openclaw-overview.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-local-model-local-openclaw-cloud-openclaw-overview.md) 已有清楚路径，但自动决策器还未实现。 |
+| 设备原始控制面 | 已明确 | 已经成熟 | `ESP32` 控制接口已由 [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](../docs/danpianji.html) 定义清楚。 |
+| 设备交付文档 | 已整理 | 已经成熟 | [`esp32-smart-lamp-delivery-spec.md`](../docs/esp32-smart-lamp-delivery-spec.md) 已能作为设备接口交付文档使用。 |
+| OpenClaw 控制思路 | 已整理 | 已经成熟 | [`openclaw-esp32-control-guide.md`](../docs/openclaw-esp32-control-guide.md) 已说明插件/bridge 路线。 |
+| 展位场景翻译层 | 已整理 | 已经成熟 | [`mira-light-scene-to-code-spec.md`](../docs/mira-light-scene-to-code-spec.md) 已建立自然语言到动作原语映射。 |
+| 展位场景表 | 已整理 | 已经成熟 | [`mira-light-booth-scene-table.md`](../docs/mira-light-booth-scene-table.md) 已经支持导演 / 主持人口播 / 失败回退。 |
+| 最小展位 runbook | 已整理 | 半成熟 | [`mira-light-pdf-minimal-runbook.md`](../docs/mira-light-pdf-minimal-runbook.md) 适合 smoke test，但还不是完整长期 runbook。 |
+| 场景执行脚本 | 已有 | 半成熟 | [`scripts/scenes.py`](../scripts/scenes.py) 和 [`scripts/booth_controller.py`](../scripts/booth_controller.py) 已可跑，但姿态值仍需真实灯校准。 |
+| Pose / 校准体系 | 已有骨架 | 半成熟 | [`scripts/calibrate_lamp.py`](../scripts/calibrate_lamp.py) 和 [`config/mira_light_profile.example.json`](../config/mira_light_profile.example.json) 已就位，但本地真实 profile 还未确认。 |
+| 导演台前端 | 已可运行 | 半成熟 | [`mira-light-director-console-spec.md`](../docs/mira-light-director-console-spec.md) 对应的页面已能运行，但更偏“骨架+polish中”。 |
+| 本机最简接收器 | 已可运行 | 已经成熟 | [`scripts/simple_lamp_receiver.py`](../scripts/simple_lamp_receiver.py) 已支持状态与文件上传，对应 docs 已较完整。 |
+| 状态 / 文件接收文档 | 已整理 | 已经成熟 | [`simple-lamp-receiver-overview.md`](../docs/simple-lamp-receiver-overview.md)、[`simple-lamp-receiver-api.md`](../docs/simple-lamp-receiver-api.md)、[`simple-lamp-receiver-esp32-examples.md`](../docs/simple-lamp-receiver-esp32-examples.md) 已适合交付。 |
+| 图像流接收 | 已接入 | 半成熟 | [`mira-light-vision-stream-and-gemini-summary.md`](../docs/mira-light-vision-stream-and-gemini-summary.md) 已明确图像流入口，但视觉理解编排未闭环。 |
+| 本机大模型接入思路 | 已整理 | 半成熟 | [`mira-light-local-model-local-openclaw-cloud-openclaw-overview.md`](../docs/mira-light-local-model-local-openclaw-cloud-openclaw-overview.md) 已有清楚路径，但自动决策器还未实现。 |
 | 本机 OpenClaw 接入 | 已有骨架 | 半成熟 | 本机 runtime、bridge、plugin 骨架都在，但本机 OpenClaw 还没完成实机插件安装与闭环验证。 |
 | 云端 OpenClaw 接入 | 已有方案 | 半成熟 | 路由器中转 / bridge / tunnel / plugin 路线已经明确，但还没有真正完成云端到真实灯的端到端打通。 |
 | 路由器 / 本地中转枢纽文档 | 已成体系 | 已经成熟 | 相关 5 份 router hub 文档已经形成一个清晰的交付包。 |

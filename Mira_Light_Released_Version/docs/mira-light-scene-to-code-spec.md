@@ -4,7 +4,7 @@
 
 注意：
 
-当前仓库里的“动作真值”已经切换到 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)。
+当前仓库里的“动作真值”已经切换到 [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)。
 
 本文件仍然有价值，但现在更适合作为：
 
@@ -15,10 +15,10 @@
 
 当前实现状态与审计结果请优先对照：
 
-- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
-- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+- [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-pdf2-engineering-handoff.md`](../docs/mira-light-pdf2-engineering-handoff.md)
 
-[`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf) 里的内容大多是自然语言描述，例如：
+[`Mira Light 展位交互方案.pdf`](../docs/Mira%20Light%20展位交互方案.pdf) 里的内容大多是自然语言描述，例如：
 
 - “像小动物刚醒来抖抖毛”
 - “有点好奇又有点怯”
@@ -167,7 +167,7 @@
 
 ## 先明确：当前硬件和 API 真正能做什么
 
-根据 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html)，当前已经明确可调用的能力有：
+根据 [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf) 与 [`danpianji.html`](../docs/danpianji.html)，当前已经明确可调用的能力有：
 
 ### 关节能力
 
@@ -816,7 +816,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 celebrate
 
 ## 当前阶段最重要的结论
 
-根据 [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf)，第一步不是直接写展位控制脚本，而是先建立一套“自然语言到代码功能”的翻译层。
+根据 [`Mira Light 展位交互方案.pdf`](../docs/Mira%20Light%20展位交互方案.pdf)，第一步不是直接写展位控制脚本，而是先建立一套“自然语言到代码功能”的翻译层。
 
 可以把这件事压缩成一句话：
 

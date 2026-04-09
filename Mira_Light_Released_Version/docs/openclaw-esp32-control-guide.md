@@ -2,7 +2,7 @@
 
 ## 背景
 
-当前仓库中的 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html) 是从 ESP32 单片机设备中下载出来的页面。
+当前仓库中的 [`danpianji.html`](../docs/danpianji.html) 是从 ESP32 单片机设备中下载出来的页面。
 
 这份 HTML 的价值不是“前端页面本身”，而是它已经把这块 ESP32 暴露出来的 REST API 说明清楚了。也就是说，这块板子已经不是只能烧录程序的“黑盒单片机”，而是一台可以通过 HTTP 请求控制的网络设备。
 
@@ -14,7 +14,7 @@
 
 ## 这块 ESP32 现在已经能做什么
 
-根据 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html) 中的说明，这块 ESP32 已经暴露了以下接口。
+根据 [`danpianji.html`](../docs/danpianji.html) 中的说明，这块 ESP32 已经暴露了以下接口。
 
 | 能力 | 方法 | 路径 | 作用 |
 | --- | --- | --- | --- |

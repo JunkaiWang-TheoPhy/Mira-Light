@@ -22,25 +22,25 @@
 
 建议按下面顺序阅读。
 
-1. [`mira-light-router-hub-architecture.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-architecture.md)
+1. [`mira-light-router-hub-architecture.md`](../docs/mira-light-router-hub-architecture.md)
    先看整体架构、角色分工和为什么这么设计。
-2. [`mira-light-router-hub-current-status.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-current-status.md)
+2. [`mira-light-router-hub-current-status.md`](../docs/mira-light-router-hub-current-status.md)
    再看当前状态、已确认项、缺口和风险。
-3. [`mira-light-router-hub-implementation-guide.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-implementation-guide.md)
+3. [`mira-light-router-hub-implementation-guide.md`](../docs/mira-light-router-hub-implementation-guide.md)
    然后按步骤实施。
-4. [`mira-light-router-hub-next-steps.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-next-steps.md)
+4. [`mira-light-router-hub-next-steps.md`](../docs/mira-light-router-hub-next-steps.md)
    最后对照下一步清单推进。
 
 ## 相关基础文档
 
 这套交付包建立在以下已有文档之上：
 
-- [`openclaw-esp32-control-guide.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/openclaw-esp32-control-guide.md)
-- [`esp32-smart-lamp-delivery-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/esp32-smart-lamp-delivery-spec.md)
-- [`mira-light-scene-to-code-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-to-code-spec.md)
-- [`mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
-- [`mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
-- [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html)
+- [`openclaw-esp32-control-guide.md`](../docs/openclaw-esp32-control-guide.md)
+- [`esp32-smart-lamp-delivery-spec.md`](../docs/esp32-smart-lamp-delivery-spec.md)
+- [`mira-light-scene-to-code-spec.md`](../docs/mira-light-scene-to-code-spec.md)
+- [`mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
+- [`mira-light-pdf2-engineering-handoff.md`](../docs/mira-light-pdf2-engineering-handoff.md)
+- [`danpianji.html`](../docs/danpianji.html)
 
 ## 一句话结论
 

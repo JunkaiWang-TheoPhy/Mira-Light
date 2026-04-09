@@ -45,9 +45,9 @@ ESP32
 
 根据以下文档：
 
-- [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
-- [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html)
-- [`esp32-smart-lamp-delivery-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/esp32-smart-lamp-delivery-spec.md)
+- [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf)
+- [`danpianji.html`](../docs/danpianji.html)
+- [`esp32-smart-lamp-delivery-spec.md`](../docs/esp32-smart-lamp-delivery-spec.md)
 
 当前灯已经支持：
 
@@ -64,10 +64,10 @@ ESP32
 
 当前仓库已经有：
 
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
-- [`scripts/booth_controller.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/booth_controller.py)
-- [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
+- [`scripts/booth_controller.py`](../scripts/booth_controller.py)
+- [`scripts/console_server.py`](../scripts/console_server.py)
+- [`scripts/scenes.py`](../scripts/scenes.py)
 
 这意味着本机已经具备：
 
@@ -79,7 +79,7 @@ ESP32
 
 当前仓库已经有：
 
-- [`scripts/simple_lamp_receiver.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/simple_lamp_receiver.py)
+- [`scripts/simple_lamp_receiver.py`](../scripts/simple_lamp_receiver.py)
 
 它支持：
 
@@ -96,10 +96,10 @@ ESP32
 
 当前仓库已经有：
 
-- [`docs/cam_receiver_new.py`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/cam_receiver_new.py)
-- [`scripts/run_cam_receiver.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/run_cam_receiver.sh)
-- [`scripts/setup_cam_receiver_env.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/setup_cam_receiver_env.sh)
-- [`mira-light-vision-stream-and-gemini-summary.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-vision-stream-and-gemini-summary.md)
+- [`docs/cam_receiver_new.py`](../docs/cam_receiver_new.py)
+- [`scripts/run_cam_receiver.sh`](../scripts/run_cam_receiver.sh)
+- [`scripts/setup_cam_receiver_env.sh`](../scripts/setup_cam_receiver_env.sh)
+- [`mira-light-vision-stream-and-gemini-summary.md`](../docs/mira-light-vision-stream-and-gemini-summary.md)
 
 当前已知图像流接收端是：
 
@@ -110,10 +110,10 @@ ESP32
 
 当前仓库已经有：
 
-- [`tools/mira_light_bridge/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/README.md)
-- [`tools/mira_light_bridge/bridge_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/bridge_server.py)
-- [`tools/mira_light_bridge/start_tunnel.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/start_tunnel.sh)
-- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+- [`tools/mira_light_bridge/README.md`](../tools/mira_light_bridge/README.md)
+- [`tools/mira_light_bridge/bridge_server.py`](../tools/mira_light_bridge/bridge_server.py)
+- [`tools/mira_light_bridge/start_tunnel.sh`](../tools/mira_light_bridge/start_tunnel.sh)
+- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 ## 一、接到本机器上的大模型
 
@@ -236,7 +236,7 @@ ESP32
 
 使用：
 
-- [`tools/mira_light_bridge/bridge_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/bridge_server.py)
+- [`tools/mira_light_bridge/bridge_server.py`](../tools/mira_light_bridge/bridge_server.py)
 
 负责：
 
@@ -247,7 +247,7 @@ ESP32
 
 使用：
 
-- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 负责：
 
@@ -325,9 +325,9 @@ ESP32
 
 原因已经在这些文档里说明过：
 
-- [`mira-light-router-hub-architecture.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-architecture.md)
-- [`mira-light-router-hub-current-status.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-current-status.md)
-- [`mira-light-router-hub-implementation-guide.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-router-hub-implementation-guide.md)
+- [`mira-light-router-hub-architecture.md`](../docs/mira-light-router-hub-architecture.md)
+- [`mira-light-router-hub-current-status.md`](../docs/mira-light-router-hub-current-status.md)
+- [`mira-light-router-hub-implementation-guide.md`](../docs/mira-light-router-hub-implementation-guide.md)
 
 总结起来就是：
 
@@ -359,21 +359,21 @@ curl http://127.0.0.1:9783/v1/mira-light/status
 
 ```bash
 MIRA_LIGHT_BRIDGE_REMOTE=ubuntu@43.160.217.153 \
-MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=19783 \
+MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=9783 \
 zsh tools/mira_light_bridge/start_tunnel.sh
 ```
 
 4. 在服务器上验证：
 
 ```bash
-curl http://127.0.0.1:19783/health
+curl http://127.0.0.1:9783/health
 ```
 
 5. 云端 OpenClaw 插件配置改成：
 
 ```json
 {
-  "bridgeBaseUrl": "http://127.0.0.1:19783",
+  "bridgeBaseUrl": "http://127.0.0.1:9783",
   "bridgeToken": "<token>"
 }
 ```

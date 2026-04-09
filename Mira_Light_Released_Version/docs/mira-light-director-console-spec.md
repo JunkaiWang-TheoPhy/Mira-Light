@@ -6,11 +6,11 @@
 
 相关实现文件：
 
-- [`web/index.html`](/Users/Zhuanz/Documents/Github/Mira-Light/web/index.html)
-- [`web/app.js`](/Users/Zhuanz/Documents/Github/Mira-Light/web/app.js)
-- [`web/styles.css`](/Users/Zhuanz/Documents/Github/Mira-Light/web/styles.css)
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
-- [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
+- [`web/index.html`](../web/index.html)
+- [`web/app.js`](../web/app.js)
+- [`web/styles.css`](../web/styles.css)
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
+- [`scripts/console_server.py`](../scripts/console_server.py)
 
 ## 当前控制语义补充
 
@@ -70,9 +70,9 @@
 
 对应实现：
 
-- [`web/index.html`](/Users/Zhuanz/Documents/Github/Mira-Light/web/index.html) 中的 `status-strip`
-- [`web/app.js`](/Users/Zhuanz/Documents/Github/Mira-Light/web/app.js) 中的 `renderRuntime()`
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py) 中的 runtime state
+- [`web/index.html`](../web/index.html) 中的 `status-strip`
+- [`web/app.js`](../web/app.js) 中的 `renderRuntime()`
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py) 中的 runtime state
 
 ### 2. 中部 Cue Cards
 
@@ -90,7 +90,7 @@
 
 这些信息来自：
 
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 中的 `SCENE_META`
+- [`scripts/scenes.py`](../scripts/scenes.py) 中的 `SCENE_META`
 
 ### 3. 右侧导演摘要
 

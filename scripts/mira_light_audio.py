@@ -159,6 +159,9 @@ class AudioCuePlayer:
         if player:
             return [player, str(asset_path)]
 
+        if self.dry_run:
+            return ["play-asset", str(asset_path)]
+
         raise RuntimeError("No local audio playback command found (expected speaker-hp-play or afplay)")
 
     def _build_speech_command(self, text: str, *, voice: str) -> list[str]:
@@ -180,6 +183,9 @@ class AudioCuePlayer:
                 command = self._find_command(name)
                 if command:
                     return [command, text]
+
+        if self.dry_run:
+            return [f"speech:{requested or 'tts'}", text]
 
         raise RuntimeError("No local speech command found (expected speaker-hp-tts-play, speaker-hp-say, or say)")
 

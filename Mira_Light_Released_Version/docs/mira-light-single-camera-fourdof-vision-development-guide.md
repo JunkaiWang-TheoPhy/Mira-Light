@@ -51,7 +51,7 @@ vision event
 
 ## 第一层：硬件与设备控制真值
 
-### 1. [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
+### 1. [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf)
 
 它定义的是硬件能力边界和设备原始 API：
 
@@ -64,17 +64,17 @@ vision event
 - `POST /action`
 - `POST /action/stop`
 
-### 2. [`docs/esp32-smart-lamp-delivery-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/esp32-smart-lamp-delivery-spec.md)
+### 2. [`docs/esp32-smart-lamp-delivery-spec.md`](../docs/esp32-smart-lamp-delivery-spec.md)
 
 这是 PDF 的工程翻译版，适合作为“设备控制真值表”。
 
 ## 第二层：场景与动作真值
 
-### 1. [`docs/Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
+### 1. [`docs/Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)
 
 当前动作真值以这份方案 2 为准。
 
-### 2. [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+### 2. [`docs/mira-light-pdf2-engineering-handoff.md`](../docs/mira-light-pdf2-engineering-handoff.md)
 
 说明：
 
@@ -82,7 +82,7 @@ vision event
 - 程序层如何解释 4 个舵机
 - 当前哪些场景已较完整落地
 
-### 3. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+### 3. [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
 
 说明：
 
@@ -92,7 +92,7 @@ vision event
 
 ## 第三层：自然语言到工程对象的翻译真值
 
-### 1. [`docs/mira-light-scene-to-code-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-to-code-spec.md)
+### 1. [`docs/mira-light-scene-to-code-spec.md`](../docs/mira-light-scene-to-code-spec.md)
 
 它不是当前动作唯一真值，但它仍然是最关键的“翻译方法说明”。
 
@@ -109,7 +109,7 @@ vision event
 
 这条链路正是视觉接入时必须遵守的原则。
 
-### 2. [`docs/mira-light-booth-scene-table.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-booth-scene-table.md)
+### 2. [`docs/mira-light-booth-scene-table.md`](../docs/mira-light-booth-scene-table.md)
 
 它把场景整理成：
 
@@ -124,7 +124,7 @@ vision event
 
 ## 第四层：当前图像流 / 模型接入现状
 
-### 1. [`docs/mira-light-vision-stream-and-gemini-summary.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-vision-stream-and-gemini-summary.md)
+### 1. [`docs/mira-light-vision-stream-and-gemini-summary.md`](../docs/mira-light-vision-stream-and-gemini-summary.md)
 
 这份文档已经明确：
 
@@ -133,7 +133,7 @@ vision event
 - 当前 Gemini 单帧调用时延大约在 `1.6s ~ 2.3s`
 - `flash live` 需要单独走 `bidiGenerateContent`
 
-### 2. [`docs/mira-light-vision-event-schema.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-vision-event-schema.md)
+### 2. [`docs/mira-light-vision-event-schema.md`](../docs/mira-light-vision-event-schema.md)
 
 这份文档解释了：
 
@@ -145,9 +145,9 @@ vision event
 
 ### 图像输入层
 
-- [`docs/cam_receiver_new.py`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/cam_receiver_new.py)
-- [`scripts/run_cam_receiver.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/run_cam_receiver.sh)
-- [`scripts/setup_cam_receiver_env.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/setup_cam_receiver_env.sh)
+- [`docs/cam_receiver_new.py`](../docs/cam_receiver_new.py)
+- [`scripts/run_cam_receiver.sh`](../scripts/run_cam_receiver.sh)
+- [`scripts/setup_cam_receiver_env.sh`](../scripts/setup_cam_receiver_env.sh)
 
 当前职责：
 
@@ -158,8 +158,8 @@ vision event
 
 ### 视觉事件层
 
-- [`config/mira_light_vision_event.schema.json`](/Users/Zhuanz/Documents/Github/Mira-Light/config/mira_light_vision_event.schema.json)
-- [`scripts/track_target_event_extractor.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/track_target_event_extractor.py)
+- [`config/mira_light_vision_event.schema.json`](../config/mira_light_vision_event.schema.json)
+- [`scripts/track_target_event_extractor.py`](../scripts/track_target_event_extractor.py)
 
 当前职责：
 
@@ -169,9 +169,9 @@ vision event
 
 ### 场景与运行时层
 
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
-- [`scripts/booth_controller.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/booth_controller.py)
+- [`scripts/scenes.py`](../scripts/scenes.py)
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
+- [`scripts/booth_controller.py`](../scripts/booth_controller.py)
 
 当前职责：
 
@@ -181,10 +181,10 @@ vision event
 
 ### 本地导演台层
 
-- [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
-- [`web/index.html`](/Users/Zhuanz/Documents/Github/Mira-Light/web/index.html)
-- [`web/app.js`](/Users/Zhuanz/Documents/Github/Mira-Light/web/app.js)
-- [`docs/mira-light-director-console-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-director-console-spec.md)
+- [`scripts/console_server.py`](../scripts/console_server.py)
+- [`web/index.html`](../web/index.html)
+- [`web/app.js`](../web/app.js)
+- [`docs/mira-light-director-console-spec.md`](../docs/mira-light-director-console-spec.md)
 
 当前职责：
 
@@ -398,7 +398,7 @@ runtime 再翻译成具体动作
 当前应该固定接收器运行方式：
 
 ```bash
-cd /Users/Zhuanz/Documents/Github/Mira-Light
+cd Mira_Light_Released_Version
 bash scripts/run_cam_receiver.sh --host 0.0.0.0 --port 8000 --save-dir ./captures --log-level INFO
 ```
 
@@ -535,8 +535,8 @@ bash scripts/run_cam_receiver.sh --host 0.0.0.0 --port 8000 --save-dir ./capture
 
 把 vision state 暴露给：
 
-- [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
-- [`web/app.js`](/Users/Zhuanz/Documents/Github/Mira-Light/web/app.js)
+- [`scripts/console_server.py`](../scripts/console_server.py)
+- [`web/app.js`](../web/app.js)
 
 让现场操作员能看到：
 

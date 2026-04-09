@@ -12,7 +12,7 @@
 
 对应的机器可读 schema 文件是：
 
-- [`config/mira_light_vision_event.schema.json`](/Users/Zhuanz/Documents/Github/Mira-Light/config/mira_light_vision_event.schema.json)
+- [`config/mira_light_vision_event.schema.json`](../config/mira_light_vision_event.schema.json)
 
 ## 一句话原则
 
@@ -315,7 +315,7 @@ cam_receiver_new.py
     "distance_mode": "monocular_heuristic"
   },
   "frame": {
-    "path": "/Users/Zhuanz/Documents/Github/Mira-Light/captures/frame-0001.jpg",
+    "path": "captures/frame-0001.jpg",
     "width": 640,
     "height": 480,
     "seq": "5043",

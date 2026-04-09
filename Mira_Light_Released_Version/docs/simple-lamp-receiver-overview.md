@@ -11,11 +11,11 @@
 
 对应实现文件是：
 
-- [`scripts/simple_lamp_receiver.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/simple_lamp_receiver.py)
+- [`scripts/simple_lamp_receiver.py`](../scripts/simple_lamp_receiver.py)
 
 ## 为什么需要这个最简方案
 
-根据 [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf) 和 [`danpianji.html`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/danpianji.html)，当前灯具已经有自己的控制接口：
+根据 [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf) 和 [`danpianji.html`](../docs/danpianji.html)，当前灯具已经有自己的控制接口：
 
 - `GET /status`
 - `POST /control`
@@ -154,9 +154,9 @@
 
 那还是应该继续保留：
 
-- [`tools/mira_light_bridge/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/README.md)
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
-- [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
+- [`tools/mira_light_bridge/README.md`](../tools/mira_light_bridge/README.md)
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
+- [`scripts/console_server.py`](../scripts/console_server.py)
 
 也就是说：
 
@@ -180,6 +180,6 @@ python3 scripts/simple_lamp_receiver.py \
 
 ## 相关文档
 
-- [`simple-lamp-receiver-api.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/simple-lamp-receiver-api.md)
-- [`simple-lamp-receiver-esp32-examples.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/simple-lamp-receiver-esp32-examples.md)
+- [`simple-lamp-receiver-api.md`](../docs/simple-lamp-receiver-api.md)
+- [`simple-lamp-receiver-esp32-examples.md`](../docs/simple-lamp-receiver-esp32-examples.md)
 

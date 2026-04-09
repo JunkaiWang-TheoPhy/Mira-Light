@@ -19,15 +19,15 @@
 
 当前动作实现、关节理解、场景审核，一律以：
 
-- [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
+- [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)
 
 为准。
 
 参考优先级低于它的材料：
 
-- [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf)
-- [`Mira Light 展位交互方案1.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案1.pdf)
-- [`Mira Light 展位交互方案3.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案3.pdf)
+- [`Mira Light 展位交互方案.pdf`](../docs/Mira%20Light%20展位交互方案.pdf)
+- [`Mira Light 展位交互方案1.pdf`](../docs/Mira%20Light%20展位交互方案1.pdf)
+- [`Mira Light 展位交互方案3.pdf`](../docs/Mira%20Light%20展位交互方案3.pdf)
 
 说明：
 
@@ -50,7 +50,7 @@
 
 十个主场景现在都已经进入：
 
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
+- [`scripts/scenes.py`](../scripts/scenes.py)
 
 其中：
 
@@ -60,26 +60,26 @@
 
 当前逐场景解释已经收敛到：
 
-- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
-- [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
+- [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-scene-implementation-index.md`](../docs/mira-light-scene-implementation-index.md)
+- [`scripts/scenes.py`](../scripts/scenes.py)
 
 ## 接手时的文件优先级
 
 ### 第一层：动作真值
 
-1. [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
-2. [`ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
+1. [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)
+2. [`ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf)
 
 ### 第二层：当前程序真值
 
-1. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-2. [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
+1. [`scripts/scenes.py`](../scripts/scenes.py)
+2. [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
 
 ### 第三层：场景说明
 
-1. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
-2. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+1. [`docs/mira-light-scene-implementation-index.md`](../docs/mira-light-scene-implementation-index.md)
+2. [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
 
 说明：
 
@@ -89,7 +89,7 @@
 
 ### 第四层：当前交付状态解释
 
-1. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+1. [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
 2. 本文档
 
 ## 这轮开发到底做了什么
@@ -150,8 +150,8 @@
 
 以下文档更适合做思路和总表参考：
 
-- [`docs/mira-light-scene-to-code-spec.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-to-code-spec.md)
-- [`docs/mira-light-booth-scene-table.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-booth-scene-table.md)
+- [`docs/mira-light-scene-to-code-spec.md`](../docs/mira-light-scene-to-code-spec.md)
+- [`docs/mira-light-booth-scene-table.md`](../docs/mira-light-booth-scene-table.md)
 
 ### 3. 当前最大缺口已经不是“没场景”，而是“没闭环”
 
@@ -190,17 +190,17 @@
 
 按下面顺序读：
 
-1. [`docs/Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
-2. [`docs/ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
-3. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-4. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+1. [`docs/Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf)
+2. [`docs/ESP32 智能台灯.pdf`](../docs/ESP32%20智能台灯.pdf)
+3. [`scripts/scenes.py`](../scripts/scenes.py)
+4. [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
 5. 本文档
-6. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
+6. [`docs/mira-light-scene-implementation-index.md`](../docs/mira-light-scene-implementation-index.md)
 
 ### 第 1 步：先验证代码可加载
 
 ```bash
-cd /Users/Zhuanz/Documents/Github/Mira-Light
+cd Mira_Light_Released_Version
 python3 -m py_compile scripts/scenes.py
 python3 scripts/booth_controller.py --list
 ```
@@ -242,19 +242,19 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run slee
 
 推荐工具：
 
-- [`scripts/calibrate_lamp.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/calibrate_lamp.py)
-- [`config/mira_light_profile.example.json`](/Users/Zhuanz/Documents/Github/Mira-Light/config/mira_light_profile.example.json)
+- [`scripts/calibrate_lamp.py`](../scripts/calibrate_lamp.py)
+- [`config/mira_light_profile.example.json`](../config/mira_light_profile.example.json)
 
 ### 第 4 步：改任何一个场景时，至少同步三处
 
-1. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
+1. [`scripts/scenes.py`](../scripts/scenes.py)
 2. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/GitHub/Mira-Light/docs/mira-light-scene-implementation-index.md)
-3. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+3. [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
 
 如果影响导演台语义，还要同步：
 
-- [`web/app.js`](/Users/Zhuanz/Documents/Github/Mira-Light/web/app.js)
-- [`web/index.html`](/Users/Zhuanz/Documents/Github/Mira-Light/web/index.html)
+- [`web/app.js`](../web/app.js)
+- [`web/index.html`](../web/index.html)
 
 ## 当前最推荐的下一步开发顺序
 

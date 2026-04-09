@@ -4,16 +4,16 @@
 
 注意：
 
-当前仓库里的动作实现与排练审计，已经优先以 [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf) 为准。
+当前仓库里的动作实现与排练审计，已经优先以 [`Mira Light 展位交互方案2.pdf`](../docs/Mira%20Light%20展位交互方案2.pdf) 为准。
 
 本文件保留为场景总表和导演层阅读材料，但其中部分动作描述仍带有早期稿件口径，不应直接视为当前代码真值。
 
 当前实现状态、已修问题和剩余缺口请优先对照：
 
-- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
-- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+- [`docs/mira-light-pdf2-implementation-audit.md`](../docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-pdf2-engineering-handoff.md`](../docs/mira-light-pdf2-engineering-handoff.md)
 
-这份文档把 [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf) 中的自然语言场景，整理成可以直接用于：
+这份文档把 [`Mira Light 展位交互方案.pdf`](../docs/Mira%20Light%20展位交互方案.pdf) 中的自然语言场景，整理成可以直接用于：
 
 - 展位排练
 - 主持人口播
@@ -43,7 +43,7 @@
 当前更符合实际的触发方式只有两种：
 
 1. `OpenClaw` 触发  
-思路是让 `OpenClaw` 最终调用电脑终端命令，执行 [`scripts/booth_controller.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/booth_controller.py)。
+思路是让 `OpenClaw` 最终调用电脑终端命令，执行 [`scripts/booth_controller.py`](../scripts/booth_controller.py)。
 
 2. 电脑终端直接触发  
 例如：
@@ -331,6 +331,6 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 farewell
 
 ## 当前阶段最重要的结论
 
-如果说 [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf) 是“创意故事板”，那么这份文档就是“排练版导演脚本表”。
+如果说 [`Mira Light 展位交互方案.pdf`](../docs/Mira%20Light%20展位交互方案.pdf) 是“创意故事板”，那么这份文档就是“排练版导演脚本表”。
 
 你后面写代码、做控制台、准备主持人口播、做现场彩排，都应该以这份场景表为中间层，而不是直接面对 PDF 原文。

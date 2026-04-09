@@ -111,14 +111,14 @@ Recommended tunnel style:
 
 ```bash
 MIRA_LIGHT_BRIDGE_REMOTE=ubuntu@43.160.217.153 \
-MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=19783 \
+MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=9783 \
 zsh tools/mira_light_bridge/start_tunnel.sh
 ```
 
 This makes the bridge available to the remote host on:
 
 ```text
-http://127.0.0.1:19783
+http://127.0.0.1:9783
 ```
 
 ## OpenClaw Plugin

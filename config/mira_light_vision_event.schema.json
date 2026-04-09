@@ -100,6 +100,7 @@
       "additionalProperties": false,
       "required": [
         "target_present",
+        "target_count",
         "target_class",
         "detector",
         "confidence"
@@ -107,6 +108,17 @@
       "properties": {
         "target_present": {
           "type": "boolean"
+        },
+        "target_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "track_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         },
         "target_class": {
           "type": "string",
@@ -232,6 +244,262 @@
             "stable",
             "unknown"
           ]
+        }
+      }
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "track_id",
+          "target_class",
+          "detector",
+          "confidence",
+          "bbox_norm",
+          "center_norm",
+          "horizontal_zone",
+          "vertical_zone",
+          "size_norm",
+          "distance_band",
+          "approach_state",
+          "selection_score"
+        ],
+        "properties": {
+          "track_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "target_class": {
+            "type": "string",
+            "enum": [
+              "person",
+              "face",
+              "motion_blob",
+              "unknown",
+              "none"
+            ]
+          },
+          "detector": {
+            "type": "string",
+            "enum": [
+              "haar_face",
+              "background_motion",
+              "none"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bbox_norm": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y",
+              "w",
+              "h"
+            ],
+            "properties": {
+              "x": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "y": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "w": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "h": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+            }
+          },
+          "center_norm": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y"
+            ],
+            "properties": {
+              "x": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "y": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+            }
+          },
+          "horizontal_zone": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right",
+              "unknown"
+            ]
+          },
+          "vertical_zone": {
+            "type": "string",
+            "enum": [
+              "upper",
+              "middle",
+              "lower",
+              "unknown"
+            ]
+          },
+          "size_norm": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "distance_band": {
+            "type": "string",
+            "enum": [
+              "near",
+              "mid",
+              "far",
+              "unknown"
+            ]
+          },
+          "approach_state": {
+            "type": "string",
+            "enum": [
+              "approaching",
+              "receding",
+              "stable",
+              "unknown"
+            ]
+          },
+          "selection_score": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "selected_target": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "track_id",
+        "lock_state",
+        "reason",
+        "target_class",
+        "detector",
+        "confidence",
+        "bbox_norm",
+        "center_norm",
+        "horizontal_zone",
+        "vertical_zone",
+        "size_norm",
+        "distance_band",
+        "approach_state",
+        "selection_score"
+      ],
+      "properties": {
+        "track_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lock_state": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "locked"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "target_class": {
+          "type": "string",
+          "enum": [
+            "person",
+            "face",
+            "motion_blob",
+            "unknown",
+            "none"
+          ]
+        },
+        "detector": {
+          "type": "string",
+          "enum": [
+            "haar_face",
+            "background_motion",
+            "none"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "bbox_norm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "properties": {
+            "x": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "y": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "w": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "h": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+          }
+        },
+        "center_norm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "y": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+          }
+        },
+        "horizontal_zone": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right",
+            "unknown"
+          ]
+        },
+        "vertical_zone": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "middle",
+            "lower",
+            "unknown"
+          ]
+        },
+        "size_norm": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "distance_band": {
+          "type": "string",
+          "enum": [
+            "near",
+            "mid",
+            "far",
+            "unknown"
+          ]
+        },
+        "approach_state": {
+          "type": "string",
+          "enum": [
+            "approaching",
+            "receding",
+            "stable",
+            "unknown"
+          ]
+        },
+        "selection_score": {
+          "type": "number"
         }
       }
     },

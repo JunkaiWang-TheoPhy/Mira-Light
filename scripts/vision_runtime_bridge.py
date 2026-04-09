@@ -43,6 +43,8 @@ class BridgeState:
     last_event_signature: str | None = None
     last_target_present: bool = False
     target_missing_since_monotonic: float | None = None
+    scene_gate_streak: int = 0
+    tracking_gate_streak: int = 0
     last_scene_started: str | None = None
     last_scene_started_at_monotonic: float | None = None
     last_tracking_applied_at_monotonic: float | None = None
@@ -124,6 +126,40 @@ def parse_args() -> argparse.Namespace:
         help="Minimum interval between live tracking control updates.",
     )
     parser.add_argument(
+        "--scene-persistence-frames",
+        type=int,
+        default=2,
+        help="Consecutive qualified frames required before scene starts are allowed.",
+    )
+    parser.add_argument(
+        "--tracking-persistence-frames",
+        type=int,
+        default=2,
+        help="Consecutive qualified frames required before live tracking updates are allowed.",
+    )
+    parser.add_argument(
+        "--scene-min-confidence",
+        type=float,
+        default=0.70,
+        help="Minimum confidence required before scene starts are allowed.",
+    )
+    parser.add_argument(
+        "--tracking-min-confidence",
+        type=float,
+        default=0.50,
+        help="Minimum confidence required before live tracking updates are allowed.",
+    )
+    parser.add_argument(
+        "--scene-allowed-detectors",
+        default="haar_face",
+        help="Comma-separated detector allowlist for scene starts.",
+    )
+    parser.add_argument(
+        "--tracking-allowed-detectors",
+        default="haar_face,background_motion",
+        help="Comma-separated detector allowlist for live tracking updates.",
+    )
+    parser.add_argument(
         "--log-json",
         action="store_true",
         help="Print bridge decisions as JSON instead of plain text lines.",
@@ -181,6 +217,31 @@ def log(args: argparse.Namespace, message: str, **fields: Any) -> None:
         print(f"[vision-bridge] {message}")
 
 
+def parse_allowlist(raw: str) -> set[str]:
+    return {item.strip() for item in raw.split(",") if item.strip()}
+
+
+def evaluate_detector_gate(
+    *,
+    target_present: bool,
+    detector: str,
+    confidence: float,
+    allowed_detectors: set[str],
+    min_confidence: float,
+) -> tuple[bool, str]:
+    if not target_present:
+        return False, "target absent"
+    if detector not in allowed_detectors:
+        return False, f"detector {detector} not allowed"
+    if confidence < min_confidence:
+        return False, f"confidence {confidence:.2f} below {min_confidence:.2f}"
+    return True, "ok"
+
+
+def update_gate_streak(current: int, passed: bool) -> int:
+    return current + 1 if passed else 0
+
+
 def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState, last_event: dict[str, Any] | None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -190,6 +251,8 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "lastEventSignature": bridge.last_event_signature,
             "lastTargetPresent": bridge.last_target_present,
             "targetMissingSinceMonotonic": bridge.target_missing_since_monotonic,
+            "sceneGateStreak": bridge.scene_gate_streak,
+            "trackingGateStreak": bridge.tracking_gate_streak,
             "lastSceneStarted": bridge.last_scene_started,
             "lastTrackingAppliedAtMonotonic": bridge.last_tracking_applied_at_monotonic,
             "lastHorizontalZone": bridge.last_horizontal_zone,
@@ -247,6 +310,49 @@ def normalize_direction(raw: Any, *, default: str = "unknown") -> str:
     return default
 
 
+def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    selected = event.get("selected_target") if isinstance(event.get("selected_target"), dict) else None
+    tracks = event.get("tracks") if isinstance(event.get("tracks"), list) else []
+
+    effective = dict(tracking)
+    effective["target_count"] = int(effective.get("target_count") or len(tracks) or 0)
+
+    if selected is None:
+        return effective, None
+
+    lock_state = str(selected.get("lock_state") or "candidate")
+    if lock_state not in {"candidate", "locked"}:
+        return effective, None
+
+    effective.update(
+        {
+            "track_id": selected.get("track_id"),
+            "target_present": True,
+            "target_class": selected.get("target_class", tracking.get("target_class", "unknown")),
+            "detector": selected.get("detector", tracking.get("detector", "none")),
+            "confidence": selected.get("confidence", tracking.get("confidence", 0.0)),
+            "bbox_norm": selected.get("bbox_norm", tracking.get("bbox_norm")),
+            "center_norm": selected.get("center_norm", tracking.get("center_norm")),
+            "horizontal_zone": selected.get("horizontal_zone", tracking.get("horizontal_zone", "unknown")),
+            "vertical_zone": selected.get("vertical_zone", tracking.get("vertical_zone", "unknown")),
+            "size_norm": selected.get("size_norm", tracking.get("size_norm")),
+            "distance_band": selected.get("distance_band", tracking.get("distance_band", "unknown")),
+            "approach_state": selected.get("approach_state", tracking.get("approach_state", "unknown")),
+            "selected_lock_state": lock_state,
+        }
+    )
+    return effective, selected
+
+
+def enrich_event_with_selected_target(event: dict[str, Any], tracking: dict[str, Any], selected: dict[str, Any] | None) -> dict[str, Any]:
+    if selected is None:
+        return event
+    enriched = dict(event)
+    enriched["tracking"] = tracking
+    return enriched
+
+
 def resolve_departure_direction(event: dict[str, Any], bridge_state: BridgeState) -> str:
     payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
     tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
@@ -282,14 +388,17 @@ def extract_multi_person_payload(event: dict[str, Any]) -> dict[str, Any]:
 
 
 def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> tuple[str, str]:
-    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    tracking, selected = extract_tracking_view(event)
     payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
     target_present = bool(tracking.get("target_present"))
     scene_hint = (event.get("scene_hint") or {}).get("name", "none")
     event_type = event.get("event_type", "no_target")
     target_count = int(tracking.get("target_count") or payload.get("targetCount") or 0)
+    selected_lock_state = None if selected is None else str(selected.get("lock_state") or "candidate")
 
-    if target_count >= 2 or event_type == "multi_target_seen" or scene_hint == "multi_person_demo":
+    if selected_lock_state != "locked" and (
+        target_count >= 2 or event_type == "multi_target_seen" or scene_hint == "multi_person_demo"
+    ):
         return "multi_person_demo", "multi-target detection"
 
     if target_present:
@@ -348,6 +457,25 @@ def should_apply_tracking(
             return False, f"tracking update interval active ({age_ms:.0f}ms)"
 
     return True, "ok"
+
+
+def gate_candidate_scene(
+    candidate_scene: str,
+    *,
+    bridge_state: BridgeState,
+    scene_gate_passed: bool,
+    scene_gate_reason: str,
+    args: argparse.Namespace,
+) -> tuple[str, str]:
+    if candidate_scene in {"wake_up", "curious_observe", "multi_person_demo"}:
+        if not scene_gate_passed:
+            return "none", f"scene gate blocked: {scene_gate_reason}"
+        if bridge_state.scene_gate_streak < args.scene_persistence_frames:
+            return "none", (
+                "scene gate warming up: "
+                f"{bridge_state.scene_gate_streak}/{args.scene_persistence_frames}"
+            )
+    return candidate_scene, "ok"
 
 
 def apply_tracking(runtime: MiraLightRuntime, bridge_state: BridgeState, event: dict[str, Any], now_mono: float, args: argparse.Namespace) -> None:
@@ -410,10 +538,41 @@ def handle_event(
     memory_client: EmbodiedMemoryClient | None = None,
 ) -> None:
     now_mono = time.monotonic()
-    tracking = event.get("tracking", {})
+    tracking, selected_target = extract_tracking_view(event)
+    runtime_event = enrich_event_with_selected_target(event, tracking, selected_target)
     target_present = bool(tracking.get("target_present"))
+    detector = str(tracking.get("detector") or "none")
+    confidence = float(tracking.get("confidence") or 0.0)
+
+    scene_allowed_detectors = parse_allowlist(args.scene_allowed_detectors)
+    tracking_allowed_detectors = parse_allowlist(args.tracking_allowed_detectors)
+    scene_gate_passed, scene_gate_reason = evaluate_detector_gate(
+        target_present=target_present,
+        detector=detector,
+        confidence=confidence,
+        allowed_detectors=scene_allowed_detectors,
+        min_confidence=args.scene_min_confidence,
+    )
+    tracking_gate_passed, tracking_gate_reason = evaluate_detector_gate(
+        target_present=target_present,
+        detector=detector,
+        confidence=confidence,
+        allowed_detectors=tracking_allowed_detectors,
+        min_confidence=args.tracking_min_confidence,
+    )
+    bridge_state.scene_gate_streak = update_gate_streak(bridge_state.scene_gate_streak, scene_gate_passed)
+    bridge_state.tracking_gate_streak = update_gate_streak(bridge_state.tracking_gate_streak, tracking_gate_passed)
 
     candidate_scene, candidate_reason = resolve_candidate_scene(event, bridge_state, now_mono, args)
+    candidate_scene, candidate_gate_reason = gate_candidate_scene(
+        candidate_scene,
+        bridge_state=bridge_state,
+        scene_gate_passed=scene_gate_passed,
+        scene_gate_reason=scene_gate_reason,
+        args=args,
+    )
+    if candidate_gate_reason != "ok":
+        candidate_reason = f"{candidate_reason}; {candidate_gate_reason}"
     runtime_state = runtime.get_runtime_state()
     allowed, allowed_reason = should_start_scene(
         candidate_scene,
@@ -433,15 +592,62 @@ def handle_event(
         allowed=allowed,
         allowed_reason=allowed_reason,
         target_present=target_present,
+        detector=detector,
+        confidence=round(confidence, 4),
+        scene_gate_passed=scene_gate_passed,
+        scene_gate_reason=scene_gate_reason,
+        scene_gate_streak=bridge_state.scene_gate_streak,
+        tracking_gate_passed=tracking_gate_passed,
+        tracking_gate_reason=tracking_gate_reason,
+        tracking_gate_streak=bridge_state.tracking_gate_streak,
         distance_band=tracking.get("distance_band"),
         horizontal_zone=tracking.get("horizontal_zone"),
+        selected_track_id=None if selected_target is None else selected_target.get("track_id"),
+        selected_lock_state=None if selected_target is None else selected_target.get("lock_state"),
         departure_direction=resolve_departure_direction(event, bridge_state),
     )
 
     if not target_present and runtime_state.get("trackingActive"):
-        runtime.apply_tracking_event(event, source="vision-clear")
+        runtime.apply_tracking_event(runtime_event, source="vision-clear")
 
     if candidate_scene == "track_target" and target_present:
+        if not tracking_gate_passed:
+            gate_reason = f"tracking gate blocked: {tracking_gate_reason}"
+            log(
+                args,
+                "tracking gate blocked",
+                detector=detector,
+                confidence=round(confidence, 4),
+                reason=tracking_gate_reason,
+            )
+            record_tracking_session_state(
+                memory_client,
+                event=event,
+                candidate_scene=candidate_scene,
+                candidate_reason=f"{candidate_reason}; {gate_reason}",
+                allowed=False,
+                allowed_reason=tracking_gate_reason,
+                args=args,
+            )
+            bridge_state.last_target_present = target_present
+            return
+        if bridge_state.tracking_gate_streak < args.tracking_persistence_frames:
+            streak_reason = (
+                "tracking gate warming up: "
+                f"{bridge_state.tracking_gate_streak}/{args.tracking_persistence_frames}"
+            )
+            log(args, "tracking gate warming up", reason=streak_reason)
+            record_tracking_session_state(
+                memory_client,
+                event=event,
+                candidate_scene=candidate_scene,
+                candidate_reason=f"{candidate_reason}; {streak_reason}",
+                allowed=False,
+                allowed_reason=streak_reason,
+                args=args,
+            )
+            bridge_state.last_target_present = target_present
+            return
         allowed, allowed_reason = should_apply_tracking(
             runtime_state=runtime_state,
             bridge_state=bridge_state,
@@ -457,7 +663,7 @@ def handle_event(
             distance_band=tracking.get("distance_band"),
         )
         if allowed:
-            apply_tracking(runtime, bridge_state, event, now_mono, args)
+            apply_tracking(runtime, bridge_state, runtime_event, now_mono, args)
     elif candidate_scene == "farewell" and allowed:
         direction = resolve_departure_direction(event, bridge_state)
         apply_trigger_event(

@@ -95,20 +95,20 @@ npm run remove:openclaw
 
 ### 1. 场景与执行层
 
-- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-- [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
-- [`scripts/booth_controller.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/booth_controller.py)
+- [`scripts/scenes.py`](../scripts/scenes.py)
+- [`scripts/mira_light_runtime.py`](../scripts/mira_light_runtime.py)
+- [`scripts/booth_controller.py`](../scripts/booth_controller.py)
 
 ### 2. 本地 bridge
 
-- [`tools/mira_light_bridge/bridge_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/bridge_server.py)
-- [`tools/mira_light_bridge/start_bridge.sh`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/start_bridge.sh)
-- [`tools/mira_light_bridge/bridge_config.json`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/bridge_config.json)
+- [`tools/mira_light_bridge/bridge_server.py`](../tools/mira_light_bridge/bridge_server.py)
+- [`tools/mira_light_bridge/start_bridge.sh`](../tools/mira_light_bridge/start_bridge.sh)
+- [`tools/mira_light_bridge/bridge_config.json`](../tools/mira_light_bridge/bridge_config.json)
 
 ### 3. OpenClaw 插件
 
-- [`tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json)
-- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+- [`tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json`](../tools/mira_light_bridge/openclaw_mira_light_plugin/openclaw.plugin.json)
+- [`tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 ## 接入步骤
 
@@ -134,7 +134,7 @@ curl http://<真实灯IP>/actions
 
 如果这一步不通，请先看：
 
-- [`mira-light-device-connection-troubleshooting.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-device-connection-troubleshooting.md)
+- [`mira-light-device-connection-troubleshooting.md`](../docs/mira-light-device-connection-troubleshooting.md)
 
 ## 第 2 步：启动本地 bridge
 
@@ -176,7 +176,7 @@ curl http://127.0.0.1:9783/v1/mira-light/status \
 
 当前插件源目录在：
 
-[`tools/mira_light_bridge/openclaw_mira_light_plugin/`](/Users/Zhuanz/Documents/Github/Mira-Light/tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
+[`tools/mira_light_bridge/openclaw_mira_light_plugin/`](../tools/mira_light_bridge/openclaw_mira_light_plugin/index.mjs)
 
 本机 OpenClaw 的扩展目录当前存在于：
 
