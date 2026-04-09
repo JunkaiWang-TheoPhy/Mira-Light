@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -49,6 +50,15 @@ class MockDeviceE2ETest(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         return thread
+
+    def _wait_until_not_running(self, bridge_base_url: str, *, attempts: int = 20) -> None:
+        for _ in range(attempts):
+            status, runtime_state = request_json(f"{bridge_base_url}/v1/mira-light/runtime")
+            self.assertEqual(status, 200)
+            if not runtime_state["runtime"]["running"]:
+                return
+            time.sleep(0.02)
+        self.fail("runtime did not settle before the next trigger")
 
     def test_bridge_scene_and_manual_controls_hit_mock_device(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -157,6 +167,65 @@ class MockDeviceE2ETest(unittest.TestCase):
                         if item["path"] == "/control" and isinstance(item.get("payload"), dict)
                     ]
                     self.assertTrue(any(payload.get("servo1") == 78 for payload in control_payloads))
+                finally:
+                    bridge_server.shutdown()
+                    bridge_server.server_close()
+                    bridge_thread.join(timeout=3)
+                    mock_server.shutdown()
+                    mock_server.server_close()
+                    mock_thread.join(timeout=3)
+
+    def test_trigger_endpoint_routes_farewell_and_multi_person_contexts(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            mock_server = create_server("127.0.0.1", 0)
+            mock_thread = self._start_server(mock_server)
+            mock_base_url = f"http://127.0.0.1:{mock_server.server_address[1]}"
+
+            runtime = MiraLightRuntime(base_url=mock_base_url, dry_run=False, timeout_seconds=1.0)
+            runtime.audio_player.dry_run = True
+            bridge_server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=tmp_root / "ingest",
+            )
+            bridge_thread = self._start_server(bridge_server)
+            bridge_base_url = f"http://127.0.0.1:{bridge_server.server_address[1]}"
+
+            with mock.patch.object(BoothController, "_sleep_ms", autospec=True, return_value=None):
+                try:
+                    status, farewell = request_json(
+                        f"{bridge_base_url}/v1/mira-light/trigger",
+                        method="POST",
+                        payload={"event": "farewell_detected", "payload": {"direction": "left"}},
+                    )
+                    self.assertEqual(status, 200)
+                    self.assertTrue(farewell["ok"])
+                    self._wait_until_not_running(bridge_base_url)
+
+                    status, multi = request_json(
+                        f"{bridge_base_url}/v1/mira-light/trigger",
+                        method="POST",
+                        payload={
+                            "event": "multi_person_detected",
+                            "payload": {"primaryDirection": "left", "secondaryDirection": "right"},
+                        },
+                    )
+                    self.assertEqual(status, 200)
+                    self.assertTrue(multi["ok"])
+                    self._wait_until_not_running(bridge_base_url)
+
+                    status, admin_state = request_json(f"{mock_base_url}/__admin/state")
+                    self.assertEqual(status, 200)
+                    control_payloads = [
+                        item["payload"]
+                        for item in admin_state["recentRequests"]
+                        if item["path"] == "/control" and isinstance(item.get("payload"), dict)
+                    ]
+                    self.assertTrue(any(payload.get("servo1") == 78 for payload in control_payloads))
+                    self.assertTrue(any(payload.get("servo1") == 106 for payload in control_payloads))
                 finally:
                     bridge_server.shutdown()
                     bridge_server.server_close()
