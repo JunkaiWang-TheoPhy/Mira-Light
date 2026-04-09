@@ -78,8 +78,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
             "hand_avoid_extended_max_center_y": 0.86,
             "hand_avoid_extended_min_confidence": 0.90,
             "hand_avoid_min_lateral_offset": 0.18,
-            "scene_allowed_detectors": "haar_face",
-            "tracking_allowed_detectors": "haar_face,background_motion",
+            "scene_allowed_detectors": "haar_face,tabletop_object",
+            "tracking_allowed_detectors": "haar_face,background_motion,tabletop_object",
             "touch_allowed_detectors": "haar_face,hog_person",
             "touch_allow_person_fallback": False,
             "log_json": False,
@@ -265,6 +265,43 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertFalse(runtime.started_scenes)
         self.assertEqual(len(runtime.tracking_events), 1)
         self.assertEqual(runtime.tracking_events[0]["event"]["tracking"]["track_id"], 4)
+
+    def test_tabletop_target_seen_prefers_track_target_over_wake_up(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(scene_cooldown_ms=0)
+        event = {
+            "event_type": "target_seen",
+            "scene_hint": {"name": "track_target", "reason": "tabletop object detected"},
+            "tracking": {
+                "target_present": True,
+                "target_count": 1,
+                "track_id": 21,
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "detector": "tabletop_object",
+                "horizontal_zone": "left",
+                "vertical_zone": "lower",
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "size_norm": 0.048,
+                "confidence": 0.82,
+                "center_norm": {"x": 0.28, "y": 0.72},
+            },
+            "control_hint": {
+                "yaw_error_norm": -0.44,
+                "pitch_error_norm": -0.44,
+                "lift_intent": 0.28,
+                "reach_intent": 0.55,
+            },
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertFalse(runtime.started_scenes)
+        self.assertEqual(len(runtime.tracking_events), 1)
+        self.assertEqual(bridge_state.last_decision["candidateScene"], "track_target")
+        self.assertEqual(bridge_state.last_decision["action"], "apply_tracking")
 
     def test_near_single_target_triggers_hand_near_touch_scene(self) -> None:
         runtime = FakeRuntime()

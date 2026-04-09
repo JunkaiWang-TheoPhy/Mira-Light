@@ -1,5 +1,5 @@
 {
-  "name": "mira-light-bridge-plugin",
+  "name": "mira-light-bridge",
   "version": "0.1.0",
   "private": true,
   "type": "module",

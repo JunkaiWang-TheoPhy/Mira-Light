@@ -20,6 +20,8 @@ const visionConfidence = document.getElementById("vision-confidence");
 const visionLastTrigger = document.getElementById("vision-last-trigger");
 const visionOperatorLock = document.getElementById("vision-operator-lock");
 const visionOperatorNote = document.getElementById("vision-operator-note");
+const visionTargetMode = document.getElementById("vision-target-mode");
+const visionTargetModeNote = document.getElementById("vision-target-mode-note");
 const visionDecisionTitle = document.getElementById("vision-decision-title");
 const visionDecisionNote = document.getElementById("vision-decision-note");
 const visionTrackList = document.getElementById("vision-track-list");
@@ -338,8 +340,20 @@ function renderVisionSummary() {
   const selectedTarget = latestEvent.selected_target || null;
   const tracks = Array.isArray(latestEvent.tracks) ? latestEvent.tracks : [];
   const sceneHint = latestEvent.scene_hint || {};
+  const operatorMode = visionOperatorState?.targetMode || visionState?.operator?.targetMode || "person_follow";
+  const effectiveMode = selectedTarget?.target_mode || latestEvent?.tracking?.target_mode || operatorMode;
   const decisionAction = bridgeDecision.action || "-";
   const decisionScene = bridgeDecision.candidateScene || sceneHint.name || "-";
+
+  if (visionTargetMode) {
+    visionTargetMode.textContent = effectiveMode === "tabletop_follow" ? "tabletop_follow" : "person_follow";
+  }
+  if (visionTargetModeNote) {
+    visionTargetModeNote.textContent =
+      effectiveMode === "tabletop_follow"
+        ? "桌面 ROI + edge/motion 目标跟随"
+        : "人脸 / HOG / motion 主链";
+  }
 
   if (visionDecisionTitle) {
     visionDecisionTitle.textContent = `${decisionAction} · ${decisionScene}`;
@@ -354,7 +368,7 @@ function renderVisionSummary() {
 
   if (selectedTarget) {
     visionTargetTitle.textContent = `track ${selectedTarget.track_id} · ${selectedTarget.lock_state || "selected"}`;
-    visionTargetSubtitle.textContent = `${selectedTarget.target_class || "-"} · ${sceneHint.name || "-"}`;
+    visionTargetSubtitle.textContent = `${selectedTarget.target_class || "-"} · ${selectedTarget.target_mode || effectiveMode} · ${sceneHint.name || "-"}`;
     visionZone.textContent = `${selectedTarget.horizontal_zone || "-"} / ${selectedTarget.vertical_zone || "-"}`;
     visionDistance.textContent = `${selectedTarget.distance_band || "-"} · ${selectedTarget.approach_state || "-"}`;
     visionDetector.textContent = selectedTarget.detector || detector;
@@ -1363,18 +1377,24 @@ async function triggerEvent(eventName, payload = {}) {
 }
 
 async function setVisionOperatorLock(lockSelectedTrackId, note = "") {
+  return updateVisionOperatorState({
+    lockSelectedTrackId,
+    note,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+async function updateVisionOperatorState(patch = {}) {
   try {
     const data = await fetchJson("/api/vision-operator", {
       method: "POST",
-      body: JSON.stringify({
-        lockSelectedTrackId,
-        note,
-        updatedAt: new Date().toISOString(),
-      }),
+      body: JSON.stringify(patch),
     });
     visionOperatorState = data.state || {};
     renderVisionSummary();
-    appendLocalLog(`vision operator lock updated: ${visionOperatorState.lockSelectedTrackId ?? "none"}`);
+    appendLocalLog(
+      `vision operator updated: lock=${visionOperatorState.lockSelectedTrackId ?? "none"} mode=${visionOperatorState.targetMode || "person_follow"}`,
+    );
   } catch (error) {
     appendLocalLog(`[ui-error] ${error.message}`);
   }
@@ -1518,6 +1538,20 @@ bindClick("vision-lock-current", () => {
   setVisionOperatorLock(trackId, "lock current target from director console");
 });
 bindClick("vision-unlock", () => setVisionOperatorLock(null, "operator lock cleared"));
+bindClick("vision-mode-person", () =>
+  updateVisionOperatorState({
+    targetMode: "person_follow",
+    note: "vision mode set to person_follow",
+    updatedAt: new Date().toISOString(),
+  }),
+);
+bindClick("vision-mode-tabletop", () =>
+  updateVisionOperatorState({
+    targetMode: "tabletop_follow",
+    note: "vision mode set to tabletop_follow",
+    updatedAt: new Date().toISOString(),
+  }),
+);
 bindClick("capture-pose", capturePose);
 bindClick("refresh-profile", refreshProfile);
 

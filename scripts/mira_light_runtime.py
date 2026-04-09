@@ -1390,6 +1390,7 @@ class MiraLightRuntime:
                 "distanceBand": tracking.get("distance_band"),
                 "approachState": tracking.get("approach_state"),
                 "targetClass": tracking.get("target_class"),
+                "targetMode": tracking.get("target_mode"),
                 "targetCount": tracking.get("target_count"),
                 "trackId": tracking.get("track_id"),
                 "detector": tracking.get("detector"),

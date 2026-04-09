@@ -27,6 +27,7 @@
 19. [mira-light-offline-validation-stack.md](./mira-light-offline-validation-stack.md)
 20. [mira-light-pdf5-10-scene-code-concretization.md](./mira-light-pdf5-10-scene-code-concretization.md)
 21. [mira-light-10-scene-rehearsal-checklist.md](./mira-light-10-scene-rehearsal-checklist.md)
+22. [Guide/README.md](./Guide/README.md)
 
 ## 当前文档分组
 
@@ -51,6 +52,7 @@
 - [mira-light-offline-validation-stack.md](./mira-light-offline-validation-stack.md)
 - [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
 - [mira-light-pdf2-implementation-audit.md](./mira-light-pdf2-implementation-audit.md)
+- [Guide/README.md](./Guide/README.md)
 
 ### 场景与动作
 
@@ -74,6 +76,13 @@
 - [mira-light-vision-stream-and-gemini-summary.md](./mira-light-vision-stream-and-gemini-summary.md)
 - [mira-light-live-follow-demo-runbook.md](./mira-light-live-follow-demo-runbook.md)
 - [mira-context-proactivity-architecture.md](./mira-context-proactivity-architecture.md)
+
+### Guide / 现场操作
+
+- [Guide/README.md](./Guide/README.md)
+- [Guide/01-实时语音启动与模式切换.md](./Guide/01-%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3%E5%90%AF%E5%8A%A8%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%88%87%E6%8D%A2.md)
+- [Guide/02-现场快速操作清单.md](./Guide/02-%E7%8E%B0%E5%9C%BA%E5%BF%AB%E9%80%9F%E6%93%8D%E4%BD%9C%E6%B8%85%E5%8D%95.md)
+- [Guide/03-实时语音常见问题排查.md](./Guide/03-%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5.md)
 
 ### 原始 PDF
 

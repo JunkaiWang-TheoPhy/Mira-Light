@@ -229,12 +229,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scene-allowed-detectors",
-        default="haar_face,hog_person",
+        default="haar_face,hog_person,tabletop_object",
         help="Comma-separated detector allowlist for scene starts.",
     )
     parser.add_argument(
         "--tracking-allowed-detectors",
-        default="haar_face,hog_person,background_motion",
+        default="haar_face,hog_person,background_motion,tabletop_object",
         help="Comma-separated detector allowlist for live tracking updates.",
     )
     parser.add_argument(
@@ -470,6 +470,7 @@ def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[s
             "track_id": selected.get("track_id"),
             "target_present": True,
             "target_class": selected.get("target_class", tracking.get("target_class", "unknown")),
+            "target_mode": selected.get("target_mode", tracking.get("target_mode", "person_follow")),
             "detector": selected.get("detector", tracking.get("detector", "none")),
             "confidence": selected.get("confidence", tracking.get("confidence", 0.0)),
             "bbox_norm": selected.get("bbox_norm", tracking.get("bbox_norm")),
@@ -740,6 +741,7 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
     tracking, selected = extract_tracking_view(event)
     payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
     target_present = bool(tracking.get("target_present"))
+    target_mode = str(tracking.get("target_mode") or "person_follow")
     scene_hint = (event.get("scene_hint") or {}).get("name", "none")
     event_type = event.get("event_type", "no_target")
     target_count = int(tracking.get("target_count") or payload.get("targetCount") or 0)
@@ -755,6 +757,8 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
         horizontal_zone = normalize_direction(tracking.get("horizontal_zone"))
         if horizontal_zone != "unknown":
             bridge_state.last_horizontal_zone = horizontal_zone
+        if target_mode == "tabletop_follow":
+            return "track_target", "tabletop target present"
         if event_type == "target_seen":
             return "wake_up", "target_seen transition"
         if scene_hint in {"curious_observe", "track_target"}:

@@ -192,15 +192,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def _load_vision_operator_state(self) -> dict:
         path = self.server.vision_operator_state_path
         if not path.is_file():
-            return {"lockSelectedTrackId": None}
+            return {"lockSelectedTrackId": None, "targetMode": "person_follow"}
         try:
             raw = path.read_text(encoding="utf-8").strip()
             if not raw:
-                return {"lockSelectedTrackId": None}
+                return {"lockSelectedTrackId": None, "targetMode": "person_follow"}
             parsed = json.loads(raw)
-            return parsed if isinstance(parsed, dict) else {"lockSelectedTrackId": None}
+            return parsed if isinstance(parsed, dict) else {"lockSelectedTrackId": None, "targetMode": "person_follow"}
         except Exception:
-            return {"lockSelectedTrackId": None}
+            return {"lockSelectedTrackId": None, "targetMode": "person_follow"}
 
     def _load_json_file(self, path: Path) -> dict | None:
         if not path.is_file():
@@ -221,9 +221,13 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         current.update(payload)
         normalized = {
             "lockSelectedTrackId": None,
+            "targetMode": "person_follow",
             "updatedAt": current.get("updatedAt"),
             "note": current.get("note"),
         }
+        raw_target_mode = str(current.get("targetMode") or "").strip().lower()
+        if raw_target_mode in {"person_follow", "tabletop_follow"}:
+            normalized["targetMode"] = raw_target_mode
         raw_track_id = current.get("lockSelectedTrackId")
         if raw_track_id not in {None, "", False}:
             try:

@@ -214,6 +214,72 @@ def parse_args() -> argparse.Namespace:
         default=0.22,
         help="Required score advantage before automatic selection abandons the current stable target.",
     )
+    parser.add_argument(
+        "--default-target-mode",
+        choices=["person_follow", "tabletop_follow"],
+        default="person_follow",
+        help="Default target-selection strategy when the operator state does not override it.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-top",
+        type=float,
+        default=0.50,
+        help="Normalized top bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-bottom",
+        type=float,
+        default=0.96,
+        help="Normalized bottom bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-left",
+        type=float,
+        default=0.08,
+        help="Normalized left bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-right",
+        type=float,
+        default=0.92,
+        help="Normalized right bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-min-area-ratio",
+        type=float,
+        default=0.004,
+        help="Minimum frame-area ratio for a tabletop object candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-max-area-ratio",
+        type=float,
+        default=0.22,
+        help="Maximum frame-area ratio for a tabletop object candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-min-edge-ratio",
+        type=float,
+        default=0.05,
+        help="Minimum Canny-edge occupancy inside a tabletop candidate bbox.",
+    )
+    parser.add_argument(
+        "--tabletop-min-motion-ratio",
+        type=float,
+        default=0.01,
+        help="Minimum foreground-motion occupancy that boosts a tabletop candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-min-aspect-ratio",
+        type=float,
+        default=0.45,
+        help="Minimum bbox aspect ratio (w/h) for a tabletop candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-max-aspect-ratio",
+        type=float,
+        default=2.2,
+        help="Maximum bbox aspect ratio (w/h) for a tabletop candidate.",
+    )
     return parser.parse_args()
 
 
@@ -309,9 +375,19 @@ def make_control_hint(center_x: float | None, center_y: float | None, distance_b
     }
 
 
-def infer_scene_hint(target_present: bool, distance_band: str, approach_state: str, horizontal_zone: str) -> tuple[str, str]:
+def infer_scene_hint(
+    target_present: bool,
+    distance_band: str,
+    approach_state: str,
+    horizontal_zone: str,
+    *,
+    target_mode: str,
+    target_class: str,
+) -> tuple[str, str]:
     if not target_present:
         return "sleep", "当前没有稳定目标，适合回到休息或等待状态。"
+    if target_mode == "tabletop_follow" or target_class == "object":
+        return "track_target", "桌面目标已进入工作区，适合进入桌面目标跟随。"
     if distance_band == "far":
         return "wake_up", "目标刚进入可见范围，适合先进入唤醒与注意建立。"
     if approach_state == "approaching" or horizontal_zone != "center":
@@ -325,6 +401,7 @@ def make_track_entry(
     bbox: tuple[int, int, int, int],
     detector: str,
     target_class: str,
+    target_mode: str,
     confidence: float,
     frame_width: int,
     frame_height: int,
@@ -347,6 +424,7 @@ def make_track_entry(
     return {
         "track_id": track_id,
         "target_class": target_class,
+        "target_mode": target_mode,
         "detector": detector,
         "confidence": round(confidence, 4),
         "bbox_norm": {
@@ -603,6 +681,15 @@ def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int |
     return value if value > 0 else None
 
 
+def resolve_target_mode(operator_state: dict[str, Any] | None, args: argparse.Namespace) -> str:
+    raw = ""
+    if isinstance(operator_state, dict):
+        raw = str(operator_state.get("targetMode") or "").strip().lower()
+    if raw in {"person_follow", "tabletop_follow"}:
+        return raw
+    return str(getattr(args, "default_target_mode", "person_follow"))
+
+
 def load_operator_state(path: Path | None) -> dict[str, Any]:
     if path is None or not path.is_file():
         return {}
@@ -639,6 +726,87 @@ def hold_selected_target(state: ExtractorState, args: argparse.Namespace) -> dic
     held["approach_state"] = "stable"
     held["score_margin_to_best"] = 0.0
     return held
+
+
+def detect_tabletop_object_candidates(
+    frame: np.ndarray,
+    fg_mask: np.ndarray,
+    *,
+    args: argparse.Namespace,
+    previous_size_norm: float | None,
+) -> list[dict[str, Any]]:
+    h, w = frame.shape[:2]
+    roi_left = int(round(clamp(args.tabletop_roi_left, 0.0, 1.0) * w))
+    roi_right = int(round(clamp(args.tabletop_roi_right, 0.0, 1.0) * w))
+    roi_top = int(round(clamp(args.tabletop_roi_top, 0.0, 1.0) * h))
+    roi_bottom = int(round(clamp(args.tabletop_roi_bottom, 0.0, 1.0) * h))
+    roi_left = max(0, min(roi_left, w - 1))
+    roi_right = max(roi_left + 1, min(roi_right, w))
+    roi_top = max(0, min(roi_top, h - 1))
+    roi_bottom = max(roi_top + 1, min(roi_bottom, h))
+
+    roi = frame[roi_top:roi_bottom, roi_left:roi_right]
+    fg_roi = fg_mask[roi_top:roi_bottom, roi_left:roi_right]
+    if roi.size == 0 or fg_roi.size == 0:
+        return []
+
+    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray_roi, 60, 150)
+    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
+    motion = cv2.threshold(fg_roi, 127, 255, cv2.THRESH_BINARY)[1]
+    combined = cv2.bitwise_or(edges, motion)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    candidates: list[dict[str, Any]] = []
+    frame_area = float(w * h)
+    for contour in contours:
+        area = float(cv2.contourArea(contour))
+        if area <= 0:
+            continue
+        x, y, bw, bh = cv2.boundingRect(contour)
+        bbox_area = float(max(1, bw * bh))
+        area_ratio = bbox_area / frame_area
+        if area_ratio < args.tabletop_min_area_ratio or area_ratio > args.tabletop_max_area_ratio:
+            continue
+        aspect_ratio = bw / float(max(1, bh))
+        if aspect_ratio < args.tabletop_min_aspect_ratio or aspect_ratio > args.tabletop_max_aspect_ratio:
+            continue
+        edge_ratio = float(cv2.countNonZero(edges[y : y + bh, x : x + bw])) / bbox_area
+        motion_ratio = float(cv2.countNonZero(motion[y : y + bh, x : x + bw])) / bbox_area
+        fill_ratio = area / bbox_area
+        if edge_ratio < args.tabletop_min_edge_ratio:
+            continue
+        if fill_ratio < 0.18:
+            continue
+
+        edge_score = min(edge_ratio / max(args.tabletop_min_edge_ratio * 2.2, 1e-6), 1.0)
+        motion_score = min(motion_ratio / max(args.tabletop_min_motion_ratio * 3.0, 1e-6), 1.0)
+        size_score = min(area_ratio / max(args.tabletop_min_area_ratio * 6.0, 1e-6), 1.0)
+        confidence = round(min(0.97, 0.34 + (edge_score * 0.28) + (motion_score * 0.16) + (size_score * 0.14) + (fill_ratio * 0.16)), 4)
+        if motion_ratio < args.tabletop_min_motion_ratio and confidence < 0.62:
+            continue
+
+        bbox = (x + roi_left, y + roi_top, bw, bh)
+        entry = make_track_entry(
+            track_id=0,
+            bbox=bbox,
+            detector="tabletop_object",
+            target_class="object",
+            target_mode="tabletop_follow",
+            confidence=confidence,
+            frame_width=w,
+            frame_height=h,
+            previous_size_norm=previous_size_norm,
+        )
+        entry["roi_mode"] = "tabletop"
+        entry["selection_score"] = round(float(entry["selection_score"]) + 0.12 + min(edge_ratio, 0.18), 4)
+        entry["edge_ratio"] = round(edge_ratio, 4)
+        entry["motion_ratio"] = round(motion_ratio, 4)
+        entry["aspect_ratio"] = round(aspect_ratio, 4)
+        candidates.append(entry)
+
+    return candidates
 
 
 def detect_people(frame: np.ndarray, hog: Any, *, min_confidence: float) -> list[tuple[tuple[int, int, int, int], float]]:
@@ -891,6 +1059,7 @@ def build_event(
     confidence: float,
     state: ExtractorState,
     args: argparse.Namespace,
+    target_mode: str = "person_follow",
     target_count: int = 0,
     tracks: list[dict[str, Any]] | None = None,
     selected_target: dict[str, Any] | None = None,
@@ -970,7 +1139,14 @@ def build_event(
     if target_count >= 2 and selected_lock_state != "locked":
         scene_name, scene_reason = "multi_person_demo", "同一帧检测到两个稳定目标，适合进入多人反应。"
     else:
-        scene_name, scene_reason = infer_scene_hint(target_present, distance_band, approach_state, horizontal_zone)
+        scene_name, scene_reason = infer_scene_hint(
+            target_present,
+            distance_band,
+            approach_state,
+            horizontal_zone,
+            target_mode=target_mode,
+            target_class=target_class,
+        )
 
     frame_age_ms = max(0.0, (time.time() - path.stat().st_mtime) * 1000.0)
     event = {
@@ -981,6 +1157,7 @@ def build_event(
             "pipeline": "saved_jpeg_watch",
             "camera_mode": "single_camera_2d",
             "distance_mode": "monocular_heuristic",
+            "target_mode": target_mode,
         },
         "frame": {
             "path": str(path.resolve()),
@@ -994,6 +1171,7 @@ def build_event(
             "target_count": target_count if target_count > 0 else (1 if target_present else 0),
             "track_id": None if selected_target is None else selected_target.get("track_id"),
             "target_class": target_class if target_present else "none",
+            "target_mode": target_mode,
             "detector": detector,
             "confidence": round(confidence if target_present else 0.0, 4),
             "bbox_norm": bbox_norm,
@@ -1025,6 +1203,7 @@ def build_event(
             "lock_state": selected_target.get("lock_state"),
             "reason": selected_target.get("reason"),
             "target_class": selected_target.get("target_class"),
+            "target_mode": selected_target.get("target_mode"),
             "detector": selected_target.get("detector"),
             "confidence": selected_target.get("confidence"),
             "bbox_norm": selected_target.get("bbox_norm"),
@@ -1069,116 +1248,130 @@ def process_frame(
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     operator_state = load_operator_state(args.operator_state_file)
+    target_mode = resolve_target_mode(operator_state, args)
     fg_mask = compute_foreground_mask(frame, subtractor)
     state.bg_warmup_count += 1
 
-    person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
-    faces = detect_faces(gray, cascade)
     candidates: list[dict[str, Any]] = []
-    if person_detections:
-        for bbox, weight in person_detections:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="hog_person",
-                    target_class="person",
-                    confidence=weight,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-
-        # Face detections are used as confidence hints when they land inside a person box.
-        for face_bbox in faces:
-            fx, fy, fw, fh = face_bbox
-            face_cx = fx + (fw / 2.0)
-            face_cy = fy + (fh / 2.0)
-            for item in candidates:
-                bx = item["bbox_norm"]["x"] * frame.shape[1]
-                by = item["bbox_norm"]["y"] * frame.shape[0]
-                bw = item["bbox_norm"]["w"] * frame.shape[1]
-                bh = item["bbox_norm"]["h"] * frame.shape[0]
-                if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
-                    item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
-                    item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
-                    break
-    elif faces:
-        confidence = 0.92 if len(faces) >= 2 else 0.90
-        for bbox in faces:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="haar_face",
-                    target_class="person",
-                    confidence=confidence,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-    elif args.enable_hog_person:
-        people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
-        for bbox, confidence in people:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="hog_person",
-                    target_class="person",
-                    confidence=confidence,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
+    if target_mode == "tabletop_follow":
+        candidates = detect_tabletop_object_candidates(
+            frame,
+            fg_mask,
+            args=args,
+            previous_size_norm=state.last_size_norm,
+        )
     else:
-        motion_bbox, warmup_count = detect_motion_from_mask(
-            frame,
-            fg_mask,
-            min_area_ratio=args.min_motion_area_ratio,
-            warmup_count=state.bg_warmup_count,
-            warmup_frames=args.warmup_frames,
-        )
-        state.bg_warmup_count = warmup_count
-        if motion_bbox is not None:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=motion_bbox,
-                    detector="background_motion",
-                    target_class="motion_blob",
-                    confidence=0.55,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
+        person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
+        faces = detect_faces(gray, cascade)
+        if person_detections:
+            for bbox, weight in person_detections:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=bbox,
+                        detector="hog_person",
+                        target_class="person",
+                        target_mode="person_follow",
+                        confidence=weight,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
                 )
-            )
 
-    if not candidates and args.enable_hog_person:
-        motion_bbox, warmup_count = detect_motion_from_mask(
-            frame,
-            fg_mask,
-            min_area_ratio=args.min_motion_area_ratio,
-            warmup_count=state.bg_warmup_count,
-            warmup_frames=args.warmup_frames,
-        )
-        state.bg_warmup_count = warmup_count
-        if motion_bbox is not None:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=motion_bbox,
-                    detector="background_motion",
-                    target_class="motion_blob",
-                    confidence=0.55,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
+            # Face detections are used as confidence hints when they land inside a person box.
+            for face_bbox in faces:
+                fx, fy, fw, fh = face_bbox
+                face_cx = fx + (fw / 2.0)
+                face_cy = fy + (fh / 2.0)
+                for item in candidates:
+                    bx = item["bbox_norm"]["x"] * frame.shape[1]
+                    by = item["bbox_norm"]["y"] * frame.shape[0]
+                    bw = item["bbox_norm"]["w"] * frame.shape[1]
+                    bh = item["bbox_norm"]["h"] * frame.shape[0]
+                    if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
+                        item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
+                        item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
+                        break
+        elif faces:
+            confidence = 0.92 if len(faces) >= 2 else 0.90
+            for bbox in faces:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=bbox,
+                        detector="haar_face",
+                        target_class="person",
+                        target_mode="person_follow",
+                        confidence=confidence,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
                 )
+        elif args.enable_hog_person:
+            people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
+            for bbox, confidence in people:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=bbox,
+                        detector="hog_person",
+                        target_class="person",
+                        target_mode="person_follow",
+                        confidence=confidence,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
+        else:
+            motion_bbox, warmup_count = detect_motion_from_mask(
+                frame,
+                fg_mask,
+                min_area_ratio=args.min_motion_area_ratio,
+                warmup_count=state.bg_warmup_count,
+                warmup_frames=args.warmup_frames,
             )
+            state.bg_warmup_count = warmup_count
+            if motion_bbox is not None:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=motion_bbox,
+                        detector="background_motion",
+                        target_class="motion_blob",
+                        target_mode="person_follow",
+                        confidence=0.55,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
+
+        if not candidates and args.enable_hog_person:
+            motion_bbox, warmup_count = detect_motion_from_mask(
+                frame,
+                fg_mask,
+                min_area_ratio=args.min_motion_area_ratio,
+                warmup_count=state.bg_warmup_count,
+                warmup_frames=args.warmup_frames,
+            )
+            state.bg_warmup_count = warmup_count
+            if motion_bbox is not None:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=motion_bbox,
+                        detector="background_motion",
+                        target_class="motion_blob",
+                        target_mode="person_follow",
+                        confidence=0.55,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
 
     candidates = [item for item in candidates if within_engagement_zone(item, args)]
 
@@ -1187,6 +1380,7 @@ def process_frame(
     bbox = None
     detector = "none"
     target_class = "none"
+    active_target_mode = target_mode
     confidence = 0.0
     target_count = len(tracks)
     multi_target_payload = None
@@ -1196,6 +1390,7 @@ def process_frame(
         state.last_selected_target = dict(selected_target)
         detector = str(selected_target["detector"])
         target_class = str(selected_target["target_class"])
+        active_target_mode = str(selected_target.get("target_mode") or target_mode)
         confidence = float(selected_target["confidence"])
         bbox_norm = selected_target["bbox_norm"]
         if isinstance(bbox_norm, dict):
@@ -1214,6 +1409,7 @@ def process_frame(
         else:
             detector = str(selected_target["detector"])
             target_class = str(selected_target["target_class"])
+            active_target_mode = str(selected_target.get("target_mode") or target_mode)
             confidence = float(selected_target["confidence"])
             bbox_norm = selected_target.get("bbox_norm")
             if isinstance(bbox_norm, dict):
@@ -1252,6 +1448,7 @@ def process_frame(
         confidence=confidence,
         state=state,
         args=args,
+        target_mode=active_target_mode,
         target_count=target_count,
         tracks=tracks,
         selected_target=selected_target,

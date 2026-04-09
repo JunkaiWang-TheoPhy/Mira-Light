@@ -37,6 +37,7 @@
 18. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
 19. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
 20. [Vision Target Stability and Bridge Observability Upgrade](./29-vision-target-stability-and-bridge-observability-upgrade.md)
+21. [Tabletop Target Mode First Pass](./30-tabletop-target-mode-first-pass.md)
 
 ## Integration and Operations
 

@@ -21,6 +21,7 @@ from track_target_event_extractor import (
     build_event,
     choose_selected_target,
     detect_hand_arm_cue,
+    detect_tabletop_object_candidates,
     hold_selected_target,
 )
 
@@ -40,6 +41,17 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             selected_target_max_center_distance=0.16,
             selected_target_max_size_delta=0.045,
             selected_target_switch_margin=0.22,
+            default_target_mode="person_follow",
+            tabletop_roi_top=0.50,
+            tabletop_roi_bottom=0.96,
+            tabletop_roi_left=0.08,
+            tabletop_roi_right=0.92,
+            tabletop_min_area_ratio=0.004,
+            tabletop_max_area_ratio=0.22,
+            tabletop_min_edge_ratio=0.05,
+            tabletop_min_motion_ratio=0.01,
+            tabletop_min_aspect_ratio=0.45,
+            tabletop_max_aspect_ratio=2.2,
             hand_cue_min_area_ratio=0.0015,
             hand_cue_max_area_ratio=0.06,
             hand_cue_min_center_y=0.34,
@@ -223,6 +235,64 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertEqual(selected["track_id"], 3)
         self.assertEqual(selected["lock_state"], "locked")
         self.assertEqual(state.selected_track_id, 3)
+
+    def test_detect_tabletop_object_candidates_finds_book_like_target_in_table_roi(self) -> None:
+        frame = np.full((160, 240, 3), 242, dtype=np.uint8)
+        frame[96:138, 84:156] = (52, 78, 130)
+        cv2.rectangle(frame, (84, 96), (156, 138), (245, 245, 245), 2)
+        fg_mask = np.zeros((160, 240), dtype=np.uint8)
+        fg_mask[94:140, 82:158] = 255
+
+        candidates = detect_tabletop_object_candidates(
+            frame,
+            fg_mask,
+            args=self.make_args(),
+            previous_size_norm=None,
+        )
+
+        self.assertTrue(candidates)
+        top = sorted(candidates, key=lambda item: item["selection_score"], reverse=True)[0]
+        self.assertEqual(top["target_class"], "object")
+        self.assertEqual(top["target_mode"], "tabletop_follow")
+        self.assertEqual(top["detector"], "tabletop_object")
+        self.assertGreater(float(top["confidence"]), 0.6)
+
+    def test_build_event_carries_target_mode_for_tabletop_target(self) -> None:
+        selected_target = {
+            "track_id": 5,
+            "lock_state": "locked",
+            "reason": "tabletop object selected",
+            "target_class": "object",
+            "target_mode": "tabletop_follow",
+            "detector": "tabletop_object",
+            "confidence": 0.79,
+            "bbox_norm": {"x": 0.4, "y": 0.58, "w": 0.22, "h": 0.18},
+            "center_norm": {"x": 0.51, "y": 0.67},
+            "horizontal_zone": "center",
+            "vertical_zone": "lower",
+            "size_norm": 0.041,
+            "distance_band": "mid",
+            "approach_state": "stable",
+            "selection_score": 1.07,
+        }
+
+        event = build_event(
+            path=ROOT / "fixtures" / "vision_events" / "multi_person_left_right.json",
+            frame=DummyFrame(),
+            bbox=(80, 70, 44, 22),
+            detector="tabletop_object",
+            target_class="object",
+            confidence=0.79,
+            state=ExtractorState(last_target_present=True),
+            args=self.make_args(),
+            target_mode="tabletop_follow",
+            target_count=1,
+            selected_target=selected_target,
+        )
+
+        self.assertEqual(event["tracking"]["target_mode"], "tabletop_follow")
+        self.assertEqual(event["selected_target"]["target_mode"], "tabletop_follow")
+        self.assertEqual(event["scene_hint"]["name"], "track_target")
 
     def test_detect_hand_arm_cue_finds_moving_skin_blob_in_lower_region(self) -> None:
         frame = np.zeros((120, 200, 3), dtype=np.uint8)
