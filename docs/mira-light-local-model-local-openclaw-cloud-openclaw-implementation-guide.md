@@ -173,6 +173,71 @@ bash scripts/run_llama_cpp_server.sh
 - `simple-receiver/uploads/...`
 - `cam_receiver_new.py` 收到的 JPEG 帧
 
+#### A3.1. 把 `Mira / Mira-Light` 自我身份输入给本地 Qwen
+
+不要把整套 workspace 文档原样塞给模型。
+
+原因很直接：
+
+- 本地模型上下文越长，响应越慢
+- 前面的实测已经说明，长 prompt 会显著拖慢 `Qwen2.5-3B`
+- 所以更推荐“压缩后的身份输入包 + 按需检索的记忆片段”
+
+仓库里现在提供了一个构建脚本：
+
+```bash
+python3 scripts/build_mira_qwen_messages.py \
+  --user-message "请先介绍你是谁，再说你如何帮助 Mira Light。" \
+  --out /tmp/mira-qwen-payload.json
+```
+
+这个脚本会把输入分成四层：
+
+1. `system`
+   压缩后的 Mira 身份与行为边界
+2. `workspace context`
+   Mira Light 的稳定身体事实与 scene-first 约束
+3. `runtime state`
+   可选，当前 scene / 设备状态 / 桥接状态
+4. `retrieved memory`
+   可选，只把这轮真正相关的记忆片段塞进来
+
+如果你有当前运行时状态，也可以一起带上：
+
+```bash
+python3 scripts/build_mira_qwen_messages.py \
+  --user-message "当前应该进入哪个 scene？" \
+  --state-json runtime/vision-replay/vision.latest.json \
+  --memory-snippet Claw-Native\ /workspace/IDENTITY.md \
+  --out /tmp/mira-qwen-payload.json
+```
+
+更推荐的做法不是直接传完整 `IDENTITY.md`，而是只传这轮检索出的短片段。
+
+#### A3.2. 一条命令问本地 Mira 脑子
+
+如果你已经把 `llama.cpp + Qwen GGUF` 跑起来，仓库现在也提供了一个整合入口：
+
+```bash
+python3 scripts/ask_mira_local_qwen.py "请先介绍你是谁，再说你如何帮助 Mira Light。"
+```
+
+这个命令会做三件事：
+
+1. 构建压缩后的 `Mira / Mira-Light` 身份输入包
+2. 必要时自动拉起本地 `llama-server`
+3. 通过本地 OpenAI-compatible 接口请求本地 Qwen，并打印最终回答
+
+如果你想同时带入当前状态和额外记忆片段：
+
+```bash
+python3 scripts/ask_mira_local_qwen.py \
+  "当前应该进入哪个 scene？" \
+  --state-json runtime/vision-replay/vision.latest.json \
+  --memory-snippet /tmp/retrieved-memory.txt \
+  --show-timings
+```
+
 #### A4. 大模型不要直接发裸舵机命令
 
 建议先输出：
