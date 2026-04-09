@@ -20,11 +20,11 @@ echo "** ping"
 ping -c 1 -W 2000 "$TARGET_IP" || true
 echo
 
-echo "** http /status"
-curl -sS --max-time 5 "http://${TARGET_IP}/status" || true
+echo "** tcp port 9527"
+nc -vz -w 3 "$TARGET_IP" 9527 || true
 echo
 echo
 
-echo "** http /led"
-curl -sS --max-time 5 "http://${TARGET_IP}/led" || true
+echo "** tcp raw command"
+printf '#003P1500T1000!\n' | nc -w 3 "$TARGET_IP" 9527 || true
 echo

@@ -1,0 +1,68 @@
+{
+  "at": "2026-04-09T17:31:03.332896",
+  "audio": {
+    "ok": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-use"
+    ],
+    "description": "prepare-output",
+    "stdout": "output audio device set to \"HP BTS01 Bluetooth Speaker\"\nusing output: HP BTS01 Bluetooth Speaker",
+    "stderr": ""
+  },
+  "http": {
+    "lingzhu": {
+      "ok": true,
+      "service": "mira-lingzhu-live-adapter",
+      "port": 18789
+    },
+    "bridge": {
+      "ok": true,
+      "service": "mira-light-bridge",
+      "runtime": {
+        "baseUrl": "http://192.168.31.10:9527",
+        "dryRun": false,
+        "running": false,
+        "runningScene": null,
+        "lastError": "timed out",
+        "lastStartedAt": "2026-04-09T17:10:38+08:00",
+        "lastFinishedAt": "2026-04-09T17:10:44+08:00",
+        "lastFinishedScene": "wake_up",
+        "currentStepIndex": null,
+        "currentStepTotal": null,
+        "currentStepLabel": null,
+        "currentStepType": null,
+        "lastCommand": "pose:sleep",
+        "deviceOnline": false,
+        "lastStatusAt": null,
+        "sceneCount": 13,
+        "cueMode": "scene",
+        "sceneContext": {},
+        "lastSceneContext": {},
+        "lastTrigger": null,
+        "autoRecoverPose": "",
+        "trackingActive": false,
+        "trackingLastUpdateAt": null,
+        "trackingTarget": {}
+      },
+      "profile": {
+        "path": "/Users/huhulitong/.openclaw/mira-light-service/config/mira_light_profile.local.json",
+        "exists": true,
+        "loaded": true,
+        "ledPixelCount": 40,
+        "supportedLedModes": [
+          "off",
+          "solid",
+          "breathing",
+          "rainbow",
+          "rainbow_cycle",
+          "vector"
+        ]
+      }
+    }
+  },
+  "stt": {
+    "ok": true,
+    "modelRepo": "mlx-community/whisper-small-mlx-q4",
+    "seconds": 2.33
+  }
+}

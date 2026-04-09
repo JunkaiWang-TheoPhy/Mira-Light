@@ -19,4 +19,12 @@ if [[ "${MIRA_LIGHT_LINGZHU_AUTO_TUNNEL:-0}" == "1" ]]; then
   /bin/bash "${ROOT}/scripts/ensure_mira_lingzhu_tunnel.sh"
 fi
 
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    continuous|enter-vad|ptt|fixed)
+      set -- --mode "$1" "${@:2}"
+      ;;
+  esac
+fi
+
 exec "${PYTHON_BIN}" "${ROOT}/scripts/mira_realtime_voice_interaction.py" "$@"

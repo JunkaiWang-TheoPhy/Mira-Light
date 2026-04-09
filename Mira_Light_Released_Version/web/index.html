@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mira Light Director Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+    <div class="bubble-layer" aria-hidden="true">
+      <span class="bubble bubble-1"></span>
+      <span class="bubble bubble-2"></span>
+      <span class="bubble bubble-3"></span>
+      <span class="bubble bubble-4"></span>
+      <span class="bubble bubble-5"></span>
+      <span class="bubble bubble-6"></span>
+      <span class="bubble bubble-7"></span>
+      <span class="bubble bubble-8"></span>
+      <span class="bubble bubble-9"></span>
+      <span class="bubble bubble-10"></span>
+      <span class="bubble bubble-11"></span>
+      <span class="bubble bubble-12"></span>
+      <span class="bubble bubble-13"></span>
+      <span class="bubble bubble-14"></span>
+      <span class="bubble bubble-15"></span>
+      <span class="bubble bubble-16"></span>
+    </div>
+    <div class="scene-decor scene-decor-left" aria-hidden="true">
+      <div class="scene-charm">
+        <span id="scene-decor-left-icon" class="scene-charm-icon">☀</span>
+        <span id="scene-decor-left-label" class="scene-charm-label">日光</span>
+      </div>
+    </div>
+    <div class="scene-decor scene-decor-right" aria-hidden="true">
+      <div class="scene-charm">
+        <span id="scene-decor-right-icon" class="scene-charm-icon">✦</span>
+        <span id="scene-decor-right-label" class="scene-charm-label">苏醒</span>
+      </div>
+    </div>
+    <div id="scene-spark-layer" class="scene-spark-layer" aria-hidden="true"></div>
+    <main class="page">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Director Console</p>
+          <h1>Mira Light 展位导演台</h1>
+          <p class="sub">
+            面向展位操作员的 cue 选择器。它应该帮你看清当前状态、下一步要演哪一幕、以及出错时怎么收场。
+          </p>
+        </div>
+      </header>
+
+      <section class="status-strip">
+        <article class="status-pill">
+          <span class="pill-label">SYSTEM</span>
+          <strong id="runtime-running">idle</strong>
+        </article>
+        <article class="status-pill">
+          <span class="pill-label">SCENE</span>
+          <strong id="runtime-scene">-</strong>
+        </article>
+        <article class="status-pill">
+          <span class="pill-label">STEP</span>
+          <strong id="runtime-step">-</strong>
+        </article>
+        <article class="status-pill">
+          <span class="pill-label">DEVICE</span>
+          <strong id="runtime-device">unknown</strong>
+        </article>
+        <article class="status-pill">
+          <span class="pill-label">LAST ERROR</span>
+          <strong id="runtime-error">-</strong>
+        </article>
+        <article class="status-pill">
+          <span class="pill-label">TARGET</span>
+          <strong id="runtime-base-url">-</strong>
+        </article>
+      </section>
+
+      <section class="panel config-panel">
+        <div class="panel-header">
+          <h2>连接配置</h2>
+          <p>更像“总控连接面板”，而不是只放一个 URL 输入框。</p>
+        </div>
+        <div class="config-row">
+          <label for="base-url">Lamp Base URL</label>
+          <input id="base-url" type="text" placeholder="http://172.20.10.3" />
+          <label class="checkbox">
+            <input id="dry-run" type="checkbox" />
+            <span>Dry Run</span>
+          </label>
+          <label class="checkbox">
+            <input id="cue-mode-director" type="checkbox" checked />
+            <span>导演 Cue 模式</span>
+          </label>
+          <button id="save-config" type="button">保存配置</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <section class="panel scene-panel">
+          <div class="panel-header">
+            <div>
+              <h2>场景 Cue Cards</h2>
+              <p>这里不是普通按钮列表，而是当前展位导演台的 cue 选择区。</p>
+            </div>
+            <div class="hint-chip">
+              <span>P0 场景优先上台</span>
+            </div>
+          </div>
+          <div id="scene-grid" class="scene-grid"></div>
+        </section>
+
+        <aside class="director-column">
+          <section class="panel director-panel">
+            <div class="panel-header">
+              <div>
+                <h2>导演摘要</h2>
+                <p>优先回答“现在灯在干什么”“下一步该说什么”。</p>
+              </div>
+            </div>
+            <div class="summary-stack">
+              <div class="summary-card">
+                <span class="summary-label">当前场景</span>
+                <strong id="summary-scene-title">-</strong>
+                <small id="summary-scene-id">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">当前步骤</span>
+                <strong id="summary-current-step">-</strong>
+                <small id="summary-step-counter">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">主持人口播</span>
+                <p id="summary-host-cue" class="summary-text">-</p>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">依赖附件 / 条件</span>
+                <div id="summary-requirements" class="tag-list"></div>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">失败回退</span>
+                <p id="summary-fallback" class="summary-text">-</p>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">场景展示页</span>
+                <a id="summary-showcase-link" class="summary-link is-disabled" href="#" target="_blank" rel="noreferrer">当前场景暂无单独展示页</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel operator-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Operator Quick Actions</h2>
+                <p>这些是展位最常用的收场、回正和应急动作。场景卡片现在默认会走“主持人口播 + Mira 动作 + 音频”的导演 cue。</p>
+              </div>
+            </div>
+            <div class="operator-grid">
+              <button id="apply-neutral" type="button">Apply Neutral</button>
+              <button id="apply-sleep" type="button">Apply Sleep</button>
+              <button id="stop-scene" type="button" class="warning">Stop Scene</button>
+              <button id="stop-neutral" type="button" class="warning">Stop → Neutral</button>
+              <button id="stop-sleep" type="button" class="warning">Stop → Sleep</button>
+              <button id="reset-lamp" type="button" class="danger">Reset Lamp</button>
+              <button id="refresh-status" type="button">刷新 /status</button>
+              <button id="refresh-led" type="button">刷新 /led</button>
+              <button id="refresh-actions" type="button">刷新 /actions</button>
+            </div>
+          </section>
+
+          <section class="panel trigger-panel">
+            <div class="panel-header">
+              <div>
+                <h2>实时触发</h2>
+                <p>把手部、情绪、送别和导演兜底触发，先收敛成这组稳定入口。</p>
+              </div>
+            </div>
+            <div class="mini-controls">
+              <label for="farewell-direction">送别方向</label>
+              <select id="farewell-direction">
+                <option value="left">左侧离场</option>
+                <option value="center">正前方离场</option>
+                <option value="right" selected>右侧离场</option>
+              </select>
+            </div>
+            <div class="operator-grid">
+              <button id="trigger-touch" type="button">触发摸一摸</button>
+              <button id="trigger-sigh" type="button">触发叹气安慰</button>
+              <button id="trigger-voice-tired" type="button">触发我好累了</button>
+              <button id="trigger-multi-person" type="button">触发多人纠结</button>
+              <button id="trigger-farewell" type="button">触发动态送别</button>
+              <button id="trigger-startle" type="button">触发受惊一下</button>
+              <button id="trigger-praise" type="button">触发被夸开心</button>
+              <button id="trigger-criticism" type="button">触发有点委屈</button>
+            </div>
+          </section>
+
+          <section class="panel vision-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Vision / Tracking 摘要</h2>
+                <p>优先让操作员看清当前锁定的是谁、稳定不稳定、有没有在 live tracking。</p>
+              </div>
+            </div>
+            <div class="summary-stack">
+              <div class="summary-card">
+                <span class="summary-label">目标与锁定</span>
+                <strong id="vision-target-title">-</strong>
+                <small id="vision-target-subtitle">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">位置与距离</span>
+                <strong id="vision-zone">-</strong>
+                <small id="vision-distance">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Detector / 置信度</span>
+                <strong id="vision-detector">-</strong>
+                <small id="vision-confidence">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">最近触发</span>
+                <p id="vision-last-trigger" class="summary-text">-</p>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Operator Lock</span>
+                <strong id="vision-operator-lock">-</strong>
+                <small id="vision-operator-note">-</small>
+              </div>
+            </div>
+            <div class="vision-track-tools">
+              <button id="refresh-vision" type="button">刷新 Vision</button>
+            </div>
+            <div id="vision-track-list" class="vision-track-list"></div>
+            <div class="operator-grid">
+              <button id="vision-lock-current" type="button">锁定当前目标</button>
+              <button id="vision-unlock" type="button">解除目标锁定</button>
+            </div>
+          </section>
+
+          <section class="panel mock-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Mock 设备状态</h2>
+                <p>不接真灯时，优先在这里看四关节、头部电容，以及 40 灯 `pixelSignals` 的真实信号。</p>
+              </div>
+            </div>
+            <div class="mock-overview">
+              <div class="summary-card compact">
+                <span class="summary-label">当前设备模式</span>
+                <strong id="mock-mode">-</strong>
+                <small id="mock-mode-hint">-</small>
+              </div>
+              <div class="summary-card compact">
+                <span class="summary-label">LED 摘要</span>
+                <strong id="mock-led-mode">-</strong>
+                <small id="mock-led-meta">-</small>
+              </div>
+              <div class="summary-card compact">
+                <span class="summary-label">头部电容</span>
+                <strong id="mock-head-capacitive-value">-</strong>
+                <small id="mock-head-capacitive-hint">等待传感器状态</small>
+              </div>
+              <div class="summary-card compact">
+                <span class="summary-label">Signal 面板</span>
+                <strong id="mock-pixel-signal-summary">-</strong>
+                <small id="mock-pixel-signal-hint">等待 LED signal</small>
+              </div>
+            </div>
+            <div class="mock-sensor-card">
+              <div class="mock-sensor-header">
+                <div>
+                  <strong>headCapacitive Mock 开关</strong>
+                  <small>通过 bridge 直接注入 `0 / 1`，用于排练 touch / affection 相关链路。</small>
+                </div>
+                <div id="mock-sensor-badge" class="mock-sensor-badge" aria-live="polite">unknown</div>
+              </div>
+              <div id="mock-touch-visual" class="mock-touch-visual" aria-hidden="true">
+                <div class="mock-touch-lamp">
+                  <span class="mock-touch-wave mock-touch-wave-a"></span>
+                  <span class="mock-touch-wave mock-touch-wave-b"></span>
+                  <span class="mock-touch-head"></span>
+                  <span class="mock-touch-neck"></span>
+                  <span class="mock-touch-base"></span>
+                </div>
+                <div id="mock-touch-caption" class="mock-touch-caption">等待传感器状态</div>
+              </div>
+              <div class="mock-sensor-controls">
+                <label class="checkbox compact mock-sensor-toggle" for="mock-head-capacitive-toggle">
+                  <input id="mock-head-capacitive-toggle" type="checkbox" />
+                  <span>headCapacitive = 1</span>
+                </label>
+                <button id="mock-apply-head-capacitive" type="button">发送电容状态</button>
+                <button id="mock-refresh-sensors" type="button">刷新电容状态</button>
+              </div>
+            </div>
+            <div id="mock-servo-grid" class="mock-servo-grid"></div>
+            <div class="mock-led-card">
+              <div class="mock-led-header">
+                <div>
+                  <strong>40 灯 `pixelSignals` 可视化</strong>
+                  <small id="mock-led-note">等待 LED 状态</small>
+                </div>
+                <div id="mock-color-swatch" class="mock-color-swatch" aria-hidden="true"></div>
+              </div>
+              <div class="mock-led-stage">
+                <div id="mock-pixel-ring" class="mock-pixel-ring" aria-label="40 灯图形化总览"></div>
+                <div class="mock-pixel-ring-center">
+                  <strong id="mock-pixel-ring-active">-</strong>
+                  <small id="mock-pixel-ring-caption">等待 LED 状态</small>
+                </div>
+              </div>
+              <div id="mock-pixel-strip" class="mock-pixel-strip"></div>
+            </div>
+          </section>
+
+          <section class="panel readiness-panel">
+            <div class="panel-header">
+              <div>
+                <h2>附件 / 依赖就绪</h2>
+                <p>这里用于标记当前展位依赖条件是否准备完毕。</p>
+              </div>
+            </div>
+            <div id="readiness-grid" class="readiness-grid"></div>
+          </section>
+
+          <section class="panel calibration-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Profile / Pose 可视化</h2>
+                <p>默认展示摘要，而不是一整块原始 JSON。</p>
+              </div>
+            </div>
+            <div class="profile-tools">
+              <div class="profile-capture-card">
+                <strong>捕获当前姿态到 Profile</strong>
+                <div class="profile-form-grid">
+                  <input id="capture-pose-name" type="text" placeholder="pose 名称，如 neutral_live" />
+                  <input id="capture-pose-notes" type="text" placeholder="备注，如 真机校准 2026-04-09" />
+                </div>
+                <label class="checkbox compact">
+                  <input id="capture-pose-verified" type="checkbox" />
+                  <span>保存为 verified pose</span>
+                </label>
+                <div class="profile-actions">
+                  <button id="capture-pose" type="button">捕获当前 Pose</button>
+                  <button id="refresh-profile" type="button">刷新 Profile</button>
+                </div>
+              </div>
+              <div id="profile-flash" class="profile-flash" aria-live="polite">等待操作</div>
+            </div>
+            <div id="profile-meta" class="meta-grid"></div>
+            <div id="servo-summary" class="servo-summary"></div>
+            <div id="pose-summary" class="pose-summary"></div>
+            <details class="raw-profile">
+              <summary>展开原始 Profile JSON</summary>
+              <pre id="profile-output" class="code-block compact">尚未读取</pre>
+            </details>
+          </section>
+        </aside>
+      </section>
+
+      <section class="diagnostics">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Servo Status</h2>
+          </div>
+          <pre id="status-output" class="code-block">尚未读取</pre>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>LED Status</h2>
+          </div>
+          <pre id="led-output" class="code-block">尚未读取</pre>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>动作列表</h2>
+          </div>
+          <pre id="actions-output" class="code-block">尚未读取</pre>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-header">
+            <div>
+              <h2>导演日志</h2>
+              <p>先看摘要，再看细节。日志用于导演判断，不只是工程排查。</p>
+            </div>
+          </div>
+          <div id="log-output" class="log-block"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

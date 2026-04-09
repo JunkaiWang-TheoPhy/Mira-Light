@@ -18,6 +18,7 @@ WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 DEFAULT_LIVE_VISION_DIR = Path(__file__).resolve().parent.parent / "runtime" / "live-vision"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
+FIXED_LAMP_BASE_URL = "tcp://192.168.31.10:9527"
 DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
 DEFAULT_VISION_OPERATOR_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.operator.json"
 DEFAULT_VISION_EVENT_PATH = DEFAULT_LIVE_VISION_DIR / "vision.latest.json"
@@ -267,7 +268,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/config":
-            self._proxy_json("POST", "/v1/mira-light/config", self._read_json_body())
+            body = self._read_json_body()
+            payload = body if isinstance(body, dict) else {}
+            payload["baseUrl"] = FIXED_LAMP_BASE_URL
+            self._proxy_json("POST", "/v1/mira-light/config", payload)
             return
 
         if path == "/api/profile/capture-pose":
@@ -292,6 +296,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
 
 def resolve_bridge_token(env_name: str) -> str:
+    if env_name.strip().lower() in {"disabled", "none", "off", "false", "0"}:
+        return ""
+
     token = os.environ.get(env_name, "").strip()
     if token:
         return token
@@ -318,7 +325,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", default=8765, type=int, help="HTTP bind port")
     parser.add_argument(
         "--bridge-base-url",
-        default=os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL", DEFAULT_BRIDGE_URL),
+        "--base-url",
+        dest="bridge_base_url",
+        default=(
+            os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL")
+            or os.environ.get("MIRA_LIGHT_BRIDGE_URL")
+            or DEFAULT_BRIDGE_URL
+        ),
         help="Bridge base URL",
     )
     parser.add_argument("--bridge-token-env", default="MIRA_LIGHT_BRIDGE_TOKEN", help="Bridge token env name")

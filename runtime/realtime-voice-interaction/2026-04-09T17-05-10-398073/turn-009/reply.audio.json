@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "你这个提醒很贴心。就按你觉得舒服的发音来叫我就好，我都接得很自然。"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "你这个提醒很贴心。就按你觉得舒服的发音来叫我就好，我都接得很自然。",
+  "spokenText": "你这个提醒很贴心。就按你觉得舒服的发音来叫我就好，我都接得很自然。"
+}

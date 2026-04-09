@@ -85,6 +85,31 @@ Profile 区已经不只是原始 JSON，而是拆成：
 
 这让它兼顾导演使用和现场校准。
 
+### 6. Mock Sensor and Pixel Visualization Panel
+
+导演台现在已经不仅能看真灯状态，也开始认真照顾 mock 排练体验。
+
+当前已经落下来的 mock 面板包括：
+
+- `headCapacitive` 摘要卡
+- `headCapacitive = 1` mock 开关
+- `TOUCH / IDLE / UNKNOWN` 状态 badge
+- 更拟物的灯头触摸状态示意
+- `40` 灯 `pixelSignals` 图形化总览
+- `40` 灯单像素细节卡片
+
+这意味着导演台已经不只是“给工程师发命令”的地方，而开始具备：
+
+- 排练 `touch_affection`
+- review LED pattern
+- 在没有真灯时训练 operator
+
+的能力。
+
+更细的 feature 说明见：
+
+- [./27-mock-sensors-and-pixels-visualization-progress.md](./27-mock-sensors-and-pixels-visualization-progress.md)
+
 ## Additional Safety-Oriented Progress
 
 除了操作结构本身，这一轮还有一层很重要的进展：导演台背后的 bridge/runtime 不再裸露下发控制，而是已经开始带控制安全语义。

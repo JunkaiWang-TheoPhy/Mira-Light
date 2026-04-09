@@ -10,7 +10,7 @@ import sys
 from mira_light_runtime import DEFAULT_TIMEOUT_SECONDS, MiraLightRuntime
 
 
-DEFAULT_BASE_URL = os.environ.get("MIRA_LIGHT_BASE_URL", "http://172.20.10.3").rstrip("/")
+DEFAULT_BASE_URL = os.environ.get("MIRA_LIGHT_BASE_URL", "tcp://192.168.31.10:9527").rstrip("/")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,10 +19,10 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "Examples:\n"
             "  python3 scripts/booth_controller.py --list\n"
-            "  python3 scripts/booth_controller.py --base-url http://172.20.10.3 wake_up\n"
-            "  python3 scripts/booth_controller.py --base-url http://172.20.10.3 celebrate\n"
-            "  python3 scripts/booth_controller.py --base-url http://172.20.10.3 --reset\n"
-            "  python3 scripts/booth_controller.py --base-url http://172.20.10.3 --stop\n"
+            "  python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 wake_up\n"
+            "  python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 celebrate\n"
+            "  python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --reset\n"
+            "  python3 scripts/booth_controller.py --base-url tcp://192.168.31.10:9527 --stop\n"
             "\n"
             "Recommended OpenClaw integration:\n"
             "  Let OpenClaw execute the same terminal command instead of assuming\n"
@@ -31,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("scene", nargs="?", help="Scene name to run")
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Lamp base URL, e.g. http://172.20.10.3")
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Lamp base URL, e.g. tcp://192.168.31.10:9527")
     parser.add_argument("--list", action="store_true", help="List available scenes")
     parser.add_argument("--dry-run", action="store_true", help="Print calls without sending them")
     parser.add_argument("--status", action="store_true", help="Print current /status before exiting")

@@ -1,0 +1,47 @@
+{
+  "text": "Mira 发音像Mira 与OpenClaw、Mira。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 3.0,
+      "text": "Mira 发音像米拉 与OpenClaw、Mee-ra。",
+      "tokens": [
+        50364,
+        44,
+        4271,
+        220,
+        28926,
+        18034,
+        12760,
+        27742,
+        29717,
+        220,
+        940,
+        236,
+        45569,
+        34,
+        5901,
+        1231,
+        44,
+        1653,
+        12,
+        424,
+        1543,
+        50514
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.7227949059527853,
+      "compression_ratio": 0.8301886792452831,
+      "no_speech_prob": 0.8818910717964172
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "Mira 发音像米拉 与OpenClaw、Mee-ra。",
+  "normalizationApplied": true,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

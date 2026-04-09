@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 import unittest
 from pathlib import Path
@@ -11,11 +12,42 @@ SCRIPTS_DIR = ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from mira_realtime_voice_interaction import low_energy_skip_reason, repetitive_transcript_details
-from mira_voice_intents import is_brief_greeting
+from mira_realtime_voice_interaction import (
+    DEFAULT_API_SYSTEM_PROMPT,
+    apply_latency_preset,
+    build_low_latency_system_prompt,
+    low_energy_skip_reason,
+    repetitive_transcript_details,
+)
+from mira_voice_intents import is_brief_greeting, should_skip_short_reply
 
 
 class RealtimeVoiceRuntimeFiltersTest(unittest.TestCase):
+    def test_low_latency_preset_reduces_wait_but_keeps_small_profile(self) -> None:
+        args = argparse.Namespace(
+            latency_preset="low",
+            vad_start_ms=150,
+            vad_end_ms=650,
+            history_turns=4,
+            profile="small",
+            api_system_prompt=DEFAULT_API_SYSTEM_PROMPT,
+            startup_warmup=None,
+            keep_warm_seconds=0.0,
+        )
+        applied = apply_latency_preset(args)
+        self.assertEqual(args.vad_start_ms, 100)
+        self.assertEqual(args.vad_end_ms, 400)
+        self.assertEqual(args.history_turns, 2)
+        self.assertEqual(args.profile, "small")
+        self.assertTrue(args.startup_warmup)
+        self.assertEqual(args.keep_warm_seconds, 90.0)
+        self.assertEqual(applied["preset"], "low")
+
+    def test_low_latency_prompt_hint_prefers_short_replies(self) -> None:
+        prompt = build_low_latency_system_prompt(DEFAULT_API_SYSTEM_PROMPT)
+        self.assertIn("低延迟回复策略", prompt)
+        self.assertIn("完整、自然的短句", prompt)
+
     def test_brief_greeting_is_detected(self) -> None:
         self.assertTrue(is_brief_greeting("你好。"))
         self.assertTrue(is_brief_greeting("hello!"))
@@ -23,6 +55,18 @@ class RealtimeVoiceRuntimeFiltersTest(unittest.TestCase):
     def test_non_greeting_is_not_detected_as_brief_greeting(self) -> None:
         self.assertFalse(is_brief_greeting("你好，我今天有点累。"))
         self.assertFalse(is_brief_greeting("你是谁"))
+
+    def test_short_low_information_chat_is_skipped(self) -> None:
+        self.assertTrue(should_skip_short_reply("嗯。", intent="chat"))
+        self.assertTrue(should_skip_short_reply("啊", intent="chat"))
+
+    def test_short_meaningful_transcript_is_not_skipped(self) -> None:
+        self.assertFalse(should_skip_short_reply("你好。", intent="chat"))
+        self.assertFalse(should_skip_short_reply("拜拜", intent="farewell"))
+
+    def test_single_character_transcript_is_skipped_even_if_meaningful(self) -> None:
+        self.assertTrue(should_skip_short_reply("唉", intent="sigh"))
+        self.assertTrue(should_skip_short_reply("嗨", intent="chat"))
 
     def test_low_energy_continuous_utterance_is_skipped(self) -> None:
         reason = low_energy_skip_reason(

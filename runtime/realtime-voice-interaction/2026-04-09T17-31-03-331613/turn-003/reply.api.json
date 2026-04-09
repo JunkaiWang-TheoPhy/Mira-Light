@@ -1,0 +1,427 @@
+{
+  "ok": true,
+  "text": "不用谢，我就在这儿，想聊就来。",
+  "sessionKey": "agent:main:mira-lingzhu-prod_mira-light-live-20260409173103331952",
+  "promptPack": {
+    "explicitMemories": [],
+    "embodiedMemories": [
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'wake_up' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"wake_up\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T17:10:38+08:00\",\"lastFinishedAt\":\"2026-04-09T17:10:44+08:00\",\"lastFinishedScene\":\"wake_up\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:sleep\",\"deviceOnline\":false,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T17:10:44+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:wake_up\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:wake_up:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T09:10:45.599Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "wake_up",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T17:10:38+08:00",
+            "lastFinishedAt": "2026-04-09T17:10:44+08:00",
+            "lastFinishedScene": "wake_up",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:sleep",
+            "deviceOnline": false,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T17:10:44+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:wake_up",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:wake_up:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'wake_up' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"wake_up\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:wake_up\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:wake_up:failed\"]",
+        "expires_at": "2026-04-09T18:10:44+08:00",
+        "updated_at": "2026-04-09T09:10:45.599Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "wake_up",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:wake_up",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:wake_up:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'touch_affection' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"touch_affection\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T17:04:28+08:00\",\"lastFinishedAt\":\"2026-04-09T17:04:32+08:00\",\"lastFinishedScene\":\"touch_affection\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:neutral\",\"deviceOnline\":false,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T17:04:32+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:touch_affection\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:touch_affection:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T09:04:33.321Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "touch_affection",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T17:04:28+08:00",
+            "lastFinishedAt": "2026-04-09T17:04:32+08:00",
+            "lastFinishedScene": "touch_affection",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:neutral",
+            "deviceOnline": false,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T17:04:32+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:touch_affection",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:touch_affection:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'touch_affection' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"touch_affection\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:touch_affection\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:touch_affection:failed\"]",
+        "expires_at": "2026-04-09T18:04:32+08:00",
+        "updated_at": "2026-04-09T09:04:33.321Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "touch_affection",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:touch_affection",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:touch_affection:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'curious_observe' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"curious_observe\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T17:04:21+08:00\",\"lastFinishedAt\":\"2026-04-09T17:04:25+08:00\",\"lastFinishedScene\":\"curious_observe\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:neutral\",\"deviceOnline\":false,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T17:04:25+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:curious_observe\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:curious_observe:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T09:04:26.362Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "curious_observe",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T17:04:21+08:00",
+            "lastFinishedAt": "2026-04-09T17:04:25+08:00",
+            "lastFinishedScene": "curious_observe",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:neutral",
+            "deviceOnline": false,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T17:04:25+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:curious_observe",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:curious_observe:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'curious_observe' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"curious_observe\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:curious_observe\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:curious_observe:failed\"]",
+        "expires_at": "2026-04-09T18:04:25+08:00",
+        "updated_at": "2026-04-09T09:04:26.362Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "curious_observe",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:curious_observe",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:curious_observe:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'wake_up' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"wake_up\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T17:04:14+08:00\",\"lastFinishedAt\":\"2026-04-09T17:04:19+08:00\",\"lastFinishedScene\":\"wake_up\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:sleep\",\"deviceOnline\":false,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T17:04:19+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:wake_up\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:wake_up:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T09:04:19.728Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "wake_up",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T17:04:14+08:00",
+            "lastFinishedAt": "2026-04-09T17:04:19+08:00",
+            "lastFinishedScene": "wake_up",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:sleep",
+            "deviceOnline": false,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T17:04:19+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:wake_up",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:wake_up:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'wake_up' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"wake_up\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:wake_up\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:wake_up:failed\"]",
+        "expires_at": "2026-04-09T18:04:19+08:00",
+        "updated_at": "2026-04-09T09:04:19.728Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "wake_up",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:wake_up",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:wake_up:failed"
+        ]
+      }
+    ],
+    "sessionNotes": [
+      {
+        "user_id": "mira-light-bridge",
+        "session_id": "mira-light-runtime",
+        "note": {
+          "title": "Mira Light runtime · wake_up",
+          "currentState": "Mira Light scene 'wake_up' failed during execution.",
+          "nextStep": "Inspect bridge, device, and runtime state before retrying this scene.",
+          "taskSpec": "Run and monitor Mira Light scene 'wake_up' within the embodied booth runtime.",
+          "relevantFiles": [
+            "scripts/scenes.py",
+            "scripts/mira_light_runtime.py",
+            "docs/mira-light-scene-implementation-index.md"
+          ],
+          "errors": [
+            "timed out"
+          ],
+          "keyResults": [
+            "2026-04-09T17:10:45+08:00 scene=wake_up phase=failed",
+            "2026-04-09T17:10:38+08:00 scene=wake_up phase=started",
+            "2026-04-09T17:04:33+08:00 scene=touch_affection phase=failed",
+            "2026-04-09T17:04:28+08:00 scene=touch_affection phase=started",
+            "2026-04-09T17:04:26+08:00 scene=curious_observe phase=failed",
+            "2026-04-09T17:04:21+08:00 scene=curious_observe phase=started",
+            "2026-04-09T17:04:19+08:00 scene=wake_up phase=failed",
+            "2026-04-09T17:04:14+08:00 scene=wake_up phase=started",
+            "2026-04-09T17:00:22+08:00 scene=wake_up phase=failed",
+            "2026-04-09T17:00:17+08:00 scene=wake_up phase=started",
+            "2026-04-09T16:55:33+08:00 scene=curious_observe phase=failed",
+            "2026-04-09T16:55:28+08:00 scene=curious_observe phase=started"
+          ],
+          "worklog": [
+            "2026-04-09T17:10:45+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T17:10:38+08:00 scene 'wake_up' -> started",
+            "2026-04-09T17:04:33+08:00 scene 'touch_affection' -> failed",
+            "2026-04-09T17:04:28+08:00 scene 'touch_affection' -> started",
+            "2026-04-09T17:04:26+08:00 scene 'curious_observe' -> failed",
+            "2026-04-09T17:04:21+08:00 scene 'curious_observe' -> started",
+            "2026-04-09T17:04:19+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T17:04:14+08:00 scene 'wake_up' -> started",
+            "2026-04-09T17:00:22+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T17:00:17+08:00 scene 'wake_up' -> started",
+            "2026-04-09T16:55:33+08:00 scene 'curious_observe' -> failed",
+            "2026-04-09T16:55:28+08:00 scene 'curious_observe' -> started",
+            "2026-04-09T16:55:26+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T16:55:21+08:00 scene 'wake_up' -> started",
+            "2026-04-09T16:50:58+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T16:50:53+08:00 scene 'wake_up' -> started",
+            "2026-04-09T16:44:59+08:00 scene 'curious_observe' -> failed",
+            "2026-04-09T16:44:54+08:00 scene 'curious_observe' -> started",
+            "2026-04-09T16:44:52+08:00 scene 'wake_up' -> failed",
+            "2026-04-09T16:44:47+08:00 scene 'wake_up' -> started"
+          ]
+        },
+        "updated_at": "2026-04-09T09:10:50.033Z"
+      }
+    ],
+    "additionalUserIds": [
+      "mira-light-bridge"
+    ]
+  },
+  "upstream": {
+    "id": "chatcmpl_8d78539e-c179-4714-bf55-bab245a0780d",
+    "object": "chat.completion",
+    "created": 1775727099,
+    "model": "openclaw",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "不用谢，我就在这儿，想聊就来。"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    }
+  }
+}

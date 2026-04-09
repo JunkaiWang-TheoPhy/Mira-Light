@@ -81,6 +81,30 @@ in-character。
 - [../../config/mira_light_offline_rehearsal.json](../../config/mira_light_offline_rehearsal.json)
 - [../../tests/test_offline_rehearsal_smoke.py](../../tests/test_offline_rehearsal_smoke.py)
 
+### 8. Mock sensor and richer LED signal rehearsal
+
+离线演练链现在已经不只覆盖：
+
+- 四关节动作
+- scene 触发
+- bridge/runtime 闭环
+
+还进一步覆盖了：
+
+- `headCapacitive` 头部电容 `0 / 1`
+- `40` 灯 `pixelSignals`
+- 导演台里的图形化 sensor / pixel review
+
+这使得 mock rehearsal 已经开始适合排练：
+
+- `touch_affection`
+- LED pattern review
+- operator 培训
+
+更完整说明见：
+
+- [./27-mock-sensors-and-pixels-visualization-progress.md](./27-mock-sensors-and-pixels-visualization-progress.md)
+
 ## Supported Offline Modes
 
 当前 one-click rehearsal 已经支持：
@@ -126,6 +150,7 @@ in-character。
 - 视觉回放
 - 故障压测
 - Mira 人格一致性验证
+- `touch / pixelSignals / mock sensors` 的可视化 review
 
 ## Boundary
 

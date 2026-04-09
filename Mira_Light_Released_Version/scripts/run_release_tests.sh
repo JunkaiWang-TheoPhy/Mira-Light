@@ -33,6 +33,12 @@ exec "${PYTHON_BIN}" -m unittest \
   tests.test_release_preflight \
   tests.test_scene_bundle_profiles \
   tests.test_audio_cue_player \
+  tests.test_mira_light_audio \
   tests.test_vision_runtime_bridge \
+  tests.test_console_server \
+  tests.test_mock_device_e2e \
+  tests.test_mock_lamp_server \
+  tests.test_offline_rehearsal_smoke \
+  tests.test_scene_trace_and_replay \
   tests.test_release_safety \
   tests.test_openclaw_plugin_lifecycle

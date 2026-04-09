@@ -1,0 +1,40 @@
+{
+  "savedAt": "2026-04-09T17:01:34.693192",
+  "args": {
+    "mode": "continuous",
+    "device": "DJI MIC MINI",
+    "sampleRate": 48000,
+    "channels": 1,
+    "profile": "small",
+    "bridgeUrl": "http://127.0.0.1:9783",
+    "triggerDisabled": true,
+    "historyTurns": 2,
+    "replyBackend": "lingzhu",
+    "replyAgent": "mira-voice-spark",
+    "replyThinking": "off",
+    "latencyPreset": "low",
+    "startupWarmup": true,
+    "keepWarmSeconds": 90.0,
+    "vadStartMs": 100,
+    "vadEndMs": 400
+  },
+  "session": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "你好。",
+    "lastReplyText": "你好，刚在这里，你想先聊点什么？",
+    "startedAt": "2026-04-09T17:01:28.513206",
+    "lastActiveAt": "2026-04-09T17:01:31.332621",
+    "history": [
+      {
+        "role": "user",
+        "content": "你好。"
+      },
+      {
+        "role": "assistant",
+        "content": "你好，刚在这里，你想先聊点什么？"
+      }
+    ]
+  }
+}

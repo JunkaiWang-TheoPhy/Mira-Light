@@ -1,0 +1,36 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T17-05-10-398073/turn-007/input.wav",
+  "inputMeta": {
+    "inputDevice": {
+      "index": 3,
+      "name": "DJI MIC MINI",
+      "inputs": 2,
+      "defaultSamplerate": 48000.0
+    },
+    "captureMode": "continuous",
+    "vad": {
+      "startMs": 100,
+      "endMs": 400,
+      "minUtteranceMs": 400,
+      "maxUtteranceSeconds": 6.0,
+      "chunkMs": 50
+    }
+  },
+  "audioMetrics": {
+    "durationMs": 736.0,
+    "rms": 0.035979,
+    "peak": 0.174913
+  },
+  "latencyPolicy": {
+    "preset": "low",
+    "vadStartMs": 100,
+    "vadEndMs": 400,
+    "historyTurns": 2,
+    "profile": "small",
+    "startupWarmup": true,
+    "keepWarmSeconds": 90.0
+  },
+  "skipped": true,
+  "skipReason": "empty-transcript",
+  "transcriptionError": "Local transcription returned empty text"
+}

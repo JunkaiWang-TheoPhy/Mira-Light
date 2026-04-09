@@ -1,7 +1,7 @@
 {
   "listenHost": "127.0.0.1",
   "listenPort": 9783,
-  "lampBaseUrl": "http://172.20.10.3",
+  "lampBaseUrl": "tcp://192.168.31.10:9527",
   "requestTimeoutSeconds": 3,
   "dryRun": false,
   "bridgeTokenEnv": "MIRA_LIGHT_BRIDGE_TOKEN",

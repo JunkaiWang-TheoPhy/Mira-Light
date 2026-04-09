@@ -1,0 +1,67 @@
+{
+  "at": "2026-04-09T17:01:54.366904",
+  "audio": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-use"
+    ],
+    "description": "prepare-output"
+  },
+  "http": {
+    "lingzhu": {
+      "ok": true,
+      "service": "mira-lingzhu-live-adapter",
+      "port": 18789
+    },
+    "bridge": {
+      "ok": true,
+      "service": "mira-light-bridge",
+      "runtime": {
+        "baseUrl": "http://172.20.10.3",
+        "dryRun": false,
+        "running": false,
+        "runningScene": null,
+        "lastError": "timed out",
+        "lastStartedAt": "2026-04-09T17:00:17+08:00",
+        "lastFinishedAt": "2026-04-09T17:00:21+08:00",
+        "lastFinishedScene": "wake_up",
+        "currentStepIndex": null,
+        "currentStepTotal": null,
+        "currentStepLabel": null,
+        "currentStepType": null,
+        "lastCommand": "pose:sleep",
+        "deviceOnline": false,
+        "lastStatusAt": null,
+        "sceneCount": 13,
+        "cueMode": "scene",
+        "sceneContext": {},
+        "lastSceneContext": {},
+        "lastTrigger": null,
+        "autoRecoverPose": "",
+        "trackingActive": false,
+        "trackingLastUpdateAt": null,
+        "trackingTarget": {}
+      },
+      "profile": {
+        "path": "/Users/huhulitong/.openclaw/mira-light-service/config/mira_light_profile.local.json",
+        "exists": true,
+        "loaded": true,
+        "ledPixelCount": 40,
+        "supportedLedModes": [
+          "off",
+          "solid",
+          "breathing",
+          "rainbow",
+          "rainbow_cycle",
+          "vector"
+        ]
+      }
+    }
+  },
+  "stt": {
+    "ok": true,
+    "modelRepo": "mlx-community/whisper-small-mlx-q4",
+    "seconds": 1.654
+  }
+}

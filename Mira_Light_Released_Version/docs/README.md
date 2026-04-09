@@ -22,6 +22,11 @@
 14. [release-layout.md](./release-layout.md)
 15. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
 16. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
+17. [mira-light-mock-rehearsal-guide.md](./mira-light-mock-rehearsal-guide.md)
+18. [mira-light-live-follow-demo-runbook.md](./mira-light-live-follow-demo-runbook.md)
+19. [mira-light-offline-validation-stack.md](./mira-light-offline-validation-stack.md)
+20. [mira-light-pdf5-10-scene-code-concretization.md](./mira-light-pdf5-10-scene-code-concretization.md)
+21. [mira-light-10-scene-rehearsal-checklist.md](./mira-light-10-scene-rehearsal-checklist.md)
 
 ## 当前文档分组
 
@@ -41,6 +46,9 @@
 - [release-final-hardware-blockers-checklist.md](./release-final-hardware-blockers-checklist.md)
 - [release-environment-reference.md](./release-environment-reference.md)
 - [release-layout.md](./release-layout.md)
+- [mira-light-mock-rehearsal-guide.md](./mira-light-mock-rehearsal-guide.md)
+- [mira-light-live-follow-demo-runbook.md](./mira-light-live-follow-demo-runbook.md)
+- [mira-light-offline-validation-stack.md](./mira-light-offline-validation-stack.md)
 - [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
 - [mira-light-pdf2-implementation-audit.md](./mira-light-pdf2-implementation-audit.md)
 
@@ -49,6 +57,8 @@
 - [mira-light-booth-scene-table.md](./mira-light-booth-scene-table.md)
 - [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 - [mira-light-scene-to-code-spec.md](./mira-light-scene-to-code-spec.md)
+- [mira-light-pdf5-10-scene-code-concretization.md](./mira-light-pdf5-10-scene-code-concretization.md)
+- [mira-light-10-scene-rehearsal-checklist.md](./mira-light-10-scene-rehearsal-checklist.md)
 - [release-scene-bundles.md](./release-scene-bundles.md)
 
 ### OpenClaw / Bridge / Safety
@@ -62,6 +72,7 @@
 
 - [simple-lamp-receiver-overview.md](./simple-lamp-receiver-overview.md)
 - [mira-light-vision-stream-and-gemini-summary.md](./mira-light-vision-stream-and-gemini-summary.md)
+- [mira-light-live-follow-demo-runbook.md](./mira-light-live-follow-demo-runbook.md)
 - [mira-context-proactivity-architecture.md](./mira-context-proactivity-architecture.md)
 
 ### 原始 PDF
@@ -69,6 +80,7 @@
 - [source-pdfs/ESP32 智能台灯.pdf](./source-pdfs/ESP32%20智能台灯.pdf)
 - [source-pdfs/Mira Light 展位交互方案2.pdf](./source-pdfs/Mira%20Light%20展位交互方案2.pdf)
 - [source-pdfs/Mira Light 展位交互方案3.pdf](./source-pdfs/Mira%20Light%20展位交互方案3.pdf)
+- [source-pdfs/Mira Light 展位交互方案5.pdf](./source-pdfs/Mira%20Light%20展位交互方案5.pdf)
 
 ## 说明
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Director console static frontend that proxies all control requests to the bridge."""
+"""Simple static web console that proxies all control requests to the bridge."""
 
 from __future__ import annotations
 
@@ -15,9 +15,13 @@ from urllib.request import Request, urlopen
 
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
+DEFAULT_LIVE_VISION_DIR = Path(__file__).resolve().parent.parent / "runtime" / "live-vision"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
-DEFAULT_BRIDGE_TOKEN_ENV = "MIRA_LIGHT_BRIDGE_TOKEN"
+DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
+DEFAULT_VISION_OPERATOR_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.operator.json"
+DEFAULT_VISION_EVENT_PATH = DEFAULT_LIVE_VISION_DIR / "vision.latest.json"
+DEFAULT_VISION_BRIDGE_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.bridge.state.json"
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -29,12 +33,18 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         bridge_base_url: str,
         bridge_token: str,
         bridge_timeout_seconds: float,
+        vision_operator_state_path: Path,
+        vision_event_path: Path,
+        vision_bridge_state_path: Path,
     ):
         super().__init__(server_address, handler_class)
         self.web_root = web_root
         self.bridge_base_url = bridge_base_url.rstrip("/")
         self.bridge_token = bridge_token
         self.bridge_timeout_seconds = bridge_timeout_seconds
+        self.vision_operator_state_path = vision_operator_state_path
+        self.vision_event_path = vision_event_path
+        self.vision_bridge_state_path = vision_bridge_state_path
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -83,6 +93,51 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    def _load_vision_operator_state(self) -> dict:
+        path = self.server.vision_operator_state_path
+        if not path.is_file():
+            return {"lockSelectedTrackId": None}
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            if not raw:
+                return {"lockSelectedTrackId": None}
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {"lockSelectedTrackId": None}
+        except Exception:
+            return {"lockSelectedTrackId": None}
+
+    def _load_json_file(self, path: Path) -> dict | None:
+        if not path.is_file():
+            return None
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            if not raw:
+                return None
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else None
+        except Exception:
+            return None
+
+    def _save_vision_operator_state(self, payload: dict) -> dict:
+        path = self.server.vision_operator_state_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        current = self._load_vision_operator_state()
+        current.update(payload)
+        normalized = {
+            "lockSelectedTrackId": None,
+            "updatedAt": current.get("updatedAt"),
+            "note": current.get("note"),
+        }
+        raw_track_id = current.get("lockSelectedTrackId")
+        if raw_track_id not in {None, "", False}:
+            try:
+                value = int(raw_track_id)
+                normalized["lockSelectedTrackId"] = value if value > 0 else None
+            except (TypeError, ValueError):
+                normalized["lockSelectedTrackId"] = None
+        path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return normalized
 
     def _proxy_json(self, method: str, bridge_path: str, payload: dict | None = None) -> None:
         data = None if payload is None else json.dumps(payload).encode("utf-8")
@@ -140,6 +195,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/led")
             return
 
+        if path == "/api/sensors":
+            self._proxy_json("GET", "/v1/mira-light/sensors")
+            return
+
         if path == "/api/actions":
             self._proxy_json("GET", "/v1/mira-light/actions")
             return
@@ -152,6 +211,22 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/runtime")
             return
 
+        if path == "/api/vision-operator":
+            self._send_json(200, {"ok": True, "state": self._load_vision_operator_state()})
+            return
+
+        if path == "/api/vision":
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "operator": self._load_vision_operator_state(),
+                    "latestEvent": self._load_json_file(self.server.vision_event_path),
+                    "bridgeState": self._load_json_file(self.server.vision_bridge_state_path),
+                },
+            )
+            return
+
         self._serve_static(path)
 
     def do_POST(self) -> None:  # noqa: N802
@@ -160,7 +235,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/run/"):
             scene_name = unquote(path.removeprefix("/api/run/"))
-            self._proxy_json("POST", "/v1/mira-light/run-scene", {"scene": scene_name, "async": True})
+            body = self._read_json_body()
+            payload = {"scene": scene_name, "async": True}
+            if isinstance(body, dict):
+                payload.update(body)
+            self._proxy_json("POST", "/v1/mira-light/run-scene", payload)
+            return
+
+        if path == "/api/trigger":
+            self._proxy_json("POST", "/v1/mira-light/trigger", self._read_json_body())
             return
 
         if path == "/api/reset":
@@ -187,7 +270,46 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("POST", "/v1/mira-light/config", self._read_json_body())
             return
 
+        if path == "/api/profile/capture-pose":
+            self._proxy_json("POST", "/v1/mira-light/profile/capture-pose", self._read_json_body())
+            return
+
+        if path == "/api/profile/set-servo-meta":
+            self._proxy_json("POST", "/v1/mira-light/profile/set-servo-meta", self._read_json_body())
+            return
+
+        if path == "/api/vision-operator":
+            body = self._read_json_body()
+            state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
+            self._send_json(200, {"ok": True, "state": state})
+            return
+
+        if path == "/api/sensors":
+            self._proxy_json("POST", "/v1/mira-light/sensors", self._read_json_body())
+            return
+
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})
+
+
+def resolve_bridge_token(env_name: str) -> str:
+    token = os.environ.get(env_name, "").strip()
+    if token:
+        return token
+
+    if DEFAULT_OPENCLAW_CONFIG_PATH.is_file():
+        try:
+            raw = json.loads(DEFAULT_OPENCLAW_CONFIG_PATH.read_text(encoding="utf-8"))
+            plugins = raw.get("plugins", {})
+            entries = plugins.get("entries", {})
+            mira_entry = entries.get("mira-light-bridge", {})
+            config = mira_entry.get("config", {})
+            token = str(config.get("bridgeToken") or "").strip()
+            if token:
+                return token
+        except Exception:
+            pass
+
+    return ""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -199,22 +321,33 @@ def build_parser() -> argparse.ArgumentParser:
         "--base-url",
         dest="bridge_base_url",
         default=(
-            os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL", "")
-            or os.environ.get("MIRA_LIGHT_BRIDGE_URL", "")
+            os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL")
+            or os.environ.get("MIRA_LIGHT_BRIDGE_URL")
             or DEFAULT_BRIDGE_URL
         ),
         help="Bridge base URL",
     )
-    parser.add_argument(
-        "--bridge-token-env",
-        default=os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_TOKEN_ENV", DEFAULT_BRIDGE_TOKEN_ENV),
-        help="Bridge token env name",
-    )
+    parser.add_argument("--bridge-token-env", default="MIRA_LIGHT_BRIDGE_TOKEN", help="Bridge token env name")
     parser.add_argument(
         "--bridge-timeout",
-        default=float(os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_TIMEOUT_SECONDS", DEFAULT_BRIDGE_TIMEOUT_SECONDS)),
+        default=DEFAULT_BRIDGE_TIMEOUT_SECONDS,
         type=float,
         help="Bridge proxy timeout in seconds",
+    )
+    parser.add_argument(
+        "--vision-operator-state-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_OPERATOR_STATE_PATH", DEFAULT_VISION_OPERATOR_STATE_PATH)),
+        help="Local JSON file used for director-console target lock state.",
+    )
+    parser.add_argument(
+        "--vision-event-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_EVENT_PATH", DEFAULT_VISION_EVENT_PATH)),
+        help="Path to the latest vision event JSON.",
+    )
+    parser.add_argument(
+        "--vision-bridge-state-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_BRIDGE_STATE_PATH", DEFAULT_VISION_BRIDGE_STATE_PATH)),
+        help="Path to the vision bridge state JSON.",
     )
     return parser
 
@@ -223,11 +356,13 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    bridge_token = os.environ.get(args.bridge_token_env, "")
+    bridge_token = resolve_bridge_token(args.bridge_token_env)
     print(f"[console] starting at http://{args.host}:{args.port}")
     print(f"[console] proxying bridge {args.bridge_base_url}")
     print(f"[console] bridge token env {args.bridge_token_env} present={bool(bridge_token)}")
-    print(f"[console] bridge timeout {args.bridge_timeout:.1f}s")
+    print(f"[console] vision bridge state path {args.vision_bridge_state_path}")
+    print(f"[console] vision event path {args.vision_event_path}")
+    print(f"[console] vision operator state path {args.vision_operator_state_path}")
 
     server = ConsoleHTTPServer(
         (args.host, args.port),
@@ -236,6 +371,9 @@ def main() -> int:
         bridge_base_url=args.bridge_base_url,
         bridge_token=bridge_token,
         bridge_timeout_seconds=args.bridge_timeout,
+        vision_operator_state_path=Path(args.vision_operator_state_path).expanduser().resolve(),
+        vision_event_path=Path(args.vision_event_path).expanduser().resolve(),
+        vision_bridge_state_path=Path(args.vision_bridge_state_path).expanduser().resolve(),
     )
     try:
         server.serve_forever()

@@ -88,7 +88,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-url",
-        default=os.environ.get("MIRA_LIGHT_BASE_URL", "http://172.20.10.3"),
+        default=os.environ.get("MIRA_LIGHT_BASE_URL", "tcp://192.168.31.10:9527"),
         help="Lamp base URL passed to MiraLightRuntime.",
     )
     parser.add_argument(

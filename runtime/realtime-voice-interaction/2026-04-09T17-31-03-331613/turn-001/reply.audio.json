@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "我在呢，你好呀。你今天有什么想先说的？"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我在呢，你好呀。你今天有什么想先说的？",
+  "spokenText": "我在呢，你好呀。你今天有什么想先说的？"
+}

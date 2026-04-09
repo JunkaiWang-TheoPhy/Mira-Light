@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "text": "你好，我在这儿。你今天想聊点什么？",
+  "sessionKey": "agent:main:mira-lingzhu-prod_mira-light-live-20260409170154366825",
+  "promptPack": {
+    "explicitMemories": [],
+    "embodiedMemories": [],
+    "sessionNotes": [],
+    "additionalUserIds": []
+  },
+  "upstream": {
+    "id": "chatcmpl_8f53f0c4-f7f3-461d-bbb6-7473e7c98785",
+    "object": "chat.completion",
+    "created": 1775725319,
+    "model": "openclaw",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "你好，我在这儿。你今天想聊点什么？"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    }
+  }
+}

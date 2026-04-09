@@ -43,12 +43,16 @@ GET  /v1/mira-light/runtime
 GET  /v1/mira-light/scenes
 GET  /v1/mira-light/profile
 POST /v1/mira-light/run-scene
+POST /v1/mira-light/trigger
+POST /v1/mira-light/speak
 POST /v1/mira-light/stop
 POST /v1/mira-light/reset
 POST /v1/mira-light/control
 POST /v1/mira-light/led
 POST /v1/mira-light/action
 POST /v1/mira-light/config
+POST /v1/mira-light/profile/capture-pose
+POST /v1/mira-light/profile/set-servo-meta
 ```
 
 All `/v1/...` endpoints require:
@@ -105,20 +109,94 @@ curl http://127.0.0.1:9783/v1/mira-light/run-scene \
   -d '{"scene":"wake_up","async":true}'
 ```
 
+Speak a short public line:
+
+```bash
+curl http://127.0.0.1:9783/v1/mira-light/speak \
+  -H "Authorization: Bearer $MIRA_LIGHT_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"你好，我是 Mira。","voice":"openclaw","wait":true}'
+```
+
+The bridge keeps `speak` intentionally constrained:
+
+- prefer `run-scene` for expressive behavior
+- use `speak` for short public lines, host cues, and quick confirmations
+- the bridge rejects overlong text instead of turning Mira into a long-form TTS narrator
+
+## Offline Rehearsal
+
+The repository now includes a one-click offline rehearsal entry that uses the
+new mock device and validation tools instead of the real lamp.
+
+Primary entry points:
+
+- `bash scripts/run_mira_light_offline_rehearsal.sh --mode quick`
+- `bash scripts/run_mira_light_offline_rehearsal.sh --mode full`
+- `bash scripts/run_mira_light_offline_rehearsal.sh --mode fault`
+- `bash scripts/run_mira_light_offline_rehearsal.sh --mode interactive`
+
+This runner orchestrates:
+
+- `scripts/mock_mira_light_device.py`
+- `tests.test_mock_device_e2e`
+- `scripts/scene_trace_recorder.py`
+- `scripts/vision_replay_bench.py`
+- `scripts/mira_memory_persona_eval.py`
+
+Outputs land under:
+
+```text
+runtime/offline-rehearsal/<timestamp>-<mode>/
+```
+
+Look at `summary.json` or `index.html` in that folder for the final report.
+For the full step-by-step explanation, see:
+
+- `docs/mira-light-offline-validation-stack.md`
+
+Run a scene as a full director cue:
+
+```bash
+curl http://127.0.0.1:9783/v1/mira-light/run-scene \
+  -H "Authorization: Bearer $MIRA_LIGHT_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scene": "celebrate",
+    "async": true,
+    "cueMode": "director"
+  }'
+```
+
+Trigger a live interaction:
+
+```bash
+curl http://127.0.0.1:9783/v1/mira-light/trigger \
+  -H "Authorization: Bearer $MIRA_LIGHT_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "farewell_detected",
+    "payload": {
+      "direction": "right",
+      "cueMode": "director"
+    }
+  }'
+```
+
 ## Remote Tunnel
 
 Recommended tunnel style:
 
 ```bash
 MIRA_LIGHT_BRIDGE_REMOTE=ubuntu@43.160.217.153 \
-MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=9783 \
+MIRA_LIGHT_BRIDGE_REMOTE_BIND_PORT=19783 \
 zsh tools/mira_light_bridge/start_tunnel.sh
 ```
 
 This makes the bridge available to the remote host on:
 
 ```text
-http://127.0.0.1:9783
+http://127.0.0.1:19783
 ```
 
 ## OpenClaw Plugin

@@ -32,9 +32,10 @@
 13. [Vision Validation Checklist Index](./24-vision-validation-checklist-index.md)
 14. [On-Site Troubleshooting Decision Tree](./25-on-site-troubleshooting-decision-tree.md)
 15. [Realtime Voice Dialogue, Lingzhu Memory, and Voice Mode Progress](./26-realtime-voice-dialogue-lingzhu-and-voice-mode-progress.md)
-10. [Bus Servo Protocol and Four-Joint Mapping Memo](./21-bus-servo-protocol-and-four-joint-mapping-memo.md)
-11. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
-12. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
+16. [Mock Sensors and 40-Pixel Visualization Progress](./27-mock-sensors-and-pixels-visualization-progress.md)
+17. [Bus Servo Protocol and Four-Joint Mapping Memo](./21-bus-servo-protocol-and-four-joint-mapping-memo.md)
+18. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
+19. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
 
 ## Integration and Operations
 
@@ -45,6 +46,7 @@
 5. [Local Configuration and Model Preservation Progress](./14-local-configuration-and-model-preservation-progress.md)
 6. [Cloud Brain Latency and Local Hot-Hub Deployment Recommendation](./18-cloud-brain-latency-and-local-hot-hub-deployment-recommendation.md)
 7. [Full Local Deployment and Data-Locality Security Recommendation](./19-full-local-deployment-and-data-locality-security-recommendation.md)
+8. [Cloud OpenClaw Architecture, Backup, and Mira Light Overlay Progress](./28-cloud-openclaw-architecture-backup-and-mira-light-overlay-progress.md)
 
 ## Reading Guide
 
@@ -70,6 +72,7 @@
 - 结构化记忆、向量记忆、layered memory 与主动性
 - Mira 的身份、自我认知与 workspace 自说明
 - 场景系统、导演台、视觉回放与离线演练
+- mock 设备 richer sensor / pixel signal 与导演台图形化 mock 面板
 - 简接收器、图像接收器与设备入口
 - 本机 OpenClaw、Claw-Native、云端接入与 router-hub
 - 设备交付、实现审计、验收标准

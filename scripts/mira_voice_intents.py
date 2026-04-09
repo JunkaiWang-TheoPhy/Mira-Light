@@ -33,6 +33,22 @@ GREETING_PHRASES = {
     "hello",
     "hi",
 }
+LOW_INFORMATION_UTTERANCES = {
+    "嗯",
+    "嗯嗯",
+    "啊",
+    "啊啊",
+    "哦",
+    "哦哦",
+    "喔",
+    "喔喔",
+    "额",
+    "呃",
+    "诶",
+    "欸",
+    "哈",
+    "哼",
+}
 
 INTENT_ACTIONS: dict[str, dict[str, str]] = {
     "sigh": {"type": "trigger", "name": "sigh_detected"},
@@ -73,6 +89,22 @@ def is_brief_greeting(transcript: str) -> bool:
     if not cleaned:
         return False
     return cleaned in GREETING_PHRASES
+
+
+def should_skip_short_reply(transcript: str, *, intent: str) -> bool:
+    cleaned = _clean_text(transcript).rstrip("!！?？。,.，~～")
+    if not cleaned:
+        return True
+    visible = "".join(ch for ch in cleaned if not ch.isspace())
+    if len(visible) <= 1:
+        return True
+    if intent != "chat":
+        return False
+    if cleaned in GREETING_PHRASES:
+        return False
+    if cleaned in LOW_INFORMATION_UTTERANCES:
+        return True
+    return False
 
 
 def action_for_intent(intent: str) -> dict[str, str] | None:

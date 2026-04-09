@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "你好，刚在这里，你想先聊点什么？"
+  ],
+  "description": "speech:gentle_sister",
+  "requestedText": "你好，刚在这里，你想先聊点什么？",
+  "spokenText": "你好，刚在这里，你想先聊点什么？"
+}

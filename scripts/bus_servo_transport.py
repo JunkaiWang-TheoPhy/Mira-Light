@@ -9,6 +9,8 @@ from pathlib import Path
 import socket
 from typing import Any, Protocol
 
+from bus_servo_protocol import validate_command_frame
+
 
 DEFAULT_RDK_X5_HOST = "192.168.31.10"
 DEFAULT_RDK_X5_PORT = 9527
@@ -56,11 +58,12 @@ class DryRunBusServoTransport:
         self.sent_commands: list[str] = []
 
     def send(self, command: str) -> dict[str, Any]:
-        self.sent_commands.append(command)
+        validated = validate_command_frame(command)
+        self.sent_commands.append(validated)
         return {
             "ok": True,
             "dryRun": True,
-            "command": command,
+            "command": validated,
             "host": DEFAULT_RDK_X5_HOST,
             "port": DEFAULT_RDK_X5_PORT,
         }
@@ -84,7 +87,8 @@ class TcpBusServoTransport:
         return cls(host=cfg.tcp_host, port=cfg.tcp_port, timeout_seconds=cfg.timeout_seconds)
 
     def send(self, command: str) -> dict[str, Any]:
-        payload = command if command.endswith("\n") else command + "\n"
+        validated = validate_command_frame(command)
+        payload = validated + "\n"
         try:
             with socket.create_connection((self.host, self.port), timeout=self.timeout_seconds) as sock:
                 sock.sendall(payload.encode("utf-8"))
@@ -108,6 +112,6 @@ class TcpBusServoTransport:
             "ok": True,
             "host": self.host,
             "port": self.port,
-            "command": command,
+            "command": validated,
             "response": raw_response,
         }

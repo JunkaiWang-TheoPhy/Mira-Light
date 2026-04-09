@@ -57,7 +57,7 @@ def status_to_angles(status_payload: dict[str, Any]) -> dict[str, int]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calibrate Mira Light servo ranges and poses.")
-    parser.add_argument("--base-url", default="http://172.20.10.3", help="Lamp base URL")
+    parser.add_argument("--base-url", default="tcp://192.168.31.10:9527", help="Lamp base URL")
     parser.add_argument("--profile-path", default=str(DEFAULT_PROFILE_PATH), help="Local calibration profile path")
     parser.add_argument("--dry-run", action="store_true", help="Do not send real device requests")
 
@@ -209,4 +209,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

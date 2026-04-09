@@ -15,7 +15,7 @@ from typing import Any
 from mira_lingzhu_client import send_via_lingzhu_messages
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
-from mira_voice_intents import is_brief_greeting
+from mira_voice_intents import classify_intent, is_brief_greeting, should_skip_short_reply
 from openclaw_voice_to_claw import (
     DEFAULT_INITIAL_PROMPT,
     DEFAULT_LANGUAGE,
@@ -257,6 +257,13 @@ def run_turn(
 
     if should_exit(transcript):
         result["exitRequested"] = True
+        return result
+
+    intent = classify_intent(transcript)
+    result["intent"] = intent
+    if should_skip_short_reply(transcript, intent=intent):
+        result["skipped"] = True
+        result["skipReason"] = "short-low-information-transcript"
         return result
 
     agent_message = build_agent_message(transcript)

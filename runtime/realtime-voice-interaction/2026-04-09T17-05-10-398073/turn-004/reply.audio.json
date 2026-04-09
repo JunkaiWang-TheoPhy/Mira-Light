@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "我可以陪你聊天、记点事，也能帮你安排提醒、查天气、管理日程和联动手机里的一些工具。"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我可以陪你聊天、记点事，也能帮你安排提醒、查天气、管理日程和联动手机里的一些工具。",
+  "spokenText": "我可以陪你聊天、记点事，也能帮你安排提醒、查天气、管理日程和联动手机里的一些工具。"
+}

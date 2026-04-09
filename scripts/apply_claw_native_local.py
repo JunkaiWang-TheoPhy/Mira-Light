@@ -213,7 +213,7 @@ def resolve_lamp_base_url(bridge_env: dict[str, str], vision_env: dict[str, str]
         value = config.get("lampBaseUrl")
         if isinstance(value, str) and value.strip():
             return value.strip()
-    return "http://172.20.10.3"
+    return "tcp://192.168.31.10:9527"
 
 
 def collect_workspace_files() -> list[Path]:

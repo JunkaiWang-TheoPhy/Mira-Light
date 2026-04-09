@@ -170,11 +170,6 @@ DEFAULT_POSES: Dict[str, Dict[str, Any]] = {
 WARM_AMBER = {"r": 255, "g": 180, "b": 120}
 SOFT_WARM = {"r": 255, "g": 220, "b": 180}
 COMFORT_WARM = {"r": 255, "g": 170, "b": 110}
-DIRECTION_YAW = {
-    "left": 78,
-    "center": 92,
-    "right": 106,
-}
 
 
 SCENE_META: Dict[str, Dict[str, Any]] = {
@@ -210,6 +205,17 @@ SCENE_META: Dict[str, Dict[str, Any]] = {
         "requirementIds": ["touch_ready", "base_calibrated"],
         "fallbackHint": "直接前探并执行小幅 rub_motion",
         "operatorCue": "邀请评委伸手时再触发，避免空蹭。",
+    },
+    "hand_avoid": {
+        "emotionTags": ["躲避", "警觉"],
+        "readiness": "tuning",
+        "durationMs": 1680,
+        "accent": "alert",
+        "priority": "P0",
+        "requirements": ["手部接近检测", "后缩姿态已校准"],
+        "requirementIds": ["touch_ready", "base_calibrated"],
+        "fallbackHint": "快速后缩并朝反方向偏头，随后回 neutral",
+        "operatorCue": "适合在评委手突然逼近时展示‘它会保护自己的边界’。",
     },
     "cute_probe": {
         "emotionTags": ["卖萌", "胆小"],
@@ -321,6 +327,39 @@ SCENE_META: Dict[str, Dict[str, Any]] = {
         "fallbackHint": "手动触发低头 + 暖色呼吸",
         "operatorCue": "适合讲‘它不需要说话，也能表达理解’。",
     },
+    "startle_sound": {
+        "emotionTags": ["受惊", "试探"],
+        "readiness": "prototype",
+        "durationMs": 1680,
+        "accent": "alert",
+        "priority": "P1",
+        "requirements": ["导演触发或受控音频事件"],
+        "requirementIds": [],
+        "fallbackHint": "先快速后缩，再停一下观察",
+        "operatorCue": "先由主持人制造一个轻微突发 cue，再触发这一幕会更自然。",
+    },
+    "praise_demo": {
+        "emotionTags": ["开心", "被喜欢"],
+        "readiness": "prototype",
+        "durationMs": 1880,
+        "accent": "warm",
+        "priority": "P1",
+        "requirements": ["夸奖语境或导演触发"],
+        "requirementIds": [],
+        "fallbackHint": "轻快点头 + 暖亮灯光即可",
+        "operatorCue": "适合接在评委夸它可爱之后，展示它有情绪偏好。",
+    },
+    "criticism_demo": {
+        "emotionTags": ["委屈", "收缩"],
+        "readiness": "prototype",
+        "durationMs": 1940,
+        "accent": "dream",
+        "priority": "P1",
+        "requirements": ["负面评价语境或导演触发"],
+        "requirementIds": [],
+        "fallbackHint": "轻轻摇头 + 灯光略暗",
+        "operatorCue": "动作一定要克制，重点是委屈，不是夸张受伤。",
+    },
 }
 
 
@@ -362,6 +401,8 @@ PROFILE_INFO: Dict[str, Any] = {
     "path": str(DEFAULT_PROFILE_PATH),
     "exists": DEFAULT_PROFILE_PATH.is_file(),
     "loaded": False,
+    "ledPixelCount": int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40")),
+    "supportedLedModes": ["off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"],
 }
 
 _profile_overrides = _load_profile_overrides(DEFAULT_PROFILE_PATH)
@@ -414,8 +455,24 @@ def reset() -> Step:
     return {"type": "reset"}
 
 
-def audio(name: str) -> Step:
-    return {"type": "audio", "name": name}
+def audio(
+    name: str | None = None,
+    *,
+    text: str | None = None,
+    voice: str = "tts",
+    wait: bool | None = None,
+    allow_missing: bool = True,
+    fallback_asset: str | None = None,
+) -> Step:
+    step: Step = {"type": "audio", "voice": voice, "allowMissing": allow_missing}
+    if name is not None:
+        step["name"] = name
+    if text is not None:
+        step["text"] = text
+    step["wait"] = bool(text) if wait is None else bool(wait)
+    if fallback_asset:
+        step["fallbackAsset"] = fallback_asset
+    return step
 
 
 def micro_shiver(axis: str = "servo4", amplitude: int = 4, repeats: int = 2, beat_ms: int = 140) -> List[Step]:
@@ -488,78 +545,6 @@ def fade_to_sleep(color: Dict[str, int]) -> List[Step]:
         delay(380),
         led("off", brightness=0),
     ]
-
-
-def _normalize_direction(raw: Any, *, default: str = "right") -> str:
-    value = str(raw or "").strip().lower()
-    if value in {"left", "l", "west"}:
-        return "left"
-    if value in {"center", "centre", "mid", "middle", "c"}:
-        return "center"
-    if value in {"right", "r", "east"}:
-        return "right"
-    return default
-
-
-def _direction_from_context(scene_context: Dict[str, Any], *, default: str = "right") -> str:
-    for key in ("departureDirection", "direction", "horizontalZone", "primaryDirection", "side"):
-        if key in scene_context:
-            return _normalize_direction(scene_context.get(key), default=default)
-    return default
-
-
-def _build_dynamic_farewell_scene(scene_context: Dict[str, Any]) -> Dict[str, Any]:
-    direction = _direction_from_context(scene_context, default="right")
-    look_yaw = DIRECTION_YAW[direction]
-    bow_yaw = {"left": 82, "center": 92, "right": 102}[direction]
-    label = {"left": "左侧", "center": "正前方", "right": "右侧"}[direction]
-
-    scene = deepcopy(SCENES["farewell"])
-    base_notes = [
-        note
-        for note in scene.get("notes", [])
-        if "离场方向识别接入后" not in str(note)
-    ]
-    scene["notes"] = [
-        f"当前按评委离场的{label}做动态目送。",
-        *base_notes,
-    ]
-    scene["steps"] = [
-        pose("neutral"),
-        led("solid", brightness=108, color={"r": 255, "g": 214, "b": 176}),
-        comment(f"先目送评委离开的{label}。"),
-        absolute(servo1=look_yaw, servo2=96, servo3=100, servo4=92),
-        delay(420),
-        comment("再做两次慢慢点头，像挥手说再见。"),
-        nudge(servo4=5),
-        delay(180),
-        nudge(servo4=-10),
-        delay(180),
-        nudge(servo4=5),
-        delay(220),
-        nudge(servo4=5),
-        delay(180),
-        nudge(servo4=-10),
-        delay(180),
-        nudge(servo4=5),
-        delay(220),
-        comment("最后微微低头，像有点舍不得。"),
-        absolute(servo1=bow_yaw, servo2=92, servo3=96, servo4=100),
-        delay(180),
-        pose("neutral"),
-        led("solid", brightness=90, color={"r": 255, "g": 210, "b": 170}),
-    ]
-    return scene
-
-
-def build_scene(scene_name: str, scene_context: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    if scene_name not in SCENES:
-        raise KeyError(f"Unknown scene: {scene_name}")
-
-    resolved_context = deepcopy(scene_context or {})
-    if scene_name == "farewell":
-        return _build_dynamic_farewell_scene(resolved_context)
-    return deepcopy(SCENES[scene_name])
 
 
 SCENES: Dict[str, Dict[str, Any]] = {
@@ -716,6 +701,34 @@ SCENES: Dict[str, Dict[str, Any]] = {
             led("solid", brightness=138, color={"r": 255, "g": 210, "b": 170}),
             delay(220),
             pose("neutral"),
+        ],
+    },
+    "hand_avoid": {
+        "title": "手靠近时轻轻躲开",
+        "host_line": "如果有手突然逼近，它不会硬顶上去，而会像小动物一样先缩一下，再偷偷看一眼你是不是安全。",
+        "notes": [
+            "当前版本建议由显式 hand / arm cue 触发，避免把普通路人移动误判成需要躲避。",
+            "理想体验是‘有边界感，但不过度惊吓’，所以动作幅度要克制。"
+        ],
+        "tuning_notes": [
+            "第一拍是后缩，第二拍是偏头回看，第三拍才是慢慢恢复。",
+            "不要做成剧烈闪躲，更像礼貌地把自己的空间让出来一点。"
+        ],
+        "steps": [
+            pose("neutral"),
+            led("solid", brightness=118, color={"r": 255, "g": 226, "b": 188}),
+            comment("先快速后缩一点，像手突然靠近时本能缩开。"),
+            absolute(servo1=82, servo2=88, servo3=84, servo4=84),
+            delay(140),
+            comment("往反方向偏头，确认手有没有继续靠近。"),
+            absolute(servo1=78, servo2=90, servo3=88, servo4=90),
+            led("solid", brightness=132, color={"r": 255, "g": 236, "b": 212}),
+            delay(220),
+            comment("停半拍，再慢慢恢复。"),
+            led("breathing", brightness=104, color=SOFT_WARM),
+            delay(360),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
         ],
     },
     "cute_probe": {
@@ -900,8 +913,8 @@ SCENES: Dict[str, Dict[str, Any]] = {
         "title": "跳舞模式",
         "host_line": "当它收到一个超级开心的消息时，它会像真的高兴一样跳起来。",
         "notes": [
-            "发布版默认音频 cue 位于 assets/audio/dance.wav；运行时会兼容历史 cue 名 dance.mp3。",
-            "发布版默认 offer 演示页位于 assets/offer_demo/index.html，可直接用浏览器打开。",
+            "运行时现在会真正播放音频；若仓库里没有 dance.mp3，会先尝试系统自带提示音兜底。",
+            "TODO: offer 邮件页面作为独立素材准备，不写死在脚本里。",
             "当前动作按 PDF2 为主、参考 PDF3 的手绘页，拆成上摇、下摇、灯光变色、减速和收尾摇头。"
         ],
         "tuning_notes": [
@@ -942,8 +955,9 @@ SCENES: Dict[str, Dict[str, Any]] = {
             absolute(servo1=90, servo2=96, servo3=98, servo4=98),
             delay(180),
             comment("进入彩色庆祝灯效。"),
+            audio(text="太好了，我们来庆祝一下！", wait=True, voice="tts"),
             led("rainbow_cycle", brightness=210),
-            audio("dance.mp3"),
+            audio("dance.mp3", wait=False, fallback_asset="/System/Library/Sounds/Hero.aiff"),
             action("dance", loops=1),
             delay(380),
             comment("音乐停后慢慢减速，回到正常姿态。"),
@@ -984,6 +998,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
             comment("先目送评委离开的方向。"),
             absolute(servo1=106, servo2=96, servo3=100, servo4=92),
             delay(420),
+            audio(text="谢谢你来看我，下次见。", wait=True, voice="tts"),
             comment("再做两次慢慢点头，像挥手说再见。"),
             nudge(servo4=5),
             delay(180),
@@ -1046,6 +1061,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
         ],
         "steps": [
             pose("tilt_left"),
+            audio(text="我在呢，慢一点也没关系。", wait=True, voice="tts"),
             led("breathing", brightness=88, color=COMFORT_WARM),
             delay(1700),
             pose("neutral"),
@@ -1081,10 +1097,103 @@ SCENES: Dict[str, Dict[str, Any]] = {
         ],
         "steps": [
             pose("farewell_bow"),
+            audio(text="辛苦了，要不要先休息一下？", wait=True, voice="tts"),
             led("breathing", brightness=70, color=COMFORT_WARM),
             delay(2000),
             pose("neutral"),
             led("solid", brightness=110, color=SOFT_WARM),
+        ],
+    },
+    "startle_sound": {
+        "title": "突然被吓到",
+        "host_line": "如果旁边突然传来一声声响，它会先吓一跳缩一下，再停下来确认发生了什么。",
+        "notes": [
+            "当前版本建议由导演台或 Claw 显式触发，不建议直接接开放式环境噪声。",
+        ],
+        "tuning_notes": [
+            "第一拍要快，第二拍要收，第三拍要停住观察。",
+            "不要把它做成剧烈抽搐，更像小动物受惊后迅速后缩。"
+        ],
+        "steps": [
+            pose("neutral"),
+            led("solid", brightness=122, color={"r": 255, "g": 228, "b": 188}),
+            comment("突然受惊，头部快速抬起并后缩。"),
+            absolute(servo1=92, servo2=88, servo3=86, servo4=80),
+            led("solid", brightness=188, color={"r": 255, "g": 244, "b": 228}),
+            delay(120),
+            comment("身体轻轻往一侧偏，像在确认声音来自哪里。"),
+            absolute(servo1=100, servo2=90, servo3=90, servo4=86),
+            delay(220),
+            comment("停一下，再慢慢恢复安全感。"),
+            led("breathing", brightness=104, color={"r": 255, "g": 210, "b": 170}),
+            delay(480),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
+        ],
+    },
+    "praise_demo": {
+        "title": "被夸奖时开心一下",
+        "host_line": "如果你夸它可爱，它不会说谢谢，但会用动作和灯光轻轻开心一下。",
+        "notes": [
+            "适合和语音理解链路配合，也适合导演台直接触发。",
+        ],
+        "tuning_notes": [
+            "开心要轻，不要直接上 celebrate 的高峰情绪。",
+        ],
+        "steps": [
+            pose("neutral"),
+            led("solid", brightness=132, color={"r": 255, "g": 224, "b": 180}),
+            comment("轻轻抬头，像忽然被鼓励到。"),
+            absolute(servo1=90, servo2=100, servo3=104, servo4=84),
+            delay(180),
+            comment("做两次轻快点头。"),
+            nudge(servo4=5),
+            delay(120),
+            nudge(servo4=-8),
+            delay(120),
+            nudge(servo4=5),
+            delay(140),
+            nudge(servo4=5),
+            delay(120),
+            nudge(servo4=-8),
+            delay(120),
+            nudge(servo4=5),
+            delay(140),
+            led("breathing", brightness=124, color={"r": 255, "g": 210, "b": 150}),
+            audio(text="谢谢你，我有点开心。", wait=True, voice="tts"),
+            pose("neutral"),
+            led("solid", brightness=116, color=SOFT_WARM),
+        ],
+    },
+    "criticism_demo": {
+        "title": "被批评时有点委屈",
+        "host_line": "如果你说它表现得不好，它会轻轻摇头、缩一下，像是真的有点委屈。",
+        "notes": [
+            "这一幕的重点是人格感，不是过度戏剧化。",
+        ],
+        "tuning_notes": [
+            "动作要收，不要做成明显的否定或攻击感。"
+        ],
+        "steps": [
+            pose("neutral"),
+            led("solid", brightness=96, color={"r": 230, "g": 198, "b": 174}),
+            comment("先微微低头，像被说到心里去了。"),
+            absolute(servo1=90, servo2=92, servo3=94, servo4=98),
+            delay(180),
+            comment("轻轻摇一下头。"),
+            nudge(servo1=4),
+            delay(120),
+            nudge(servo1=-8),
+            delay(120),
+            nudge(servo1=4),
+            delay(160),
+            comment("再稍微收回去一点。"),
+            absolute(servo1=90, servo2=90, servo3=90, servo4=100),
+            led("breathing", brightness=84, color={"r": 214, "g": 180, "b": 168}),
+            audio(text="我会再努力一点。", wait=True, voice="tts"),
+            delay(320),
+            pose("neutral"),
+            led("solid", brightness=104, color=SOFT_WARM),
         ],
     },
 }

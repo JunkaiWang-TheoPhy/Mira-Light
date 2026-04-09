@@ -144,6 +144,9 @@ def run_replay_bench(args: argparse.Namespace) -> dict[str, Any]:
 
     runtime = MiraLightRuntime(base_url=args.base_url, dry_run=args.dry_run)
     runtime.show_experimental = args.allow_experimental or runtime.show_experimental
+    if args.allow_experimental:
+        runtime._scene_bundle_name = None
+        runtime._scene_bundle_source = "allow_experimental_flag"
     bridge_state = BridgeState()
 
     event_counter: Counter[str] = Counter()

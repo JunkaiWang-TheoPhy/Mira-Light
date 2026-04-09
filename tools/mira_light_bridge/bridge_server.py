@@ -39,6 +39,7 @@ from embodied_memory_client import EmbodiedMemoryClient  # noqa: E402
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().with_name("bridge_config.json")
+FIXED_LAMP_BASE_URL = "tcp://192.168.31.10:9527"
 
 
 def load_bridge_config(path: Path) -> dict[str, Any]:
@@ -491,7 +492,7 @@ def main() -> int:
     config = load_bridge_config(Path(args.config))
     host = args.host or config.get("listenHost", "127.0.0.1")
     port = int(args.port or config.get("listenPort", 9783))
-    base_url = args.base_url or config.get("lampBaseUrl", "http://172.20.10.3")
+    base_url = args.base_url or config.get("lampBaseUrl", FIXED_LAMP_BASE_URL)
     timeout_seconds = float(config.get("requestTimeoutSeconds", DEFAULT_TIMEOUT_SECONDS))
     dry_run = bool(args.dry_run or config.get("dryRun", False))
     ingest_root = Path(os.path.expanduser(config.get("deviceIngestRoot", "~/Documents/Mira-Light-Runtime"))).resolve()

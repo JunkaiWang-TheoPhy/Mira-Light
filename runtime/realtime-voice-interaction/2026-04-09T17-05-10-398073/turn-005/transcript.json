@@ -1,0 +1,34 @@
+{
+  "text": "我自己的心跳和...",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 2.0,
+      "text": "我自己的心跳和...",
+      "tokens": [
+        50364,
+        1654,
+        17645,
+        1546,
+        7945,
+        29366,
+        12565,
+        485,
+        50464
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.881464672088623,
+      "compression_ratio": 0.6857142857142857,
+      "no_speech_prob": 0.7603602409362793
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "我自己的心跳和...",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

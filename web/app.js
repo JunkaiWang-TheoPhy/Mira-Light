@@ -3,6 +3,7 @@ const baseUrlInput = document.getElementById("base-url");
 const dryRunInput = document.getElementById("dry-run");
 const cueModeDirectorInput = document.getElementById("cue-mode-director");
 const farewellDirectionInput = document.getElementById("farewell-direction");
+const FIXED_LAMP_BASE_URL = "tcp://192.168.31.10:9527";
 
 const runtimeRunning = document.getElementById("runtime-running");
 const runtimeScene = document.getElementById("runtime-scene");
@@ -158,44 +159,44 @@ const SCENE_DECOR = {
 
 const SCENE_BURSTS = {
   wake_up: {
-    left: ["🌞", "🌤️", "🌼", "🌱"],
-    right: ["☕", "✨", "🕊️", "🍯"],
+    left: ["🌞", "🌤️", "🌼", "🌱", "🐣", "🥐"],
+    right: ["☕", "✨", "🕊️", "🍯", "🍓", "🫖"],
   },
   curious_observe: {
-    left: ["👀", "🔎", "🫧", "🪶"],
-    right: ["🧠", "🪞", "🐾", "✨"],
+    left: ["👀", "🔎", "🫧", "🪶", "🔭", "🦋"],
+    right: ["🧠", "🪞", "🐾", "✨", "🧩", "📎"],
   },
   touch_affection: {
-    left: ["🫶", "💗", "🌷", "🎀"],
-    right: ["🧸", "💌", "🌸", "🫧"],
+    left: ["🫶", "💗", "🌷", "🎀", "🪄", "🍬"],
+    right: ["🧸", "💌", "🌸", "🫧", "💞", "🧁"],
   },
   cute_probe: {
-    left: ["🐥", "🎀", "🧁", "🍮"],
-    right: ["😊", "🐾", "💫", "🍓"],
+    left: ["🐥", "🎀", "🧁", "🍮", "🐰", "🍡"],
+    right: ["😊", "🐾", "💫", "🍓", "🪀", "🫧"],
   },
   daydream: {
-    left: ["☁️", "💭", "🫧", "🪁"],
-    right: ["🌙", "🕊️", "✨", "🫖"],
+    left: ["☁️", "💭", "🫧", "🪁", "🪽", "🎈"],
+    right: ["🌙", "🕊️", "✨", "🫖", "🛋️", "🌌"],
   },
   standup_reminder: {
-    left: ["⏰", "🌞", "👟", "🌿"],
-    right: ["🧃", "🎵", "🪴", "🪑"],
+    left: ["⏰", "🌞", "👟", "🌿", "🧘", "🚶"],
+    right: ["🧃", "🎵", "🪴", "🪑", "💧", "🍎"],
   },
   track_target: {
-    left: ["🎯", "👁️", "📘", "🧭"],
-    right: ["🛰️", "📡", "🔵", "🪐"],
+    left: ["🎯", "👁️", "📘", "🧭", "📍", "🔭"],
+    right: ["🛰️", "📡", "🔵", "🪐", "🧿", "📎"],
   },
   celebrate: {
-    left: ["🎆", "🎉", "🏆", "🍾"],
-    right: ["🎇", "🎊", "💎", "🎈"],
+    left: ["🎆", "🎉", "🏆", "🍾", "🥂", "🎵"],
+    right: ["🎇", "🎊", "💎", "🎈", "👑", "🍰"],
   },
   farewell: {
-    left: ["👋", "🌆", "🍃", "🚪"],
-    right: ["🧳", "💌", "🕊️", "🌙"],
+    left: ["👋", "🌆", "🍃", "🚪", "🚶", "🍂"],
+    right: ["🧳", "💌", "🕊️", "🌙", "🛤️", "🎐"],
   },
   sleep: {
-    left: ["🌙", "🛏️", "⭐", "🕯️"],
-    right: ["💤", "☁️", "🧸", "🌌"],
+    left: ["🌙", "🛏️", "⭐", "🕯️", "📖", "🪟"],
+    right: ["💤", "☁️", "🧸", "🌌", "🫧", "🛌"],
   },
 };
 
@@ -284,9 +285,10 @@ function renderRuntime(runtime) {
   runtimeDevice.textContent =
     runtime.deviceOnline === true ? "ONLINE" : runtime.deviceOnline === false ? "OFFLINE" : "UNKNOWN";
   runtimeError.textContent = runtime.lastError || "-";
-  runtimeBaseUrl.textContent = runtime.baseUrl || "-";
+  runtimeBaseUrl.textContent = runtime.baseUrl || FIXED_LAMP_BASE_URL;
 
-  baseUrlInput.value = runtime.baseUrl || "";
+  baseUrlInput.value = FIXED_LAMP_BASE_URL;
+  baseUrlInput.readOnly = true;
   dryRunInput.checked = Boolean(runtime.dryRun);
   cueModeDirectorInput.checked = readCueMode() === "director";
 
@@ -1053,7 +1055,8 @@ function addSparkFlare(anchor, accent) {
   flare.style.left = `${anchor.x}px`;
   flare.style.top = `${anchor.y}px`;
   flare.style.setProperty("--spark-color", accent);
-  flare.style.setProperty("--flare-size", `${randomBetween(54, 82).toFixed(0)}px`);
+  flare.style.setProperty("--flare-size", `${randomBetween(162, 246).toFixed(0)}px`);
+  flare.style.setProperty("--flare-duration", `${randomBetween(1550, 1950).toFixed(0)}ms`);
   flare.addEventListener("animationend", () => flare.remove(), { once: true });
   sceneSparkLayer.appendChild(flare);
 }
@@ -1071,17 +1074,20 @@ function getBurstOrigin(leftAnchor, rightAnchor) {
 function addBurstSticker(origin, target, icon, accent, index) {
   if (!sceneSparkLayer) return;
   const spark = document.createElement("span");
+  const travelDistance = Math.hypot(target.x - origin.x, target.y - origin.y);
+  const arcHeight = Math.min(120, Math.max(36, travelDistance * 0.14));
   spark.className = "scene-spark";
   spark.textContent = icon;
   spark.style.left = `${origin.x.toFixed(1)}px`;
   spark.style.top = `${origin.y.toFixed(1)}px`;
   spark.style.setProperty("--spark-color", accent);
-  spark.style.setProperty("--spark-size", `${randomBetween(42, 54).toFixed(1)}px`);
-  spark.style.setProperty("--spark-emoji-size", `${randomBetween(22, 28).toFixed(1)}px`);
-  spark.style.setProperty("--spark-duration", `${randomBetween(920, 1320).toFixed(0)}ms`);
-  spark.style.setProperty("--spark-delay", `${(index * 0.035 + randomBetween(0, 0.04)).toFixed(3)}s`);
+  spark.style.setProperty("--spark-size", `${randomBetween(126, 162).toFixed(1)}px`);
+  spark.style.setProperty("--spark-emoji-size", `${randomBetween(66, 84).toFixed(1)}px`);
+  spark.style.setProperty("--spark-duration", `${randomBetween(2300, 3300).toFixed(0)}ms`);
+  spark.style.setProperty("--spark-delay", `${(index * 0.07 + randomBetween(0, 0.08)).toFixed(3)}s`);
   spark.style.setProperty("--spark-scale", randomBetween(0.92, 1.12).toFixed(2));
   spark.style.setProperty("--spark-rotate", `${randomBetween(-18, 18).toFixed(1)}deg`);
+  spark.style.setProperty("--spark-arc", `${(arcHeight + randomBetween(-8, 12)).toFixed(1)}px`);
   spark.style.setProperty("--spark-dx", `${(target.x - origin.x).toFixed(1)}px`);
   spark.style.setProperty("--spark-dy", `${(target.y - origin.y).toFixed(1)}px`);
   spark.addEventListener("animationend", () => spark.remove(), { once: true });
@@ -1107,14 +1113,17 @@ function triggerSceneBurst(sceneId) {
 
     const leftIcons = burst.left.slice(0, Math.max(3, burst.left.length));
     const rightIcons = burst.right.slice(0, Math.max(3, burst.right.length));
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const verticalPadding = 156;
 
     leftIcons.forEach((icon, index) => {
       const spreadIndex = index - (leftIcons.length - 1) / 2;
       addBurstSticker(
         origin,
         {
-          x: leftAnchor.x + randomBetween(-28, 20),
-          y: clamp(leftAnchor.y + spreadIndex * 52 + randomBetween(-10, 10), 92, window.innerHeight - 92),
+          x: clamp(leftAnchor.x - randomBetween(18, 96), 92, viewportWidth - 92),
+          y: clamp(leftAnchor.y + spreadIndex * 156 + randomBetween(-24, 24), verticalPadding, viewportHeight - verticalPadding),
         },
         icon,
         accent,
@@ -1127,8 +1136,8 @@ function triggerSceneBurst(sceneId) {
       addBurstSticker(
         origin,
         {
-          x: rightAnchor.x + randomBetween(-20, 28),
-          y: clamp(rightAnchor.y + spreadIndex * 52 + randomBetween(-10, 10), 92, window.innerHeight - 92),
+          x: clamp(rightAnchor.x + randomBetween(18, 96), 92, viewportWidth - 92),
+          y: clamp(rightAnchor.y + spreadIndex * 156 + randomBetween(-24, 24), verticalPadding, viewportHeight - verticalPadding),
         },
         icon,
         accent,
@@ -1281,7 +1290,7 @@ async function saveConfig() {
     const data = await fetchJson("/api/config", {
       method: "POST",
       body: JSON.stringify({
-        baseUrl: baseUrlInput.value.trim(),
+        baseUrl: FIXED_LAMP_BASE_URL,
         dryRun: dryRunInput.checked,
       }),
     });

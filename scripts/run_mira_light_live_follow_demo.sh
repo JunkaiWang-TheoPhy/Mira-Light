@@ -14,7 +14,7 @@ RECEIVER_HOST="0.0.0.0"
 RECEIVER_PORT="8000"
 RUNTIME_DIR="${REPO_ROOT}/runtime/live-follow-demo"
 CAPTURES_DIR=""
-BASE_URL="${MIRA_LIGHT_BASE_URL:-http://172.20.10.3}"
+BASE_URL="${MIRA_LIGHT_BASE_URL:-tcp://192.168.31.10:9527}"
 BASE_URL_EXPLICIT="0"
 MOCK_DEVICE="0"
 MOCK_PORT="9791"
@@ -59,7 +59,7 @@ usage() {
 Usage: bash scripts/run_mira_light_live_follow_demo.sh [options]
 
 Options:
-  --base-url URL                 Lamp base URL. Default: http://172.20.10.3
+  --base-url URL                 Lamp base URL. Default: tcp://192.168.31.10:9527
   --receiver-port PORT           Camera receiver port. Default: 8000
   --receiver-host HOST           Camera receiver host. Default: 0.0.0.0
   --runtime-dir DIR              Output directory for captures, events, and logs

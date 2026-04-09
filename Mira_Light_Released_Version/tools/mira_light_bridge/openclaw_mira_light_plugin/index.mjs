@@ -244,13 +244,14 @@ function buildResetTool(api) {
 }
 
 function buildLedTool(api) {
-  const rgbSchema = {
+  const ledPixelSchema = {
     type: "object",
     additionalProperties: false,
     properties: {
       r: { type: "integer", minimum: 0, maximum: 255 },
       g: { type: "integer", minimum: 0, maximum: 255 },
       b: { type: "integer", minimum: 0, maximum: 255 },
+      brightness: { type: "integer", minimum: 0, maximum: 255 },
     },
     required: ["r", "g", "b"],
   };
@@ -267,12 +268,12 @@ function buildLedTool(api) {
           enum: ["off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"],
         },
         brightness: { type: "integer", minimum: 0, maximum: 255 },
-        color: rgbSchema,
+        color: ledPixelSchema,
         pixels: {
           type: "array",
           minItems: 40,
           maxItems: 40,
-          items: rgbSchema,
+          items: ledPixelSchema,
         },
       },
       required: ["mode"],

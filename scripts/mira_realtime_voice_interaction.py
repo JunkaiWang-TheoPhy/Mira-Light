@@ -22,7 +22,7 @@ import urllib.request
 from mira_lingzhu_client import send_via_lingzhu_messages
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
-from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent, is_brief_greeting
+from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent, is_brief_greeting, should_skip_short_reply
 import numpy as np
 import sounddevice as sd
 
@@ -53,6 +53,7 @@ DEFAULT_VOICE_MODE = "gentle_sister"
 DEFAULT_TIMEOUT = 45
 DEFAULT_MODE = "continuous"
 DEFAULT_HISTORY_TURNS = 4
+DEFAULT_LATENCY_PRESET = "standard"
 DEFAULT_REPLY_AGENT = "mira-voice-spark"
 DEFAULT_REPLY_BACKEND = "openclaw-agent"
 DEFAULT_REPLY_THINKING = "off"
@@ -73,6 +74,8 @@ DEFAULT_REPEAT_DOMINANT_RATIO = 0.85
 DEFAULT_REPEAT_MAX_UNIQUE_CHARS = 3
 DEFAULT_REPEAT_MAX_COMPRESSION_RATIO = 8.0
 DEFAULT_REPEAT_MAX_CHARS_PER_SECOND = 35.0
+DEFAULT_KEEP_WARM_SECONDS = 0.0
+LOW_LATENCY_KEEP_WARM_SECONDS = 90.0
 DEFAULT_API_SYSTEM_PROMPT = (
     "你是 Mira。"
     "你是一个温柔、简短、自然的中文陪伴角色。"
@@ -84,6 +87,13 @@ DEFAULT_API_SYSTEM_PROMPT = (
     "尽量只用 1 到 2 句。"
     "不要使用 emoji 或表情符号。"
     "不要长篇解释。"
+)
+LOW_LATENCY_PROMPT_HINT = (
+    "当前优先采用低延迟回复策略。"
+    "优先只用一句完整、自然的短句。"
+    "最好控制在 12 到 20 个汉字之间。"
+    "不要省略主语或把句子说断。"
+    "除非用户明确追问，否则不要展开解释。"
 )
 EXIT_PHRASES = {
     "退出对话",
@@ -158,6 +168,11 @@ class ConversationSession:
         }
 
 
+@dataclass
+class WarmState:
+    last_keep_warm_monotonic: float = 0.0
+
+
 def timestamp_slug() -> str:
     return datetime.now().strftime("%Y-%m-%dT%H-%M-%S-%f")
 
@@ -217,6 +232,40 @@ def build_messages(session: ConversationSession, transcript: str, *, base_prompt
     messages.extend(list(session.history))
     messages.append({"role": "user", "content": transcript})
     return messages
+
+
+def build_low_latency_system_prompt(base_prompt: str) -> str:
+    if LOW_LATENCY_PROMPT_HINT in base_prompt:
+        return base_prompt
+    return f"{base_prompt}\n{LOW_LATENCY_PROMPT_HINT}"
+
+
+def apply_latency_preset(args: argparse.Namespace) -> dict[str, Any]:
+    applied: dict[str, Any] = {"preset": args.latency_preset}
+    if args.latency_preset != "low":
+        if args.startup_warmup is None:
+            args.startup_warmup = False
+        return applied
+
+    if args.vad_start_ms == DEFAULT_VAD_START_MS:
+        args.vad_start_ms = 100
+        applied["vadStartMs"] = args.vad_start_ms
+    if args.vad_end_ms == DEFAULT_VAD_END_MS:
+        args.vad_end_ms = 400
+        applied["vadEndMs"] = args.vad_end_ms
+    if args.history_turns == DEFAULT_HISTORY_TURNS:
+        args.history_turns = 2
+        applied["historyTurns"] = args.history_turns
+    if args.api_system_prompt == DEFAULT_API_SYSTEM_PROMPT:
+        args.api_system_prompt = build_low_latency_system_prompt(args.api_system_prompt)
+        applied["shortReplyHint"] = True
+    if args.startup_warmup is None:
+        args.startup_warmup = True
+        applied["startupWarmup"] = True
+    if args.keep_warm_seconds <= 0:
+        args.keep_warm_seconds = LOW_LATENCY_KEEP_WARM_SECONDS
+        applied["keepWarmSeconds"] = args.keep_warm_seconds
+    return applied
 
 
 def build_openclaw_reply_prompt(messages: list[dict[str, str]]) -> str:
@@ -341,6 +390,19 @@ def post_bridge_json(base_url: str, path: str, payload: dict[str, Any], *, token
         raise VoiceToClawError(f"Bridge request failed: {exc}") from exc
 
 
+def fetch_json(url: str, *, token: str = "", timeout_seconds: int = 3) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers=bridge_headers(token), method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            raw = response.read().decode("utf-8").strip()
+            return json.loads(raw) if raw else {"ok": True}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace").strip()
+        raise VoiceToClawError(f"HTTP {exc.code} calling {url}: {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise VoiceToClawError(f"Request failed calling {url}: {exc}") from exc
+
+
 def maybe_trigger_mira_action(
     session: ConversationSession,
     *,
@@ -398,7 +460,7 @@ def build_audio_metrics(samples: np.ndarray, *, sample_rate: int) -> dict[str, f
 
 
 def low_energy_skip_reason(source_meta: dict[str, Any], audio_metrics: dict[str, float]) -> str | None:
-    if source_meta.get("captureMode") != "continuous":
+    if source_meta.get("captureMode") not in {"continuous", "enter-vad"}:
         return None
     if audio_metrics["durationMs"] > 1500:
         return None
@@ -491,7 +553,7 @@ def repetitive_transcript_details(
     }
 
 
-def capture_continuous_utterance(args: argparse.Namespace) -> UtteranceResult | None:
+def capture_continuous_utterance(args: argparse.Namespace, *, require_manual_start: bool = False) -> UtteranceResult | None:
     device = resolve_input_device(args.device)
     sample_rate = int(args.sample_rate)
     channels = int(args.channels)
@@ -521,6 +583,10 @@ def capture_continuous_utterance(args: argparse.Namespace) -> UtteranceResult | 
     silence_run = 0
     active = False
 
+    if require_manual_start:
+        print("Press Enter to start listening. Recording will stop automatically after silence.")
+        input()
+
     with sd.InputStream(
         samplerate=sample_rate,
         channels=channels,
@@ -532,6 +598,8 @@ def capture_continuous_utterance(args: argparse.Namespace) -> UtteranceResult | 
             try:
                 chunk = q.get(timeout=timeout_seconds)
             except queue.Empty:
+                if require_manual_start and not active:
+                    continue
                 if not active and (time.monotonic() - idle_started) >= args.idle_timeout_seconds:
                     return None
                 continue
@@ -585,7 +653,7 @@ def capture_continuous_utterance(args: argparse.Namespace) -> UtteranceResult | 
                 sample_rate=sample_rate,
                 source_meta={
                     "inputDevice": device,
-                    "captureMode": "continuous",
+                    "captureMode": "enter-vad" if require_manual_start else "continuous",
                     "vad": {
                         "startMs": args.vad_start_ms,
                         "endMs": args.vad_end_ms,
@@ -624,6 +692,9 @@ def capture_next_utterance(args: argparse.Namespace) -> UtteranceResult | None:
         )
         return UtteranceResult(samples=samples, sample_rate=args.sample_rate, source_meta={"inputDevice": device, "captureMode": "fixed"})
 
+    if args.mode == "enter-vad":
+        return capture_continuous_utterance(args, require_manual_start=True)
+
     return capture_continuous_utterance(args)
 
 
@@ -648,6 +719,66 @@ def transcribe_utterance(utterance: UtteranceResult, *, args: argparse.Namespace
     return transcript_payload
 
 
+def warm_stt_model(args: argparse.Namespace) -> dict[str, Any]:
+    model_repo = args.model_repo or DEFAULT_MODEL_PROFILES[args.profile]
+    sample_rate = 16000
+    warm_samples = np.zeros(int(sample_rate * 0.25), dtype=np.float32)
+    started = time.perf_counter()
+    try:
+        transcribe_local(
+            warm_samples,
+            sample_rate=sample_rate,
+            language=args.language,
+            model_repo=model_repo,
+            initial_prompt=args.initial_prompt or DEFAULT_INITIAL_PROMPT,
+        )
+        return {"ok": True, "modelRepo": model_repo, "seconds": round(time.perf_counter() - started, 3)}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "modelRepo": model_repo, "error": str(exc), "seconds": round(time.perf_counter() - started, 3)}
+
+
+def ping_runtime_interfaces(args: argparse.Namespace) -> dict[str, Any]:
+    results: dict[str, Any] = {}
+    if args.reply_backend == "lingzhu" and args.lingzhu_base_url:
+        url = f"{args.lingzhu_base_url.rstrip('/')}/v1/health"
+        try:
+            results["lingzhu"] = fetch_json(url, timeout_seconds=3)
+        except Exception as exc:  # noqa: BLE001
+            results["lingzhu"] = {"ok": False, "error": str(exc)}
+    if args.bridge_url:
+        url = f"{args.bridge_url.rstrip('/')}/health"
+        try:
+            results["bridge"] = fetch_json(url, token=args.bridge_token, timeout_seconds=3)
+        except Exception as exc:  # noqa: BLE001
+            results["bridge"] = {"ok": False, "error": str(exc)}
+    return results
+
+
+def maybe_keep_warm(
+    *,
+    args: argparse.Namespace,
+    audio_player: AudioCuePlayer,
+    warm_state: WarmState,
+    force: bool = False,
+    include_stt: bool = False,
+) -> dict[str, Any] | None:
+    if not force and args.keep_warm_seconds <= 0:
+        return None
+    now = time.monotonic()
+    if not force and (now - warm_state.last_keep_warm_monotonic) < args.keep_warm_seconds:
+        return None
+
+    payload: dict[str, Any] = {
+        "at": datetime.now().isoformat(),
+        "audio": audio_player.prepare_output(),
+        "http": ping_runtime_interfaces(args),
+    }
+    if include_stt:
+        payload["stt"] = warm_stt_model(args)
+    warm_state.last_keep_warm_monotonic = now
+    return payload
+
+
 def run_turn(
     *,
     turn_dir: Path,
@@ -666,6 +797,15 @@ def run_turn(
         "audioPath": str(audio_path),
         "inputMeta": utterance.source_meta,
         "audioMetrics": audio_metrics,
+        "latencyPolicy": {
+            "preset": args.latency_preset,
+            "vadStartMs": args.vad_start_ms,
+            "vadEndMs": args.vad_end_ms,
+            "historyTurns": args.history_turns,
+            "profile": args.profile,
+            "startupWarmup": bool(args.startup_warmup),
+            "keepWarmSeconds": args.keep_warm_seconds,
+        },
     }
 
     low_energy_reason = low_energy_skip_reason(utterance.source_meta, audio_metrics)
@@ -715,6 +855,10 @@ def run_turn(
     update_session_mode(session, intent)
     result["intent"] = intent
     result["sessionMode"] = session.mode
+    if should_skip_short_reply(transcript, intent=intent):
+        result["skipped"] = True
+        result["skipReason"] = "short-low-information-transcript"
+        return result
     is_greeting_turn = intent == "chat" and is_brief_greeting(transcript)
     lingzhu_additional_user_ids: str | list[str] | tuple[str, ...] | None = args.lingzhu_additional_user_ids
     if args.reply_backend == "lingzhu" and is_greeting_turn:
@@ -771,7 +915,7 @@ def run_turn(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Realtime voice interaction runtime for Mira Light booth demos.")
     parser.add_argument("--list-inputs", action="store_true", help="List audio input devices and exit.")
-    parser.add_argument("--mode", choices=["continuous", "ptt", "fixed"], default=DEFAULT_MODE, help="Audio capture mode.")
+    parser.add_argument("--mode", choices=["continuous", "enter-vad", "ptt", "fixed"], default=DEFAULT_MODE, help="Audio capture mode.")
     parser.add_argument("--device", default="DJI MIC MINI", help="Input device name or index.")
     parser.add_argument("--sample-rate", type=int, default=DEFAULT_CAPTURE_SAMPLE_RATE, help="Microphone capture sample rate.")
     parser.add_argument("--channels", type=int, default=DEFAULT_CHANNELS, help="Microphone capture channels.")
@@ -783,6 +927,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--language", default=DEFAULT_LANGUAGE, help="Language hint for STT.")
     parser.add_argument("--initial-prompt", help="Optional STT terminology prompt.")
     parser.add_argument("--api-system-prompt", default=DEFAULT_API_SYSTEM_PROMPT, help="System prompt for reply generation.")
+    parser.add_argument(
+        "--latency-preset",
+        choices=["standard", "low"],
+        default=os.environ.get("MIRA_LIGHT_LATENCY_PRESET", DEFAULT_LATENCY_PRESET),
+        help="Preset for booth latency tuning.",
+    )
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="OpenClaw reply timeout in seconds.")
     parser.add_argument(
         "--reply-backend",
@@ -817,6 +967,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bridge-token", default=os.environ.get("MIRA_LIGHT_BRIDGE_TOKEN", ""), help="Bridge bearer token, if required.")
     parser.add_argument("--no-trigger", action="store_true", help="Disable runtime scene/trigger calls and only do conversation + TTS.")
     parser.add_argument("--dry-run-audio", action="store_true", help="Do not actually play speaker audio.")
+    parser.add_argument(
+        "--startup-warmup",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Warm STT, speaker output, and health endpoints before listening.",
+    )
+    parser.add_argument(
+        "--keep-warm-seconds",
+        type=float,
+        default=float(os.environ.get("MIRA_LIGHT_KEEP_WARM_SECONDS", DEFAULT_KEEP_WARM_SECONDS)),
+        help="Ping hot interfaces every N seconds between turns. 0 disables keep-warm.",
+    )
     parser.add_argument("--vad-start-ms", type=int, default=DEFAULT_VAD_START_MS, help="Speech onset duration in ms for continuous mode.")
     parser.add_argument("--vad-end-ms", type=int, default=DEFAULT_VAD_END_MS, help="Silence duration in ms to end an utterance.")
     parser.add_argument("--min-utterance-ms", type=int, default=DEFAULT_MIN_UTTERANCE_MS, help="Minimum utterance duration in ms.")
@@ -845,6 +1007,11 @@ def save_session_snapshot(session_dir: Path, session: ConversationSession, args:
                 "replyBackend": args.reply_backend,
                 "replyAgent": args.reply_agent,
                 "replyThinking": args.reply_thinking,
+                "latencyPreset": args.latency_preset,
+                "startupWarmup": bool(args.startup_warmup),
+                "keepWarmSeconds": args.keep_warm_seconds,
+                "vadStartMs": args.vad_start_ms,
+                "vadEndMs": args.vad_end_ms,
             },
             "session": session.snapshot(),
         },
@@ -853,6 +1020,7 @@ def save_session_snapshot(session_dir: Path, session: ConversationSession, args:
 
 def main() -> int:
     args = parse_args()
+    latency_changes = apply_latency_preset(args)
 
     if args.list_inputs:
         return print_input_devices()
@@ -860,11 +1028,13 @@ def main() -> int:
     session_dir = build_session_dir(Path(args.runtime_dir).expanduser())
     session = ConversationSession(max_history_turns=max(1, args.history_turns))
     audio_player = AudioCuePlayer(dry_run=args.dry_run_audio)
+    warm_state = WarmState()
 
     print("Mira realtime voice interaction is ready.")
     print(f"Capture mode: {args.mode}")
     print(f"Input device: {args.device}")
     print(f"STT profile: {args.profile} @ {args.sample_rate} Hz")
+    print(f"Latency preset: {args.latency_preset}")
     if args.reply_backend == "lingzhu":
         print(f"Reply backend: lingzhu ({args.lingzhu_base_url or '-'})")
     else:
@@ -872,6 +1042,11 @@ def main() -> int:
     print(f"Bridge: {args.bridge_url} (trigger enabled={not args.no_trigger})")
     if args.mode == "ptt":
         print("Press Enter to start recording, then Enter again to stop. Say '退出对话' to exit.")
+    elif args.mode == "enter-vad":
+        print(
+            f"Enter-VAD mode with VAD start={args.vad_start_ms}ms end={args.vad_end_ms}ms. "
+            "Press Enter to start each turn; silence will end it automatically."
+        )
     elif args.mode == "fixed":
         print(f"Recording fixed {args.seconds:.1f}s turns. Say '退出对话' to exit.")
     else:
@@ -879,6 +1054,21 @@ def main() -> int:
             f"Continuous mode with VAD start={args.vad_start_ms}ms end={args.vad_end_ms}ms "
             f"idle-timeout={args.idle_timeout_seconds:.0f}s."
         )
+    if latency_changes:
+        print(f"Latency tuning: {json.dumps(latency_changes, ensure_ascii=False)}")
+
+    if args.startup_warmup:
+        print("Running startup warmup...")
+        warmup_payload = maybe_keep_warm(
+            args=args,
+            audio_player=audio_player,
+            warm_state=warm_state,
+            force=True,
+            include_stt=True,
+        ) or {}
+        write_json(session_dir / "warmup.json", warmup_payload)
+        http_hint = warmup_payload.get("http") if isinstance(warmup_payload, dict) else {}
+        print(f"Warmup ready: {json.dumps(http_hint, ensure_ascii=False)}")
 
     turn_index = 0
     try:
@@ -886,6 +1076,16 @@ def main() -> int:
             turn_index += 1
             turn_dir = session_dir / f"turn-{turn_index:03d}"
             turn_dir.mkdir(parents=True, exist_ok=True)
+
+            keep_warm_payload = maybe_keep_warm(
+                args=args,
+                audio_player=audio_player,
+                warm_state=warm_state,
+                force=False,
+                include_stt=False,
+            )
+            if keep_warm_payload:
+                write_json(turn_dir / "keep-warm.json", keep_warm_payload)
 
             print(f"\n[turn {turn_index:03d}] listening...")
             turn_result = run_turn(turn_dir=turn_dir, session=session, audio_player=audio_player, args=args)

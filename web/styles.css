@@ -137,8 +137,61 @@
     opacity: 0;
     transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(0.28) rotate(0deg);
   }
-  16% {
+  12% {
+    opacity: 0.18;
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--spark-dx, 0px) * 0.05),
+        calc(var(--spark-dy, -64px) * 0.04 - var(--spark-arc, 42px) * 0.22),
+        0
+      )
+      scale(0.42)
+      rotate(-2deg);
+  }
+  26% {
     opacity: 0.96;
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--spark-dx, 0px) * 0.2),
+        calc(var(--spark-dy, -64px) * 0.18 - var(--spark-arc, 42px) * 0.58),
+        0
+      )
+      scale(0.72)
+      rotate(calc(var(--spark-rotate, 0deg) * 0.22));
+  }
+  68% {
+    opacity: 0.96;
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--spark-dx, 0px) * 0.86),
+        calc(var(--spark-dy, -64px) * 0.86 - var(--spark-arc, 42px) * 0.72),
+        0
+      )
+      scale(calc(var(--spark-scale, 1.08) * 1.02))
+      rotate(calc(var(--spark-rotate, 0deg) * 0.9));
+  }
+  86% {
+    opacity: 0.9;
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--spark-dx, 0px) * 0.98),
+        calc(var(--spark-dy, -64px) * 0.98 - var(--spark-arc, 42px) * 0.16),
+        0
+      )
+      scale(var(--spark-scale, 1.08))
+      rotate(var(--spark-rotate, 0deg));
+  }
+  93% {
+    opacity: 0.76;
+    transform:
+      translate(-50%, -50%)
+      translate3d(var(--spark-dx, 0px), var(--spark-dy, -64px), 0)
+      scale(var(--spark-scale, 1.08))
+      rotate(var(--spark-rotate, 0deg));
   }
   100% {
     opacity: 0;
@@ -589,13 +642,13 @@ body[data-scene="dream"] {
   justify-content: center;
   width: var(--spark-size, 48px);
   height: var(--spark-size, 48px);
-  border-radius: 18px 24px 20px 26px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 30% 40% 34% 44%;
+  border: 2px solid rgba(255, 255, 255, 0.72);
   background:
     linear-gradient(140deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.68)),
     radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.34), transparent 58%);
   box-shadow:
-    0 14px 28px color-mix(in srgb, var(--spark-color, #ff6b9d) 22%, transparent),
+    0 24px 54px color-mix(in srgb, var(--spark-color, #ff6b9d) 22%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
   font-size: var(--spark-emoji-size, 24px);
   line-height: 1;
@@ -604,16 +657,17 @@ body[data-scene="dream"] {
     0 2px 8px rgba(255, 255, 255, 0.24);
   opacity: 0;
   will-change: transform, opacity;
-  animation: sparkBurst var(--spark-duration, 920ms) cubic-bezier(0.18, 0.8, 0.24, 1) forwards;
+  animation: sparkBurst var(--spark-duration, 1150ms) linear forwards;
   animation-delay: var(--spark-delay, 0s);
 }
 
 .scene-spark::before {
   content: "";
   position: absolute;
-  inset: 6px 10px auto auto;
-  width: 16px;
-  height: 8px;
+  top: calc(var(--spark-size, 48px) * 0.12);
+  right: calc(var(--spark-size, 48px) * 0.16);
+  width: calc(var(--spark-size, 48px) * 0.28);
+  height: calc(var(--spark-size, 48px) * 0.12);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.42);
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.18);
@@ -622,8 +676,8 @@ body[data-scene="dream"] {
 .scene-spark::after {
   content: "";
   position: absolute;
-  inset: -6px;
-  border-radius: 22px 28px 24px 30px;
+  inset: calc(var(--spark-size, 48px) * -0.08);
+  border-radius: 32% 42% 36% 46%;
   border: 1px solid color-mix(in srgb, var(--spark-color, #ff6b9d) 18%, rgba(255, 255, 255, 0.6));
   opacity: 0.48;
 }
@@ -634,9 +688,9 @@ body[data-scene="dream"] {
   border-radius: 999px;
   opacity: 0;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.62) 0%, var(--spark-color, #ffffff) 38%, transparent 72%);
-  filter: blur(2px);
+  filter: blur(4px);
   mix-blend-mode: screen;
-  animation: sparkFlare 720ms ease-out forwards;
+  animation: sparkFlare var(--flare-duration, 1800ms) ease-out forwards;
 }
 
 .bubble {

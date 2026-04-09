@@ -7,17 +7,17 @@ This module is the common execution surface for:
 - future OpenClaw triggering
 - the local booth web console
 
-It intentionally keeps the control surface small and grounded in the existing
-ESP32 REST API:
+It intentionally keeps the control surface small and scene-first.
 
-- GET /status
-- GET /led
-- GET /actions
-- POST /control
-- POST /led
-- POST /action
-- POST /action/stop
-- POST /reset
+The bridge-facing API remains HTTP, but the device-facing transport can now be
+either:
+
+- HTTP REST (legacy / mock devices)
+- raw TCP servo frames (`tcp://host:port`, e.g. the RDK X5 bridge at 9527)
+
+For raw TCP endpoints, status / LED / action reads are served from local cached
+state so the rest of the booth stack can stay stable without sending invalid
+HTTP requests to the servo socket.
 """
 
 from __future__ import annotations
@@ -33,7 +33,16 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict
+from urllib.parse import urlparse
 
+from bus_servo_adapter import BusServoAdapter
+from bus_servo_transport import (
+    DEFAULT_RDK_X5_HOST,
+    DEFAULT_RDK_X5_PORT,
+    BusServoRuntimeConfig,
+    DryRunBusServoTransport,
+    TcpBusServoTransport,
+)
 from mira_light_audio import AudioCuePlayer
 from scenes import (
     COMFORT_WARM,
@@ -60,6 +69,8 @@ VALID_SPEAK_VOICES = {"tts", "openclaw", "say", "default", "host", "narration"}
 MAX_RELATIVE_DELTA = 45
 LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
 MAX_PUBLIC_SPEAK_CHARS = int(os.environ.get("MIRA_LIGHT_MAX_SPEAK_CHARS", "80"))
+SUPPORTED_TCP_ACTIONS = ("control", "pose", "scene", "tracking", "sensor_cache")
+TCP_LED_UNSUPPORTED_REASON = "raw TCP servo endpoint does not expose a dedicated LED protocol"
 
 
 class SceneStopped(RuntimeError):
@@ -165,12 +176,164 @@ TRACKING_FOCUS = {"r": 232, "g": 242, "b": 255}
 
 
 class MiraLightClient:
-    """Thin HTTP client around the current ESP32 REST API."""
+    """Transport-aware client for HTTP lamps or raw TCP servo endpoints."""
 
     def __init__(self, base_url: str, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS, dry_run: bool = False):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
+        self._lock = threading.Lock()
+        self.transport_kind, self.transport_host, self.transport_port = self._resolve_transport_target(self.base_url)
+        self._status_cache = self._build_initial_status_cache()
+        self._led_cache = self._build_initial_led_cache()
+        self._sensors_cache: dict[str, Any] = {"headCapacitive": 0}
+        self._actions_cache = self._build_actions_cache()
+        self._last_transport_result: dict[str, Any] | None = None
+        self._bus_servo_adapter: BusServoAdapter | None = None
+        if self.transport_kind == "tcp":
+            runtime_config = BusServoRuntimeConfig(
+                transport="tcp",
+                tcp_host=self.transport_host or DEFAULT_RDK_X5_HOST,
+                tcp_port=self.transport_port or DEFAULT_RDK_X5_PORT,
+                timeout_seconds=self.timeout_seconds,
+            )
+            transport = DryRunBusServoTransport() if self.dry_run else TcpBusServoTransport(
+                host=runtime_config.tcp_host,
+                port=runtime_config.tcp_port,
+                timeout_seconds=runtime_config.timeout_seconds,
+            )
+            self._bus_servo_adapter = BusServoAdapter(
+                runtime_config=runtime_config,
+                transport=transport,
+            )
+            self._bus_servo_adapter.sync_angles(self._current_angles_snapshot())
+
+    @staticmethod
+    def _resolve_transport_target(base_url: str) -> tuple[str, str | None, int | None]:
+        parsed_input = base_url.strip()
+        if "://" not in parsed_input:
+            if "/" not in parsed_input and ":" in parsed_input:
+                parsed_input = f"tcp://{parsed_input}"
+            else:
+                parsed_input = f"http://{parsed_input}"
+        parsed = urlparse(parsed_input)
+        scheme = parsed.scheme.lower()
+        host = parsed.hostname
+        port = parsed.port
+        if scheme == "tcp":
+            return "tcp", host or DEFAULT_RDK_X5_HOST, port or DEFAULT_RDK_X5_PORT
+        if scheme in {"http", "https"} and port == DEFAULT_RDK_X5_PORT and parsed.path in {"", "/"}:
+            return "tcp", host or DEFAULT_RDK_X5_HOST, port
+        return "http", host, port
+
+    def _default_servo_angles(self) -> dict[str, int]:
+        neutral_pose = POSES.get("neutral", {}).get("angles", {})
+        angles: dict[str, int] = {}
+        for servo_name in SERVO_KEYS:
+            pose_angle = neutral_pose.get(servo_name)
+            if isinstance(pose_angle, (int, float)):
+                angles[servo_name] = int(pose_angle)
+                continue
+            calibration = SERVO_CALIBRATION.get(servo_name, {})
+            neutral = calibration.get("neutral")
+            if isinstance(neutral, (int, float)):
+                angles[servo_name] = int(neutral)
+        return angles
+
+    def _build_initial_status_cache(self) -> dict[str, Any]:
+        angles = self._default_servo_angles()
+        return {
+            "transport": self.transport_kind,
+            "baseUrl": self.base_url,
+            "host": self.transport_host,
+            "port": self.transport_port,
+            "online": True if self.dry_run else None,
+            "estimated": self.transport_kind == "tcp",
+            "servos": [
+                {
+                    "name": servo_name,
+                    "angle": int(angles[servo_name]),
+                    "estimated": self.transport_kind == "tcp",
+                }
+                for servo_name in SERVO_KEYS
+                if servo_name in angles
+            ],
+            "sensors": {"headCapacitive": 0},
+            "lastTransportResult": None,
+        }
+
+    def _build_initial_led_cache(self) -> dict[str, Any]:
+        return {
+            "mode": "off",
+            "brightness": 0,
+            "color": {"r": 0, "g": 0, "b": 0},
+            "transport": self.transport_kind,
+            "simulated": self.transport_kind == "tcp",
+            "supported": self.transport_kind != "tcp",
+            "reason": None if self.transport_kind != "tcp" else TCP_LED_UNSUPPORTED_REASON,
+        }
+
+    def _build_actions_cache(self) -> dict[str, Any]:
+        if self.transport_kind == "tcp":
+            return {
+                "transport": "tcp",
+                "supported": list(SUPPORTED_TCP_ACTIONS),
+                "simulated": True,
+                "reason": "bridge exposes high-level actions while hardware endpoint only accepts raw servo frames",
+            }
+        return {}
+
+    def _current_angles_snapshot(self) -> dict[str, int]:
+        return {
+            item["name"]: int(item["angle"])
+            for item in self._status_cache.get("servos", [])
+            if isinstance(item.get("name"), str) and isinstance(item.get("angle"), (int, float))
+        }
+
+    def _sync_status_cache(self, angles: dict[str, int], *, transport_result: dict[str, Any] | None = None) -> None:
+        normalized = self._current_angles_snapshot()
+        normalized.update(
+            {
+                servo_name: int(angle)
+                for servo_name, angle in angles.items()
+                if servo_name in SERVO_KEYS
+            }
+        )
+        servos = []
+        for servo_name in SERVO_KEYS:
+            if servo_name not in normalized:
+                continue
+            servos.append(
+                {
+                    "name": servo_name,
+                    "angle": normalized[servo_name],
+                    "estimated": self.transport_kind == "tcp",
+                }
+            )
+        self._status_cache.update(
+            {
+                "transport": self.transport_kind,
+                "baseUrl": self.base_url,
+                "host": self.transport_host,
+                "port": self.transport_port,
+                "online": True,
+                "estimated": self.transport_kind == "tcp",
+                "servos": servos,
+                "sensors": deepcopy(self._sensors_cache),
+                "lastTransportResult": deepcopy(transport_result),
+            }
+        )
+        self._last_transport_result = deepcopy(transport_result)
+
+    def _tcp_action_stub(self, action: str, payload: Dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "transport": "tcp",
+            "simulated": True,
+            "action": action,
+            "payload": deepcopy(payload) if payload is not None else None,
+            "reason": "raw TCP servo endpoint does not expose action control APIs",
+        }
 
     def _request(self, method: str, path: str, payload: Dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}{path}"
@@ -208,33 +371,86 @@ class MiraLightClient:
             return body
 
     def get_status(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._status_cache["sensors"] = deepcopy(self._sensors_cache)
+                self._status_cache["lastTransportResult"] = deepcopy(self._last_transport_result)
+                return deepcopy(self._status_cache)
         return self._request("GET", "/status")
 
     def get_led(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return deepcopy(self._led_cache)
         return self._request("GET", "/led")
 
     def get_sensors(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return {"transport": "tcp", "sensors": deepcopy(self._sensors_cache), "simulated": True}
         return self._request("GET", "/sensors")
 
     def get_actions(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return deepcopy(self._actions_cache)
         return self._request("GET", "/actions")
 
     def set_led(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._led_cache = {
+                    **deepcopy(payload),
+                    "transport": "tcp",
+                    "simulated": True,
+                    "supported": False,
+                    "reason": TCP_LED_UNSUPPORTED_REASON,
+                }
+                return deepcopy(self._led_cache)
         return self._request("POST", "/led", payload)
 
     def set_sensors(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._sensors_cache = deepcopy(payload)
+                self._status_cache["sensors"] = deepcopy(self._sensors_cache)
+                return {"ok": True, "transport": "tcp", "sensors": deepcopy(self._sensors_cache), "simulated": True}
         return self._request("POST", "/sensors", payload)
 
     def control(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            if self._bus_servo_adapter is None:
+                raise RuntimeError("TCP control requested but servo adapter is not initialized")
+            with self._lock:
+                result = self._bus_servo_adapter.apply_control_payload(payload, source="mira-light-runtime")
+                self._sync_status_cache(result.get("angles", {}), transport_result=result.get("transport"))
+                return deepcopy(result)
         return self._request("POST", "/control", payload)
 
     def run_action(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            return self._tcp_action_stub("run_action", payload)
         return self._request("POST", "/action", payload)
 
     def stop_action(self) -> Any:
+        if self.transport_kind == "tcp":
+            return self._tcp_action_stub("stop_action")
         return self._request("POST", "/action/stop")
 
     def reset(self) -> Any:
+        if self.transport_kind == "tcp":
+            neutral_angles = self._default_servo_angles()
+            payload = {"mode": "absolute", **neutral_angles}
+            result = self.control(payload)
+            with self._lock:
+                self._led_cache = self._build_initial_led_cache()
+                return {
+                    "ok": True,
+                    "transport": "tcp",
+                    "resetPose": "neutral",
+                    "control": result,
+                    "led": deepcopy(self._led_cache),
+                }
         return self._request("POST", "/reset")
 
 
@@ -435,6 +651,7 @@ class MiraLightRuntime:
         self._run_lock = threading.Lock()
         self._stop_event = threading.Event()
         self._logs: deque[dict[str, str]] = deque(maxlen=300)
+        self._client_lock = threading.Lock()
 
         self._running_scene: str | None = None
         self._runner_thread: threading.Thread | None = None
@@ -458,6 +675,7 @@ class MiraLightRuntime:
         self._tracking_target: dict[str, Any] = {}
         self._tracking_servo_state: dict[str, int] = dict(POSES.get("neutral", {}).get("angles", {}))
         self._tracking_led_state: dict[str, Any] = {}
+        self._client = self._build_client()
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
         self.embodied_memory_client = client
@@ -475,12 +693,16 @@ class MiraLightRuntime:
         with self._log_lock:
             return list(self._logs)
 
-    def get_client(self) -> MiraLightClient:
+    def _build_client(self) -> MiraLightClient:
         return MiraLightClient(
             base_url=self.base_url,
             timeout_seconds=self.timeout_seconds,
             dry_run=self.dry_run,
         )
+
+    def get_client(self) -> MiraLightClient:
+        with self._client_lock:
+            return self._client
 
     def _ensure_manual_control_allowed(self, capability: str) -> None:
         with self._state_lock:
@@ -728,6 +950,8 @@ class MiraLightRuntime:
                 if cleaned and cleaned not in POSES:
                     raise RuntimeError(f"Unknown recovery pose: {cleaned}")
                 self.auto_recover_pose = cleaned
+        with self._client_lock:
+            self._client = self._build_client()
         self.log(
             f"[config] base_url={self.base_url} dry_run={self.dry_run} "
             f"auto_recover_pose={self.auto_recover_pose or '-'}"
@@ -800,7 +1024,11 @@ class MiraLightRuntime:
                 self._device_online = False
             raise
         with self._state_lock:
-            self._device_online = True
+            if isinstance(data, dict) and "online" in data:
+                online = data.get("online")
+                self._device_online = None if online is None else bool(online)
+            else:
+                self._device_online = True
             self._last_status_at = self._now()
         return data
 

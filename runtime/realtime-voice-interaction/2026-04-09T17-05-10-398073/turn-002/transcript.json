@@ -1,0 +1,33 @@
+{
+  "text": "Hello Hello 现在怎么样?",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 1.34,
+      "text": "Hello Hello 现在怎么样?",
+      "tokens": [
+        50364,
+        15947,
+        2425,
+        220,
+        25040,
+        48200,
+        30,
+        50431
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.6669481065538194,
+      "compression_ratio": 0.8235294117647058,
+      "no_speech_prob": 0.04604754596948624
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "Hello Hello 现在怎么样?",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

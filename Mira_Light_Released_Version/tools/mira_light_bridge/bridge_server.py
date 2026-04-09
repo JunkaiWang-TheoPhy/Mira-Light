@@ -248,6 +248,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"ok": True, "data": self.server.runtime.get_led()})
                 return
 
+            if path == "/v1/mira-light/sensors":
+                self._send_json(200, {"ok": True, "data": self.server.runtime.get_sensors()})
+                return
+
             if path == "/v1/mira-light/actions":
                 self._send_json(200, {"ok": True, "data": self.server.runtime.get_actions()})
                 return
@@ -300,19 +304,42 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 if not isinstance(scene_name, str) or not scene_name:
                     self._send_json(400, {"ok": False, "error": "scene is required"})
                     return
-                scene_context = body.get("sceneContext")
-                if scene_context is None:
-                    scene_context = body.get("context")
-                if scene_context is not None and not isinstance(scene_context, dict):
-                    self._send_json(400, {"ok": False, "error": "sceneContext/context must be an object"})
-                    return
 
                 async_run = bool(body.get("async", True))
+                scene_context = body.get("context") if isinstance(body.get("context"), dict) else None
+                cue_mode = str(body.get("cueMode") or "scene")
+                allow_unavailable = bool(body.get("allowUnavailable", False))
                 if async_run:
-                    runtime_state = self.server.runtime.start_scene(scene_name, scene_context=scene_context)
+                    runtime_state = self.server.runtime.start_scene(
+                        scene_name,
+                        scene_context=scene_context,
+                        cue_mode=cue_mode,
+                        allow_unavailable=allow_unavailable,
+                    )
                 else:
-                    runtime_state = self.server.runtime.run_scene_blocking(scene_name, scene_context=scene_context)
+                    runtime_state = self.server.runtime.run_scene_blocking(
+                        scene_name,
+                        scene_context=scene_context,
+                        cue_mode=cue_mode,
+                        allow_unavailable=allow_unavailable,
+                    )
                 self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/trigger":
+                body = self._read_json_body()
+                event_name = body.get("event") or body.get("name")
+                if not isinstance(event_name, str) or not event_name:
+                    self._send_json(400, {"ok": False, "error": "event is required"})
+                    return
+                payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+                runtime_state = self.server.runtime.trigger_event(event_name, payload)
+                self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/speak":
+                body = self._read_json_body()
+                self._send_json(200, {"ok": True, "data": self.server.runtime.speak_text(body)})
                 return
 
             if path == "/v1/mira-light/stop":
@@ -329,11 +356,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 if not isinstance(pose_name, str) or not pose_name:
                     self._send_json(400, {"ok": False, "error": "pose is required"})
                     return
-                applied = self.server.runtime.apply_pose_with_safety(
-                    pose_name,
-                    source=f"bridge.apply-pose:{pose_name}",
-                )
-                self._send_json(200, {"ok": True, "data": applied["data"], "safety": applied["safety"]})
+                result = self.server.runtime.apply_pose_with_safety(pose_name, source="bridge.apply_pose")
+                self._send_json(200, {"ok": True, **result})
                 return
 
             if path == "/v1/mira-light/operator/stop-to-neutral":
@@ -346,13 +370,18 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             if path == "/v1/mira-light/control":
                 body = self._read_json_body()
-                controlled = self.server.runtime.control_lamp(body, source="bridge.control")
-                self._send_json(200, {"ok": True, "data": controlled["data"], "safety": controlled["safety"]})
+                result = self.server.runtime.control_lamp(body, source="bridge.control")
+                self._send_json(200, {"ok": True, **result})
                 return
 
             if path == "/v1/mira-light/led":
                 body = self._read_json_body()
-                self._send_json(200, {"ok": True, "data": self.server.runtime.get_client().set_led(body)})
+                self._send_json(200, {"ok": True, "data": self.server.runtime.set_led_state(body)})
+                return
+
+            if path == "/v1/mira-light/sensors":
+                body = self._read_json_body()
+                self._send_json(200, {"ok": True, "data": self.server.runtime.set_sensors_state(body)})
                 return
 
             if path == "/v1/mira-light/action":
@@ -365,8 +394,41 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 runtime_state = self.server.runtime.update_config(
                     base_url=body.get("baseUrl"),
                     dry_run=body.get("dryRun"),
+                    auto_recover_pose=body.get("autoRecoverPose"),
                 )
                 self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/profile/capture-pose":
+                body = self._read_json_body()
+                pose_name = body.get("name") or body.get("pose")
+                if not isinstance(pose_name, str) or not pose_name:
+                    self._send_json(400, {"ok": False, "error": "pose name is required"})
+                    return
+                data = self.server.runtime.capture_pose_to_profile(
+                    pose_name,
+                    notes=str(body.get("notes") or ""),
+                    verified=bool(body.get("verified", False)),
+                )
+                self._send_json(200, {"ok": True, "data": data})
+                return
+
+            if path == "/v1/mira-light/profile/set-servo-meta":
+                body = self._read_json_body()
+                servo_name = body.get("servo")
+                if not isinstance(servo_name, str) or not servo_name:
+                    self._send_json(400, {"ok": False, "error": "servo is required"})
+                    return
+                updates = {
+                    "label": body.get("label"),
+                    "neutral": body.get("neutral"),
+                    "hard_range": body.get("hardRange"),
+                    "rehearsal_range": body.get("rehearsalRange"),
+                    "notes": body.get("notes"),
+                    "verified": body.get("verified"),
+                }
+                data = self.server.runtime.update_servo_meta_in_profile(servo_name, updates)
+                self._send_json(200, {"ok": True, "data": data})
                 return
 
             if path == "/v1/mira-light/device/hello":
@@ -393,7 +455,6 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if path == "/v1/mira-light/device/status":
                 body = self._read_json_body()
                 stored = self.ingest_store.persist_report("status", body)
-                self.server.runtime.sync_safety_from_status(body)
                 self._record_device_outcome("status", body, stored)
                 self._send_json(200, {"ok": True, "stored": stored})
                 return
@@ -409,10 +470,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
         except KeyError as exc:
             self._send_json(404, {"ok": False, "error": str(exc)})
         except SafetyViolation as exc:
-            self._send_json(400, {"ok": False, "error": str(exc), "safety": exc.to_dict()})
+            self._send_json(400, {"ok": False, "safety": exc.to_dict(), "error": str(exc)})
         except RuntimeError as exc:
             message = str(exc)
-            status_code = 409 if "already running" in message else 400
+            status_code = 409 if "already running" in message or "while a scene is running" in message else 400
             self._send_json(status_code, {"ok": False, "error": message})
         except Exception as exc:  # noqa: BLE001
             self._send_json(500, {"ok": False, "error": str(exc)})

@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "我这边刚查了，设备有记录但蓝牙现在是离线状态，暂时拿不到你当前心跳。要不要我再试一次，或者先看最近一次同步数据？"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我这边刚查了，设备有记录但蓝牙现在是离线状态，暂时拿不到你当前心跳。要不要我再试一次，或者先看最近一次同步数据？",
+  "spokenText": "我这边刚查了，设备有记录但蓝牙现在是离线状态，暂时拿不到你当前心跳。要不要我再试一次，或者先看最近一次同步数据？"
+}
