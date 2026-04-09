@@ -43,6 +43,14 @@ from bus_servo_transport import (
     DryRunBusServoTransport,
     TcpBusServoTransport,
 )
+from mira_light_signal_contract import (
+    DEFAULT_LED_PIXEL_COUNT,
+    HEAD_CAPACITIVE_FIELD,
+    coerce_int,
+    normalize_binary_signal,
+    normalize_rgb_triplet,
+    normalize_vector_pixels,
+)
 from mira_light_audio import AudioCuePlayer
 from scenes import (
     COMFORT_WARM,
@@ -68,7 +76,7 @@ VALID_CONTROL_MODES = {"absolute", "relative"}
 VALID_LED_MODES = {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}
 VALID_SPEAK_VOICES = {"tts", "openclaw", "say", "default", "host", "narration"}
 MAX_RELATIVE_DELTA = 45
-LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
+LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", str(DEFAULT_LED_PIXEL_COUNT)))
 MAX_PUBLIC_SPEAK_CHARS = int(os.environ.get("MIRA_LIGHT_MAX_SPEAK_CHARS", "80"))
 SUPPORTED_TCP_ACTIONS = ("control", "pose", "scene", "tracking", "sensor_cache")
 TCP_LED_UNSUPPORTED_REASON = "raw TCP servo endpoint does not expose a dedicated LED protocol"
@@ -92,56 +100,7 @@ class PayloadValidationError(RuntimeError):
 
 
 def _coerce_int(value: Any, *, field_name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise PayloadValidationError(f"{field_name} must be an integer")
-    if int(value) != value:
-        raise PayloadValidationError(f"{field_name} must be an integer")
-    return int(value)
-
-
-def _normalize_rgb_triplet(
-    value: Any,
-    *,
-    field_name: str,
-    allow_brightness: bool = False,
-) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b"}
-        if allow_brightness:
-            allowed.add("brightness")
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise PayloadValidationError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        missing = [channel for channel in ("r", "g", "b") if channel not in value]
-        if missing:
-            raise PayloadValidationError(f"{field_name} is missing channels: {', '.join(missing)}")
-        red = _coerce_int(value["r"], field_name=f"{field_name}.r")
-        green = _coerce_int(value["g"], field_name=f"{field_name}.g")
-        blue = _coerce_int(value["b"], field_name=f"{field_name}.b")
-        brightness = None
-        if allow_brightness and "brightness" in value:
-            brightness = _coerce_int(value["brightness"], field_name=f"{field_name}.brightness")
-    elif isinstance(value, (list, tuple)) and len(value) in {3, 4 if allow_brightness else 3}:
-        red = _coerce_int(value[0], field_name=f"{field_name}[0]")
-        green = _coerce_int(value[1], field_name=f"{field_name}[1]")
-        blue = _coerce_int(value[2], field_name=f"{field_name}[2]")
-        brightness = None
-        if allow_brightness and len(value) == 4:
-            brightness = _coerce_int(value[3], field_name=f"{field_name}[3]")
-    else:
-        if allow_brightness:
-            raise PayloadValidationError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
-        raise PayloadValidationError(f"{field_name} must be an RGB object or 3-value vector")
-
-    normalized = {"r": red, "g": green, "b": blue}
-    for channel_name, channel_value in normalized.items():
-        if not 0 <= channel_value <= 255:
-            raise PayloadValidationError(f"{field_name}.{channel_name} must be between 0 and 255")
-    if brightness is not None:
-        if not 0 <= brightness <= 255:
-            raise PayloadValidationError(f"{field_name}.brightness must be between 0 and 255")
-        normalized["brightness"] = brightness
-    return normalized
+    return coerce_int(value, field_name=field_name, error_cls=PayloadValidationError)
 
 
 def _load_profile_file(path: Path) -> dict[str, Any]:
@@ -840,17 +799,13 @@ class MiraLightRuntime:
             if not isinstance(pixels, list):
                 raise PayloadValidationError("pixels must be a list when mode=vector")
             if len(pixels) != LED_PIXEL_COUNT:
-                raise PayloadValidationError(
-                    f"pixels must contain exactly {LED_PIXEL_COUNT} RGB or RGBA entries"
-                )
-            normalized["pixels"] = [
-                _normalize_rgb_triplet(
-                    pixel,
-                    field_name=f"pixels[{index}]",
-                    allow_brightness=True,
-                )
-                for index, pixel in enumerate(pixels)
-            ]
+                raise PayloadValidationError(f"pixels must contain exactly {LED_PIXEL_COUNT} RGB or RGBA entries")
+            normalized["pixels"] = normalize_vector_pixels(
+                pixels,
+                pixel_count=LED_PIXEL_COUNT,
+                default_brightness=normalized.get("brightness"),
+                error_cls=PayloadValidationError,
+            )
             return normalized
 
         if "pixels" in payload:
@@ -859,7 +814,11 @@ class MiraLightRuntime:
         if mode in {"solid", "breathing"}:
             if "color" not in payload:
                 raise PayloadValidationError(f"color is required when mode={mode}")
-            normalized["color"] = _normalize_rgb_triplet(payload["color"], field_name="color")
+            normalized["color"] = normalize_rgb_triplet(
+                payload["color"],
+                field_name="color",
+                error_cls=PayloadValidationError,
+            )
             return normalized
 
         if "color" in payload:
@@ -908,18 +867,20 @@ class MiraLightRuntime:
         if not isinstance(payload, dict):
             raise PayloadValidationError("Sensor payload must be a JSON object")
 
-        allowed_keys = {"headCapacitive"}
+        allowed_keys = {HEAD_CAPACITIVE_FIELD}
         unknown = sorted(set(payload) - allowed_keys)
         if unknown:
             raise PayloadValidationError(f"Unsupported sensor fields: {', '.join(unknown)}")
 
-        if "headCapacitive" not in payload:
-            raise PayloadValidationError("headCapacitive is required")
+        if HEAD_CAPACITIVE_FIELD not in payload:
+            raise PayloadValidationError(f"{HEAD_CAPACITIVE_FIELD} is required")
 
-        signal = _coerce_int(payload["headCapacitive"], field_name="headCapacitive")
-        if signal not in {0, 1}:
-            raise PayloadValidationError("headCapacitive must be 0 or 1")
-        return {"headCapacitive": signal}
+        signal = normalize_binary_signal(
+            payload[HEAD_CAPACITIVE_FIELD],
+            field_name=HEAD_CAPACITIVE_FIELD,
+            error_cls=PayloadValidationError,
+        )
+        return {HEAD_CAPACITIVE_FIELD: signal}
 
     def control_joints(self, payload: Dict[str, Any]) -> Any:
         self._ensure_manual_control_allowed("control joints")

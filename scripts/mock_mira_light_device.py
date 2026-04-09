@@ -41,6 +41,18 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from mira_light_signal_contract import (
+    DEFAULT_LED_PIXEL_COUNT,
+    HEAD_CAPACITIVE_FIELD,
+    coerce_int,
+    make_uniform_pixels,
+    normalize_binary_signal,
+    normalize_led_pixel,
+    normalize_rgb_triplet,
+    off_pixels,
+    pixel_signal,
+    rgb_channels,
+)
 from scenes import POSES
 
 
@@ -49,116 +61,11 @@ DEFAULT_ACTIONS = [
     {"name": "wiggle", "label": "Wiggle", "loopsSupported": True},
     {"name": "wave", "label": "Wave", "loopsSupported": False},
 ]
-DEFAULT_LED_COUNT = 40
+DEFAULT_LED_COUNT = DEFAULT_LED_PIXEL_COUNT
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-
-
-def coerce_int(value: Any, *, field_name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{field_name} must be an integer")
-    if int(value) != value:
-        raise ValueError(f"{field_name} must be an integer")
-    return int(value)
-
-
-def normalize_u8(value: Any, *, field_name: str) -> int:
-    channel = coerce_int(value, field_name=field_name)
-    if not 0 <= channel <= 255:
-        raise ValueError(f"{field_name} must be between 0 and 255")
-    return channel
-
-
-def normalize_binary_signal(value: Any, *, field_name: str) -> int:
-    signal = coerce_int(value, field_name=field_name)
-    if signal not in {0, 1}:
-        raise ValueError(f"{field_name} must be 0 or 1")
-    return signal
-
-
-def normalize_rgb(value: Any, *, field_name: str) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b"}
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        missing = [channel for channel in ("r", "g", "b") if channel not in value]
-        if missing:
-            raise ValueError(f"{field_name} is missing channels: {', '.join(missing)}")
-        red = normalize_u8(value["r"], field_name=f"{field_name}.r")
-        green = normalize_u8(value["g"], field_name=f"{field_name}.g")
-        blue = normalize_u8(value["b"], field_name=f"{field_name}.b")
-    elif isinstance(value, (list, tuple)) and len(value) == 3:
-        red = normalize_u8(value[0], field_name=f"{field_name}[0]")
-        green = normalize_u8(value[1], field_name=f"{field_name}[1]")
-        blue = normalize_u8(value[2], field_name=f"{field_name}[2]")
-    else:
-        raise ValueError(f"{field_name} must be an RGB object or 3-value vector")
-
-    return {"r": red, "g": green, "b": blue}
-
-
-def normalize_led_pixel(
-    value: Any,
-    *,
-    field_name: str,
-    default_brightness: int | None,
-) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b", "brightness"}
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        channels = normalize_rgb(value, field_name=field_name)
-        brightness_raw = value.get("brightness", default_brightness)
-    elif isinstance(value, (list, tuple)) and len(value) in {3, 4}:
-        channels = normalize_rgb(value[:3], field_name=field_name)
-        brightness_raw = value[3] if len(value) == 4 else default_brightness
-    else:
-        raise ValueError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
-
-    if brightness_raw is None:
-        raise ValueError(f"{field_name}.brightness is required")
-
-    return {
-        **channels,
-        "brightness": normalize_u8(brightness_raw, field_name=f"{field_name}.brightness"),
-    }
-
-
-def make_pixel(*, red: int, green: int, blue: int, brightness: int) -> dict[str, int]:
-    return {"r": red, "g": green, "b": blue, "brightness": brightness}
-
-
-def rgb_channels(pixel: dict[str, int]) -> dict[str, int]:
-    return {"r": pixel["r"], "g": pixel["g"], "b": pixel["b"]}
-
-
-def pixel_signal(pixel: dict[str, int]) -> list[int]:
-    return [pixel["r"], pixel["g"], pixel["b"], pixel["brightness"]]
-
-
-def make_uniform_pixels(
-    *,
-    count: int,
-    color: dict[str, int],
-    brightness: int,
-) -> list[dict[str, int]]:
-    return [
-        make_pixel(
-            red=color["r"],
-            green=color["g"],
-            blue=color["b"],
-            brightness=brightness,
-        )
-        for _ in range(count)
-    ]
-
-
-def off_pixels(*, count: int) -> list[dict[str, int]]:
-    return [make_pixel(red=0, green=0, blue=0, brightness=0) for _ in range(count)]
 
 
 @dataclass
@@ -236,7 +143,7 @@ class MockDeviceState:
 
         self._default_servos = deepcopy(POSES["neutral"]["angles"])
         self._led_count = DEFAULT_LED_COUNT
-        self._default_sensors = {"headCapacitive": 0}
+        self._default_sensors = {HEAD_CAPACITIVE_FIELD: 0}
         self._default_led = {
             "mode": "off",
             "brightness": 0,
@@ -448,7 +355,7 @@ class MockDeviceState:
 
         color = deepcopy(self._led_state.get("color", {"r": 0, "g": 0, "b": 0}))
         if "color" in payload:
-            color = normalize_rgb(payload["color"], field_name="color")
+            color = normalize_rgb_triplet(payload["color"], field_name="color")
 
         normalized: dict[str, Any] = {
             "mode": mode,
@@ -497,11 +404,11 @@ class MockDeviceState:
 
     def apply_sensors(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
-            if "headCapacitive" not in payload:
-                raise ValueError("headCapacitive is required")
-            self._sensor_state["headCapacitive"] = normalize_binary_signal(
-                payload["headCapacitive"],
-                field_name="headCapacitive",
+            if HEAD_CAPACITIVE_FIELD not in payload:
+                raise ValueError(f"{HEAD_CAPACITIVE_FIELD} is required")
+            self._sensor_state[HEAD_CAPACITIVE_FIELD] = normalize_binary_signal(
+                payload[HEAD_CAPACITIVE_FIELD],
+                field_name=HEAD_CAPACITIVE_FIELD,
             )
             response = {"ok": True, "sensors": deepcopy(self._sensor_state)}
         self._persist_state()
@@ -530,10 +437,10 @@ class MockDeviceState:
                 sensors = payload["sensors"]
                 if not isinstance(sensors, dict):
                     raise ValueError("sensors must be an object")
-                if "headCapacitive" in sensors:
-                    self._sensor_state["headCapacitive"] = normalize_binary_signal(
-                        sensors["headCapacitive"],
-                        field_name="sensors.headCapacitive",
+                if HEAD_CAPACITIVE_FIELD in sensors:
+                    self._sensor_state[HEAD_CAPACITIVE_FIELD] = normalize_binary_signal(
+                        sensors[HEAD_CAPACITIVE_FIELD],
+                        field_name=f"sensors.{HEAD_CAPACITIVE_FIELD}",
                     )
 
         self._persist_state()

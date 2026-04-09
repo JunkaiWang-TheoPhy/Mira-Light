@@ -27,10 +27,21 @@ from threading import Event, Lock, Thread
 import time
 from typing import Any
 
+from mira_light_signal_contract import (
+    DEFAULT_LED_PIXEL_COUNT,
+    HEAD_CAPACITIVE_FIELD,
+    build_led_status_payload,
+    coerce_int,
+    normalize_binary_signal,
+    normalize_led_pixel,
+    normalize_rgb_triplet,
+    off_pixels,
+)
+
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9791
-DEFAULT_LED_COUNT = 40
+DEFAULT_LED_COUNT = DEFAULT_LED_PIXEL_COUNT
 DEFAULT_LED_PIN = 2
 SERVO_LAYOUT = [
     {"id": 1, "name": "servo1", "pin": 18},
@@ -52,88 +63,8 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def coerce_int(value: Any, *, field_name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{field_name} must be an integer")
-    if int(value) != value:
-        raise ValueError(f"{field_name} must be an integer")
-    return int(value)
-
-
 def clamp_angle(value: int) -> int:
     return max(0, min(180, value))
-
-
-def normalize_u8(value: Any, *, field_name: str) -> int:
-    channel = coerce_int(value, field_name=field_name)
-    if not 0 <= channel <= 255:
-        raise ValueError(f"{field_name} must be between 0 and 255")
-    return channel
-
-
-def normalize_rgb(value: Any, *, field_name: str) -> dict[str, int]:
-    if isinstance(value, dict):
-        channels = {channel: coerce_int(value[channel], field_name=f"{field_name}.{channel}") for channel in ("r", "g", "b")}
-    elif isinstance(value, (list, tuple)) and len(value) == 3:
-        channels = {
-            "r": coerce_int(value[0], field_name=f"{field_name}[0]"),
-            "g": coerce_int(value[1], field_name=f"{field_name}[1]"),
-            "b": coerce_int(value[2], field_name=f"{field_name}[2]"),
-        }
-    else:
-        raise ValueError(f"{field_name} must be an RGB object or 3-value vector")
-
-    for channel, raw in channels.items():
-        if not 0 <= raw <= 255:
-            raise ValueError(f"{field_name}.{channel} must be between 0 and 255")
-    return channels
-
-
-def normalize_led_pixel(
-    value: Any,
-    *,
-    field_name: str,
-    default_brightness: int | None,
-) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b", "brightness"}
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        channels = normalize_rgb(value, field_name=field_name)
-        brightness_raw = value.get("brightness", default_brightness)
-    elif isinstance(value, (list, tuple)) and len(value) in {3, 4}:
-        channels = normalize_rgb(value[:3], field_name=field_name)
-        brightness_raw = value[3] if len(value) == 4 else default_brightness
-    else:
-        raise ValueError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
-
-    if brightness_raw is None:
-        raise ValueError(f"{field_name}.brightness is required")
-
-    return {
-        **channels,
-        "brightness": normalize_u8(brightness_raw, field_name=f"{field_name}.brightness"),
-    }
-
-
-def normalize_binary_signal(value: Any, *, field_name: str) -> int:
-    signal = coerce_int(value, field_name=field_name)
-    if signal not in {0, 1}:
-        raise ValueError(f"{field_name} must be 0 or 1")
-    return signal
-
-
-def make_pixel(*, red: int, green: int, blue: int, brightness: int) -> dict[str, int]:
-    return {"r": red, "g": green, "b": blue, "brightness": brightness}
-
-
-def rgb_channels(pixel: dict[str, int]) -> dict[str, int]:
-    return {"r": pixel["r"], "g": pixel["g"], "b": pixel["b"]}
-
-
-def pixel_signal(pixel: dict[str, int]) -> list[int]:
-    return [pixel["r"], pixel["g"], pixel["b"], pixel["brightness"]]
 
 
 @dataclass
@@ -154,17 +85,17 @@ class MockLampState:
     def __post_init__(self) -> None:
         if not self.pixels:
             self.pixels = [
-                make_pixel(
-                    red=self.color["r"],
-                    green=self.color["g"],
-                    blue=self.color["b"],
-                    brightness=self.brightness,
-                )
+                {
+                    "r": self.color["r"],
+                    "g": self.color["g"],
+                    "b": self.color["b"],
+                    "brightness": self.brightness,
+                }
                 for _ in range(self.led_count)
             ]
 
     def sensors_payload(self) -> dict[str, int]:
-        return {"headCapacitive": self.head_capacitive}
+        return {HEAD_CAPACITIVE_FIELD: self.head_capacitive}
 
     def status_payload(self) -> dict[str, Any]:
         return {
@@ -182,17 +113,14 @@ class MockLampState:
         }
 
     def led_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "mode": self.led_mode,
-            "brightness": self.brightness,
-            "color": dict(self.color),
-            "led_count": self.led_count,
-            "pin": DEFAULT_LED_PIN,
-            "pixelSignals": [pixel_signal(pixel) for pixel in self.pixels],
-        }
-        if self.led_mode == "vector":
-            payload["pixels"] = [rgb_channels(pixel) for pixel in self.pixels]
-        return payload
+        return build_led_status_payload(
+            mode=self.led_mode,
+            brightness=self.brightness,
+            color=self.color,
+            pixels=self.pixels,
+            led_count=self.led_count,
+            pin=DEFAULT_LED_PIN,
+        )
 
     def actions_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -243,16 +171,16 @@ class MockLampController:
     def _rebuild_uniform_pixels(self, *, off: bool = False) -> None:
         if off:
             self.state.pixels = [
-                make_pixel(red=0, green=0, blue=0, brightness=0) for _ in range(self.state.led_count)
+                {"r": 0, "g": 0, "b": 0, "brightness": 0} for _ in range(self.state.led_count)
             ]
             return
         self.state.pixels = [
-            make_pixel(
-                red=self.state.color["r"],
-                green=self.state.color["g"],
-                blue=self.state.color["b"],
-                brightness=self.state.brightness,
-            )
+            {
+                "r": self.state.color["r"],
+                "g": self.state.color["g"],
+                "b": self.state.color["b"],
+                "brightness": self.state.brightness,
+            }
             for _ in range(self.state.led_count)
         ]
 
@@ -309,7 +237,7 @@ class MockLampController:
                 self.state.brightness = brightness
 
             if "color" in payload:
-                self.state.color = normalize_rgb(payload["color"], field_name="color")
+                self.state.color = normalize_rgb_triplet(payload["color"], field_name="color")
 
             if self.state.led_mode == "vector":
                 raw_pixels = payload.get("pixelSignals", payload.get("pixels"))
@@ -343,10 +271,10 @@ class MockLampController:
     def set_sensors(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
             if "headCapacitive" not in payload:
-                raise ValueError("headCapacitive is required")
+                raise ValueError(f"{HEAD_CAPACITIVE_FIELD} is required")
             self.state.head_capacitive = normalize_binary_signal(
-                payload["headCapacitive"],
-                field_name="headCapacitive",
+                payload[HEAD_CAPACITIVE_FIELD],
+                field_name=HEAD_CAPACITIVE_FIELD,
             )
             self.state.last_command_at = now_iso()
             return {

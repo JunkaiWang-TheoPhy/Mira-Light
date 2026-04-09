@@ -53,6 +53,38 @@ VOICE_MODE_ALIASES = {
     "": DEFAULT_MIRA_TTS_MODE,
 }
 
+PREPARE_COMMAND_CANDIDATES = [
+    "speaker-hp-use",
+    "speaker-bose-use",
+    "speaker-boss-use",
+]
+
+PLAY_COMMAND_CANDIDATES = [
+    "speaker-hp-play",
+    "speaker-bose-play",
+    "speaker-boss-play",
+    "afplay",
+]
+
+TTS_PLAY_COMMAND_CANDIDATES = [
+    "speaker-hp-tts-play",
+    "speaker-bose-tts-play",
+    "speaker-boss-tts-play",
+]
+
+OPENCLAW_TTS_PLAY_COMMAND_CANDIDATES = [
+    "speaker-hp-openclaw-tts-play",
+    "speaker-bose-openclaw-tts-play",
+    "speaker-boss-openclaw-tts-play",
+]
+
+SAY_COMMAND_CANDIDATES = [
+    "speaker-hp-say",
+    "speaker-bose-say",
+    "speaker-boss-say",
+    "say",
+]
+
 
 def _truthy(value: str | None, *, default: bool = False) -> bool:
     if value is None:
@@ -112,6 +144,13 @@ class AudioCuePlayer:
             return str(local_bin)
         return None
 
+    def _find_first_command(self, candidates: list[str]) -> str | None:
+        for candidate in candidates:
+            found = self._find_command(candidate)
+            if found:
+                return found
+        return None
+
     def _resolve_prepare_command(self) -> list[str] | None:
         raw = os.environ.get("MIRA_LIGHT_AUDIO_PREPARE_CMD", "").strip()
         if raw:
@@ -120,7 +159,7 @@ class AudioCuePlayer:
         if not _truthy(os.environ.get("MIRA_LIGHT_AUDIO_PREPARE_ENABLED"), default=True):
             return None
 
-        preferred = self._find_command("speaker-hp-use")
+        preferred = self._find_first_command(PREPARE_COMMAND_CANDIDATES)
         if preferred:
             return [preferred]
         return None
@@ -185,18 +224,17 @@ class AudioCuePlayer:
         return {"ok": True, "command": command, "description": description, "pid": process.pid}
 
     def _build_play_command(self, asset_path: Path) -> list[str]:
-        player = self._find_command("speaker-hp-play")
-        if player:
-            return [player, str(asset_path)]
-
-        player = self._find_command("afplay")
+        player = self._find_first_command(PLAY_COMMAND_CANDIDATES)
         if player:
             return [player, str(asset_path)]
 
         if self.dry_run:
             return ["play-asset", str(asset_path)]
 
-        raise RuntimeError("No local audio playback command found (expected speaker-hp-play or afplay)")
+        raise RuntimeError(
+            "No local audio playback command found "
+            "(expected speaker-hp-play, speaker-bose-play, speaker-boss-play, or afplay)"
+        )
 
     def _resolve_voice_mode(self, requested: str) -> str:
         normalized = (requested or "").strip().lower()
@@ -230,13 +268,13 @@ class AudioCuePlayer:
         requested = self._resolve_voice_mode(voice)
 
         if requested == "openclaw":
-            command = self._find_command("speaker-hp-openclaw-tts-play")
+            command = self._find_first_command(OPENCLAW_TTS_PLAY_COMMAND_CANDIDATES)
             if command:
                 return [command, text]
 
         profile = self._resolve_tts_profile(requested)
         if profile is not None:
-            preferred_tts = self._find_command("speaker-hp-tts-play")
+            preferred_tts = self._find_first_command(TTS_PLAY_COMMAND_CANDIDATES)
             if preferred_tts:
                 return [
                     preferred_tts,
@@ -251,21 +289,24 @@ class AudioCuePlayer:
                     text,
                 ]
 
-            for name in ("speaker-hp-openclaw-tts-play", "speaker-hp-say", "say"):
-                command = self._find_command(name)
-                if command:
-                    return [command, text]
+            command = self._find_first_command(
+                [*OPENCLAW_TTS_PLAY_COMMAND_CANDIDATES, *SAY_COMMAND_CANDIDATES]
+            )
+            if command:
+                return [command, text]
 
         if requested == "say":
-            for name in ("speaker-hp-say", "say"):
-                command = self._find_command(name)
-                if command:
-                    return [command, text]
+            command = self._find_first_command(SAY_COMMAND_CANDIDATES)
+            if command:
+                return [command, text]
 
         if self.dry_run:
             return [f"speech:{requested or 'tts'}", text]
 
-        raise RuntimeError("No local speech command found (expected speaker-hp-tts-play, speaker-hp-say, or say)")
+        raise RuntimeError(
+            "No local speech command found "
+            "(expected HP/Bose/Boss TTS helpers or say)"
+        )
 
     def play_asset(
         self,
