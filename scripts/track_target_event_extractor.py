@@ -280,6 +280,36 @@ def parse_args() -> argparse.Namespace:
         default=2.2,
         help="Maximum bbox aspect ratio (w/h) for a tabletop candidate.",
     )
+    parser.add_argument(
+        "--tabletop-hold-missing-frames",
+        type=int,
+        default=6,
+        help="How many consecutive empty frames to keep the last tabletop target alive before declaring loss.",
+    )
+    parser.add_argument(
+        "--tabletop-switch-margin",
+        type=float,
+        default=0.34,
+        help="Required score advantage before tabletop mode abandons the current stable target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-center-distance",
+        type=float,
+        default=0.22,
+        help="Maximum normalized center distance allowed when recovering the previous tabletop target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-size-delta",
+        type=float,
+        default=0.065,
+        help="Maximum |size_norm| delta allowed when recovering the previous tabletop target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-aspect-delta",
+        type=float,
+        default=0.48,
+        help="Maximum |aspect_ratio| delta allowed when recovering the previous tabletop target.",
+    )
     return parser.parse_args()
 
 
@@ -514,6 +544,15 @@ def continuity_size_delta(track: dict[str, Any], reference: dict[str, Any]) -> f
     return abs(track_size - ref_size)
 
 
+def continuity_metric_delta(track: dict[str, Any], reference: dict[str, Any], key: str) -> float | None:
+    try:
+        track_value = float(track.get(key))
+        ref_value = float(reference.get(key))
+    except (TypeError, ValueError):
+        return None
+    return abs(track_value - ref_value)
+
+
 def find_continuity_target(
     tracks: list[dict[str, Any]],
     reference: dict[str, Any] | None,
@@ -550,6 +589,54 @@ def find_continuity_target(
     return best_track, best_center_distance, best_size_delta
 
 
+def find_tabletop_continuity_target(
+    tracks: list[dict[str, Any]],
+    reference: dict[str, Any] | None,
+    *,
+    max_center_distance: float,
+    max_size_delta: float,
+    max_aspect_delta: float,
+) -> tuple[dict[str, Any] | None, dict[str, float | None]]:
+    if reference is None:
+        return None, {}
+
+    best_track = None
+    best_metric = 999.0
+    best_diagnostics: dict[str, float | None] = {}
+
+    for item in tracks:
+        if str(item.get("target_mode") or "") != "tabletop_follow":
+            continue
+        center_distance = continuity_center_distance(item, reference)
+        if center_distance is None or center_distance > max_center_distance:
+            continue
+        size_delta = continuity_size_delta(item, reference)
+        if size_delta is not None and size_delta > max_size_delta:
+            continue
+        aspect_delta = continuity_metric_delta(item, reference, "aspect_ratio")
+        if aspect_delta is not None and aspect_delta > max_aspect_delta:
+            continue
+        edge_delta = continuity_metric_delta(item, reference, "edge_ratio")
+        motion_delta = continuity_metric_delta(item, reference, "motion_ratio")
+        metric = center_distance
+        metric += (size_delta or 0.0) * 0.7
+        metric += (aspect_delta or 0.0) * 0.3
+        metric += (edge_delta or 0.0) * 0.25
+        metric += (motion_delta or 0.0) * 0.15
+        if metric < best_metric:
+            best_metric = metric
+            best_track = item
+            best_diagnostics = {
+                "continuity_distance_norm": center_distance,
+                "continuity_size_delta": size_delta,
+                "continuity_aspect_delta": aspect_delta,
+                "continuity_edge_delta": edge_delta,
+                "continuity_motion_delta": motion_delta,
+            }
+
+    return best_track, best_diagnostics
+
+
 def decorate_selected_target(
     track: dict[str, Any],
     *,
@@ -558,6 +645,9 @@ def decorate_selected_target(
     best_score: float | None = None,
     continuity_distance_norm: float | None = None,
     continuity_size_delta: float | None = None,
+    continuity_aspect_delta: float | None = None,
+    continuity_edge_delta: float | None = None,
+    continuity_motion_delta: float | None = None,
 ) -> dict[str, Any]:
     selected = dict(track)
     selected["lock_state"] = lock_state
@@ -572,6 +662,12 @@ def decorate_selected_target(
         selected["continuity_distance_norm"] = round(continuity_distance_norm, 4)
     if continuity_size_delta is not None:
         selected["continuity_size_delta"] = round(continuity_size_delta, 4)
+    if continuity_aspect_delta is not None:
+        selected["continuity_aspect_delta"] = round(continuity_aspect_delta, 4)
+    if continuity_edge_delta is not None:
+        selected["continuity_edge_delta"] = round(continuity_edge_delta, 4)
+    if continuity_motion_delta is not None:
+        selected["continuity_motion_delta"] = round(continuity_motion_delta, 4)
     return selected
 
 
@@ -585,12 +681,28 @@ def choose_selected_target(
     if not tracks:
         return None
 
-    switch_margin = float(getattr(args, "selected_target_switch_margin", 0.22))
-    max_center_distance = float(getattr(args, "selected_target_max_center_distance", 0.16))
-    max_size_delta = float(getattr(args, "selected_target_max_size_delta", 0.045))
     ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
     best_track = ranked[0]
     best_score = float(best_track.get("selection_score", 0.0) or 0.0)
+    last_selected_mode = state.last_selected_target.get("target_mode") if state.last_selected_target else None
+    mode = str(best_track.get("target_mode") or last_selected_mode or "person_follow")
+    is_tabletop = mode == "tabletop_follow"
+    switch_margin = float(
+        getattr(args, "tabletop_switch_margin", 0.34)
+        if is_tabletop
+        else getattr(args, "selected_target_switch_margin", 0.22)
+    )
+    max_center_distance = float(
+        getattr(args, "tabletop_max_center_distance", 0.22)
+        if is_tabletop
+        else getattr(args, "selected_target_max_center_distance", 0.16)
+    )
+    max_size_delta = float(
+        getattr(args, "tabletop_max_size_delta", 0.065)
+        if is_tabletop
+        else getattr(args, "selected_target_max_size_delta", 0.045)
+    )
+    max_aspect_delta = float(getattr(args, "tabletop_max_aspect_delta", 0.48))
 
     operator_lock_track_id = parse_operator_lock_track_id(operator_state)
     if operator_lock_track_id is not None:
@@ -627,28 +739,56 @@ def choose_selected_target(
         return decorate_selected_target(
             locked_track,
             lock_state="locked",
-            reason="previous selected target still visible",
+            reason=(
+                "previous selected tabletop target still visible"
+                if str(locked_track.get("target_mode") or "") == "tabletop_follow"
+                else "previous selected target still visible"
+            ),
             best_score=best_score,
         )
 
-    continuity_track, continuity_distance, continuity_size = find_continuity_target(
-        tracks,
-        state.last_selected_target,
-        max_center_distance=max_center_distance,
-        max_size_delta=max_size_delta,
-    )
-    if continuity_track is not None:
-        margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
-        if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
-            state.selected_track_id = int(continuity_track["track_id"])
-            return decorate_selected_target(
-                continuity_track,
-                lock_state="locked",
-                reason="recovered previous selected target by spatial continuity",
-                best_score=best_score,
-                continuity_distance_norm=continuity_distance,
-                continuity_size_delta=continuity_size,
-            )
+    if is_tabletop:
+        continuity_track, continuity_diagnostics = find_tabletop_continuity_target(
+            tracks,
+            state.last_selected_target,
+            max_center_distance=max_center_distance,
+            max_size_delta=max_size_delta,
+            max_aspect_delta=max_aspect_delta,
+        )
+        if continuity_track is not None:
+            margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
+            if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
+                state.selected_track_id = int(continuity_track["track_id"])
+                return decorate_selected_target(
+                    continuity_track,
+                    lock_state="locked",
+                    reason="recovered previous tabletop target by spatial continuity",
+                    best_score=best_score,
+                    continuity_distance_norm=continuity_diagnostics.get("continuity_distance_norm"),
+                    continuity_size_delta=continuity_diagnostics.get("continuity_size_delta"),
+                    continuity_aspect_delta=continuity_diagnostics.get("continuity_aspect_delta"),
+                    continuity_edge_delta=continuity_diagnostics.get("continuity_edge_delta"),
+                    continuity_motion_delta=continuity_diagnostics.get("continuity_motion_delta"),
+                )
+    else:
+        continuity_track, continuity_distance, continuity_size = find_continuity_target(
+            tracks,
+            state.last_selected_target,
+            max_center_distance=max_center_distance,
+            max_size_delta=max_size_delta,
+        )
+        if continuity_track is not None:
+            margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
+            if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
+                state.selected_track_id = int(continuity_track["track_id"])
+                return decorate_selected_target(
+                    continuity_track,
+                    lock_state="locked",
+                    reason="recovered previous selected target by spatial continuity",
+                    best_score=best_score,
+                    continuity_distance_norm=continuity_distance,
+                    continuity_size_delta=continuity_size,
+                )
 
     selected = dict(best_track)
     if len(tracks) == 1:
@@ -656,7 +796,7 @@ def choose_selected_target(
         return decorate_selected_target(
             selected,
             lock_state="locked",
-            reason="single visible target",
+            reason="single visible tabletop target" if is_tabletop else "single visible target",
             best_score=best_score,
         )
     else:
@@ -664,7 +804,11 @@ def choose_selected_target(
         return decorate_selected_target(
             selected,
             lock_state="candidate",
-            reason="highest score among multiple visible targets",
+            reason=(
+                "highest score among multiple visible tabletop targets"
+                if is_tabletop
+                else "highest score among multiple visible targets"
+            ),
             best_score=best_score,
         )
 
@@ -716,13 +860,17 @@ def hold_selected_target(state: ExtractorState, args: argparse.Namespace) -> dic
         return None
     if not state.last_target_present:
         return None
-    if state.missing_frame_count > args.hold_missing_frames:
+    target_mode = str(state.last_selected_target.get("target_mode") or "person_follow")
+    hold_limit = args.tabletop_hold_missing_frames if target_mode == "tabletop_follow" else args.hold_missing_frames
+    if state.missing_frame_count > hold_limit:
         return None
 
     held = dict(state.last_selected_target)
-    held["confidence"] = round(max(0.35, float(held.get("confidence") or 0.0) * 0.84), 4)
+    confidence_decay = 0.90 if target_mode == "tabletop_follow" else 0.84
+    held["confidence"] = round(max(0.35, float(held.get("confidence") or 0.0) * confidence_decay), 4)
     held["lock_state"] = "held"
-    held["reason"] = f"short occlusion hold ({state.missing_frame_count}/{args.hold_missing_frames})"
+    hold_label = "tabletop occlusion hold" if target_mode == "tabletop_follow" else "short occlusion hold"
+    held["reason"] = f"{hold_label} ({state.missing_frame_count}/{hold_limit})"
     held["approach_state"] = "stable"
     held["score_margin_to_best"] = 0.0
     return held
@@ -800,10 +948,17 @@ def detect_tabletop_object_candidates(
             previous_size_norm=previous_size_norm,
         )
         entry["roi_mode"] = "tabletop"
-        entry["selection_score"] = round(float(entry["selection_score"]) + 0.12 + min(edge_ratio, 0.18), 4)
+        object_lock_strength = 0.0
+        object_lock_strength += float(entry["selection_score"])
+        object_lock_strength += min(edge_ratio * 0.9, 0.18)
+        object_lock_strength += min(motion_ratio * 0.6, 0.10)
+        object_lock_strength += min(fill_ratio * 0.18, 0.08)
+        entry["selection_score"] = round(object_lock_strength + 0.12, 4)
         entry["edge_ratio"] = round(edge_ratio, 4)
         entry["motion_ratio"] = round(motion_ratio, 4)
         entry["aspect_ratio"] = round(aspect_ratio, 4)
+        entry["fill_ratio"] = round(fill_ratio, 4)
+        entry["object_lock_strength"] = round(object_lock_strength, 4)
         candidates.append(entry)
 
     return candidates
@@ -1198,6 +1353,8 @@ def build_event(
     if selected_target is not None:
         event["tracking"]["selected_lock_state"] = selected_target.get("lock_state")
         event["tracking"]["selected_reason"] = selected_target.get("reason")
+        event["tracking"]["roi_mode"] = selected_target.get("roi_mode")
+        event["tracking"]["object_lock_strength"] = selected_target.get("object_lock_strength")
         event["selected_target"] = {
             "track_id": selected_target.get("track_id"),
             "lock_state": selected_target.get("lock_state"),
@@ -1217,6 +1374,15 @@ def build_event(
             "score_margin_to_best": selected_target.get("score_margin_to_best"),
             "continuity_distance_norm": selected_target.get("continuity_distance_norm"),
             "continuity_size_delta": selected_target.get("continuity_size_delta"),
+            "continuity_aspect_delta": selected_target.get("continuity_aspect_delta"),
+            "continuity_edge_delta": selected_target.get("continuity_edge_delta"),
+            "continuity_motion_delta": selected_target.get("continuity_motion_delta"),
+            "roi_mode": selected_target.get("roi_mode"),
+            "edge_ratio": selected_target.get("edge_ratio"),
+            "motion_ratio": selected_target.get("motion_ratio"),
+            "aspect_ratio": selected_target.get("aspect_ratio"),
+            "fill_ratio": selected_target.get("fill_ratio"),
+            "object_lock_strength": selected_target.get("object_lock_strength"),
         }
     if multi_target_payload:
         event["payload"] = multi_target_payload

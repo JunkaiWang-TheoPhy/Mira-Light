@@ -38,6 +38,8 @@
 19. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
 20. [Vision Target Stability and Bridge Observability Upgrade](./29-vision-target-stability-and-bridge-observability-upgrade.md)
 21. [Tabletop Target Mode First Pass](./30-tabletop-target-mode-first-pass.md)
+22. [Tabletop Target Locking and Selection Policy](./31-tabletop-target-locking-and-selection-policy.md)
+23. [Active Runtime Mira Light Bridge Tool Enablement and Live Validation](./32-active-runtime-mira-light-bridge-tool-enablement-and-live-validation.md)
 
 ## Integration and Operations
 

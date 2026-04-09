@@ -17,6 +17,13 @@
 3. [实时语音常见问题排查](./03-实时语音常见问题排查.md)
 4. [9527 总线舵机 TCP 帧协议与仓库对齐说明](./04-9527总线舵机TCP帧协议与仓库对齐说明.md)
 5. [CV 上展补强与验收路线](./05-CV上展补强与验收路线.md)
+6. [云端控灯链路现状与验收](./06-云端控灯链路现状与验收.md)
+
+其中第 5 篇已经同步到当前仓库进度，包含：
+
+- 人物目标稳定性第一轮补强
+- `tabletop_follow` 第一版落地
+- 桌面目标锁定策略与导演台诊断字段
 
 ## 说明
 
@@ -25,3 +32,4 @@
 - [../0000-mira-light-实时语音启动方式.md](../0000-mira-light-实时语音启动方式.md)
 - [../feature/26-realtime-voice-dialogue-lingzhu-and-voice-mode-progress.md](../feature/26-realtime-voice-dialogue-lingzhu-and-voice-mode-progress.md)
 - [../feature/25-on-site-troubleshooting-decision-tree.md](../feature/25-on-site-troubleshooting-decision-tree.md)
+- [../feature/32-active-runtime-mira-light-bridge-tool-enablement-and-live-validation.md](../feature/32-active-runtime-mira-light-bridge-tool-enablement-and-live-validation.md)

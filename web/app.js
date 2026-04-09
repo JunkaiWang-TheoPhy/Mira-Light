@@ -351,7 +351,7 @@ function renderVisionSummary() {
   if (visionTargetModeNote) {
     visionTargetModeNote.textContent =
       effectiveMode === "tabletop_follow"
-        ? "桌面 ROI + edge/motion 目标跟随"
+        ? `桌面 ROI + edge/motion 目标跟随${selectedTarget?.object_lock_strength != null ? ` · lock ${selectedTarget.object_lock_strength}` : ""}`
         : "人脸 / HOG / motion 主链";
   }
 
@@ -444,6 +444,29 @@ function renderVisionTrackList(tracks, selectedTarget, sceneHint, bridgeDecision
         reason.className = "vision-track-reason";
         reason.textContent = selectedTarget.reason;
         card.appendChild(reason);
+        if (selectedTarget.target_mode === "tabletop_follow") {
+          const diagnostics = document.createElement("div");
+          diagnostics.className = "vision-track-diagnostics";
+          diagnostics.innerHTML = `
+            <span>roi ${selectedTarget.roi_mode || "-"}</span>
+            <span>edge ${selectedTarget.edge_ratio ?? "-"}</span>
+            <span>motion ${selectedTarget.motion_ratio ?? "-"}</span>
+            <span>aspect ${selectedTarget.aspect_ratio ?? "-"}</span>
+            <span>lock ${selectedTarget.object_lock_strength ?? "-"}</span>
+            <span>margin ${selectedTarget.score_margin_to_best ?? "-"}</span>
+          `;
+          card.appendChild(diagnostics);
+          const continuity = document.createElement("div");
+          continuity.className = "vision-track-diagnostics";
+          continuity.innerHTML = `
+            <span>dc ${selectedTarget.continuity_distance_norm ?? "-"}</span>
+            <span>ds ${selectedTarget.continuity_size_delta ?? "-"}</span>
+            <span>da ${selectedTarget.continuity_aspect_delta ?? "-"}</span>
+            <span>de ${selectedTarget.continuity_edge_delta ?? "-"}</span>
+            <span>dm ${selectedTarget.continuity_motion_delta ?? "-"}</span>
+          `;
+          card.appendChild(continuity);
+        }
       }
 
       const actions = document.createElement("div");

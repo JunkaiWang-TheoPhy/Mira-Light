@@ -52,6 +52,11 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             tabletop_min_motion_ratio=0.01,
             tabletop_min_aspect_ratio=0.45,
             tabletop_max_aspect_ratio=2.2,
+            tabletop_hold_missing_frames=6,
+            tabletop_switch_margin=0.34,
+            tabletop_max_center_distance=0.22,
+            tabletop_max_size_delta=0.065,
+            tabletop_max_aspect_delta=0.48,
             hand_cue_min_area_ratio=0.0015,
             hand_cue_max_area_ratio=0.06,
             hand_cue_min_center_y=0.34,
@@ -108,6 +113,38 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertEqual(held["lock_state"], "held")
         self.assertIn("short occlusion hold", held["reason"])
         self.assertLess(float(held["confidence"]), 0.92)
+
+    def test_hold_selected_target_uses_longer_tabletop_hold_policy(self) -> None:
+        state = ExtractorState(
+            last_target_present=True,
+            missing_frame_count=5,
+            last_selected_target={
+                "track_id": 17,
+                "lock_state": "locked",
+                "reason": "previous selected tabletop target still visible",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "detector": "tabletop_object",
+                "confidence": 0.84,
+                "bbox_norm": {"x": 0.42, "y": 0.60, "w": 0.22, "h": 0.16},
+                "center_norm": {"x": 0.53, "y": 0.68},
+                "horizontal_zone": "center",
+                "vertical_zone": "lower",
+                "size_norm": 0.035,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.22,
+                "edge_ratio": 0.19,
+                "motion_ratio": 0.03,
+                "aspect_ratio": 1.37,
+            },
+        )
+
+        held = hold_selected_target(state, self.make_args())
+
+        self.assertIsNotNone(held)
+        self.assertEqual(held["track_id"], 17)
+        self.assertIn("tabletop occlusion hold", held["reason"])
 
     def test_operator_lock_prefers_requested_track_when_visible(self) -> None:
         state = ExtractorState(selected_track_id=3)
@@ -236,6 +273,120 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertEqual(selected["lock_state"], "locked")
         self.assertEqual(state.selected_track_id, 3)
 
+    def test_choose_selected_target_keeps_locked_tabletop_target_until_margin_is_decisive(self) -> None:
+        state = ExtractorState(selected_track_id=4)
+        tracks = [
+            {
+                "track_id": 4,
+                "detector": "tabletop_object",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "confidence": 0.76,
+                "center_norm": {"x": 0.49, "y": 0.70},
+                "selection_score": 1.22,
+                "edge_ratio": 0.16,
+                "motion_ratio": 0.02,
+                "aspect_ratio": 1.42,
+            },
+            {
+                "track_id": 9,
+                "detector": "tabletop_object",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "confidence": 0.83,
+                "center_norm": {"x": 0.62, "y": 0.73},
+                "selection_score": 1.49,
+                "edge_ratio": 0.18,
+                "motion_ratio": 0.05,
+                "aspect_ratio": 1.30,
+            },
+        ]
+
+        selected = choose_selected_target(
+            tracks,
+            state,
+            args=self.make_args(),
+            operator_state={},
+        )
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["track_id"], 4)
+        self.assertIn("tabletop", selected["reason"])
+
+    def test_choose_selected_target_recovers_previous_tabletop_target_with_feature_continuity(self) -> None:
+        state = ExtractorState(
+            last_selected_target={
+                "track_id": 14,
+                "lock_state": "locked",
+                "reason": "previous selected tabletop target still visible",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "detector": "tabletop_object",
+                "confidence": 0.81,
+                "bbox_norm": {"x": 0.40, "y": 0.60, "w": 0.22, "h": 0.15},
+                "center_norm": {"x": 0.51, "y": 0.675},
+                "horizontal_zone": "center",
+                "vertical_zone": "lower",
+                "size_norm": 0.033,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.21,
+                "edge_ratio": 0.17,
+                "motion_ratio": 0.02,
+                "aspect_ratio": 1.46,
+            },
+        )
+        tracks = [
+            {
+                "track_id": 20,
+                "detector": "tabletop_object",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "confidence": 0.78,
+                "bbox_norm": {"x": 0.41, "y": 0.61, "w": 0.22, "h": 0.15},
+                "center_norm": {"x": 0.52, "y": 0.685},
+                "horizontal_zone": "center",
+                "vertical_zone": "lower",
+                "size_norm": 0.034,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.18,
+                "edge_ratio": 0.18,
+                "motion_ratio": 0.03,
+                "aspect_ratio": 1.44,
+            },
+            {
+                "track_id": 21,
+                "detector": "tabletop_object",
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "confidence": 0.88,
+                "bbox_norm": {"x": 0.68, "y": 0.61, "w": 0.18, "h": 0.16},
+                "center_norm": {"x": 0.77, "y": 0.69},
+                "horizontal_zone": "right",
+                "vertical_zone": "lower",
+                "size_norm": 0.029,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.36,
+                "edge_ratio": 0.10,
+                "motion_ratio": 0.08,
+                "aspect_ratio": 1.05,
+            },
+        ]
+
+        selected = choose_selected_target(
+            tracks,
+            state,
+            args=self.make_args(),
+            operator_state={},
+        )
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["track_id"], 20)
+        self.assertIn("tabletop target", selected["reason"])
+        self.assertIn("continuity_aspect_delta", selected)
+
     def test_detect_tabletop_object_candidates_finds_book_like_target_in_table_roi(self) -> None:
         frame = np.full((160, 240, 3), 242, dtype=np.uint8)
         frame[96:138, 84:156] = (52, 78, 130)
@@ -256,6 +407,7 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertEqual(top["target_mode"], "tabletop_follow")
         self.assertEqual(top["detector"], "tabletop_object")
         self.assertGreater(float(top["confidence"]), 0.6)
+        self.assertIn("object_lock_strength", top)
 
     def test_build_event_carries_target_mode_for_tabletop_target(self) -> None:
         selected_target = {
@@ -274,6 +426,12 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             "distance_band": "mid",
             "approach_state": "stable",
             "selection_score": 1.07,
+            "roi_mode": "tabletop",
+            "edge_ratio": 0.16,
+            "motion_ratio": 0.03,
+            "aspect_ratio": 1.22,
+            "fill_ratio": 0.66,
+            "object_lock_strength": 1.15,
         }
 
         event = build_event(
@@ -291,7 +449,10 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         )
 
         self.assertEqual(event["tracking"]["target_mode"], "tabletop_follow")
+        self.assertEqual(event["tracking"]["roi_mode"], "tabletop")
+        self.assertEqual(event["tracking"]["object_lock_strength"], 1.15)
         self.assertEqual(event["selected_target"]["target_mode"], "tabletop_follow")
+        self.assertEqual(event["selected_target"]["edge_ratio"], 0.16)
         self.assertEqual(event["scene_hint"]["name"], "track_target")
 
     def test_detect_hand_arm_cue_finds_moving_skin_blob_in_lower_region(self) -> None:

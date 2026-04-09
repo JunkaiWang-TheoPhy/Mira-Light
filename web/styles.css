@@ -1020,6 +1020,14 @@ h2 {
   font-size: 0.86rem;
   line-height: 1.45;
 }
+.vision-track-diagnostics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
 .vision-track-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1108,8 +1116,7 @@ button.danger {
 }
 
 .director-column {
-  position: sticky;
-  top: 18px;
+  position: static;
 }
 
 .scene-grid {
