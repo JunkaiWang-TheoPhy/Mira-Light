@@ -24,6 +24,7 @@
 
 - [`mira-light-pdf2-engineering-handoff.md`](./mira-light-pdf2-engineering-handoff.md)
 - [`mira-light-pdf2-implementation-audit.md`](./mira-light-pdf2-implementation-audit.md)
+- [`mira-light-unfinished-scene-closure-plan.md`](./mira-light-unfinished-scene-closure-plan.md)
 
 所以这份补齐清单不会建议把 `方案3` 重新变成第二套动作真值，也不会建议把 `Figs/` 镜像目录加回来。
 

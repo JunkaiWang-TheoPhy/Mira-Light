@@ -64,6 +64,77 @@ zsh scripts/setup_cam_receiver_env.sh
 zsh scripts/run_cam_receiver.sh
 ```
 
+#### A2.5. 先准备本机 MLX 运行环境
+
+```bash
+bash scripts/setup_mlx_qwen_env.sh
+source ~/.openclaw/mira-light-mlx/.venv/bin/activate
+```
+
+这个环境脚本会：
+
+- 创建独立虚拟环境
+- 安装 `mlx-lm`
+- 保持 Mira 主仓库的 `requirements.txt` 不被强行改写
+
+#### A2.6. 把本机 MLX Qwen2.5 下载到本地
+
+当前这台 `macOS 13.0` 机器不建议走 `Ollama`，更适合直接走 `MLX` 模型仓库。
+
+推荐先下轻量版本：
+
+```bash
+python3 scripts/download_mlx_model.py --model qwen2.5-3b
+```
+
+如果后续觉得总结、长文档理解、结构化输出还不够稳，再下：
+
+```bash
+python3 scripts/download_mlx_model.py --model qwen2.5-7b
+```
+
+脚本默认能力：
+
+- 从 `mlx-community` 的 Hugging Face 仓库拉取模型快照
+- 下载中断后保留 `.part` 文件
+- 再次执行时自动从断点续传
+- 对瞬时网络错误自动重试
+- 下载前做磁盘空间检查
+- 下载后自动对远端文件尺寸做 verify
+
+也可以单独验证本地模型目录是否完整：
+
+```bash
+python3 scripts/download_mlx_model.py --model qwen2.5-3b --verify
+```
+
+默认下载目录：
+
+```text
+~/Library/Caches/Mira-Light/mlx-models/
+```
+
+对于当前这条 Mira 本地主脑路径，先把 `Qwen2.5-3B-Instruct-4bit` 跑通即可，`gemma3:12b` 不是必需前置。
+
+#### A2.7. 对本地 MLX 模型做一次 smoke test
+
+```bash
+python3 scripts/smoke_test_mlx_model.py --model qwen2.5-3b
+```
+
+如果你已经下载了 7B，也可以直接指向本地目录：
+
+```bash
+python3 scripts/smoke_test_mlx_model.py \
+  --model-dir ~/Library/Caches/Mira-Light/mlx-models/Qwen2.5-7B-Instruct-4bit
+```
+
+这一步的目标不是调优，而是确认三件事：
+
+- `mlx-lm` 在当前机器能正常加载模型
+- tokenizer / chat template 可以正常工作
+- 本地生成链路已经通了
+
 #### A3. 本机大模型读取输入
 
 输入来源可以是：
@@ -304,4 +375,3 @@ http://172.20.x.x
 ```
 
 本机大模型路径可以并行存在，但更适合先做感知和实验，而不是作为第一条正式控制链路。
-

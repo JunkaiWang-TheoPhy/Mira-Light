@@ -25,6 +25,7 @@
 6. [Offline Rehearsal and Mock Validation Progress](./04-offline-rehearsal-progress.md)
 7. [Embodied Speech and Formal Speak Tool Progress](./15-embodied-speech-and-formal-speak-tool-progress.md)
 8. [Speech-to-Text and Claw Voice Ingress Progress](./16-speech-to-text-and-claw-voice-ingress-progress.md)
+9. [Camera CV and Runtime Bridge Progress](./20-camera-cv-runtime-bridge-progress.md)
 
 ## Integration and Operations
 
