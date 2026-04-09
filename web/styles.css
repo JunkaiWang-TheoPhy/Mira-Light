@@ -230,6 +230,21 @@ body {
   overflow-x: hidden;
 }
 
+body[data-console-variant="silent"] {
+  --bg: #eef7ff;
+  --bg-soft: #f6fbff;
+  --panel: rgba(248, 252, 255, 0.78);
+  --panel-strong: rgba(252, 254, 255, 0.94);
+  --panel-soft: rgba(232, 245, 255, 0.72);
+  --border: rgba(100, 138, 188, 0.16);
+  --border-strong: rgba(88, 162, 194, 0.34);
+  --text: #355170;
+  --text-strong: #29455f;
+  --muted: #5f7c99;
+  --accent: #4da7c7;
+  --accent-soft: rgba(77, 167, 199, 0.16);
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -851,6 +866,36 @@ body[data-scene="dream"] {
   max-width: 74ch;
 }
 
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(104, 143, 194, 0.22);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--text-strong);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.hero-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(104, 143, 194, 0.4);
+  box-shadow: 0 10px 22px rgba(109, 142, 187, 0.14);
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: var(--muted);
@@ -1066,6 +1111,18 @@ input[type="text"]:focus {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.mode-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(95, 149, 196, 0.18);
+  color: var(--text-strong);
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 button {
@@ -1361,6 +1418,13 @@ button.danger {
 .tone-warning {
   border-color: rgba(211, 154, 88, 0.4);
   background: rgba(211, 154, 88, 0.08);
+}
+
+.tone-running {
+  border-color: rgba(87, 168, 132, 0.42);
+  background: rgba(87, 168, 132, 0.12);
+  color: #4c8a6f;
+  font-weight: 700;
 }
 
 .scene-card[data-priority="P0"] {
@@ -2151,6 +2215,10 @@ body.is-error .status-pill:nth-child(5) {
   border-color: rgba(214, 122, 134, 0.7);
 }
 
+body.is-runtime-silent .status-pill:first-child {
+  border-color: rgba(77, 167, 199, 0.52);
+}
+
 @media (max-width: 1260px) {
   .scene-charm {
     min-width: 114px;
@@ -2181,6 +2249,10 @@ body.is-error .status-pill:nth-child(5) {
   .mock-overview,
   .mock-servo-grid {
     grid-template-columns: 1fr;
+  }
+
+  .hero-links {
+    margin-top: 14px;
   }
 }
 

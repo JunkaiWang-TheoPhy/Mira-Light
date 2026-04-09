@@ -44,6 +44,11 @@ def request_json(url: str, *, method: str = "GET", payload: dict | None = None) 
             exc.close()
 
 
+def request_text(url: str) -> tuple[int, str]:
+    with urllib.request.urlopen(url, timeout=3) as response:
+        return response.status, response.read().decode("utf-8")
+
+
 class ConsoleServerTest(unittest.TestCase):
     def _start_server(self, server):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -79,6 +84,8 @@ class ConsoleServerTest(unittest.TestCase):
                 vision_operator_state_path=tmp_root / "vision.operator.json",
                 vision_event_path=tmp_root / "vision.latest.json",
                 vision_bridge_state_path=tmp_root / "vision.bridge.state.json",
+                capture_memory_latest_observation_path=tmp_root / "capture.latest.json",
+                capture_memory_status_path=tmp_root / "capture.status.json",
             )
             console_thread = self._start_server(console_server)
             console_base_url = f"http://127.0.0.1:{console_server.server_address[1]}"
@@ -123,6 +130,8 @@ class ConsoleServerTest(unittest.TestCase):
                 vision_operator_state_path=tmp_root / "vision.operator.json",
                 vision_event_path=tmp_root / "vision.latest.json",
                 vision_bridge_state_path=tmp_root / "vision.bridge.state.json",
+                capture_memory_latest_observation_path=tmp_root / "capture.latest.json",
+                capture_memory_status_path=tmp_root / "capture.status.json",
             )
             console_thread = self._start_server(console_server)
             console_base_url = f"http://127.0.0.1:{console_server.server_address[1]}"
@@ -140,6 +149,35 @@ class ConsoleServerTest(unittest.TestCase):
                 self.assertEqual(status, 200)
                 self.assertEqual(loaded["state"]["targetMode"], "tabletop_follow")
                 self.assertEqual(loaded["state"]["note"], "switch to tabletop")
+            finally:
+                console_server.shutdown()
+                console_server.server_close()
+                console_thread.join(timeout=3)
+
+    def test_console_serves_silent_page(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            console_server = ConsoleHTTPServer(
+                ("127.0.0.1", 0),
+                ConsoleHandler,
+                web_root=ROOT / "web",
+                bridge_base_url="http://127.0.0.1:9",
+                bridge_token="",
+                bridge_timeout_seconds=1.0,
+                vision_operator_state_path=tmp_root / "vision.operator.json",
+                vision_event_path=tmp_root / "vision.latest.json",
+                vision_bridge_state_path=tmp_root / "vision.bridge.state.json",
+                capture_memory_latest_observation_path=tmp_root / "capture.latest.json",
+                capture_memory_status_path=tmp_root / "capture.status.json",
+            )
+            console_thread = self._start_server(console_server)
+            console_base_url = f"http://127.0.0.1:{console_server.server_address[1]}"
+
+            try:
+                status, html = request_text(f"{console_base_url}/silent.html")
+                self.assertEqual(status, 200)
+                self.assertIn("Mira Light 无声版导演台", html)
+                self.assertIn('data-console-variant="silent"', html)
             finally:
                 console_server.shutdown()
                 console_server.server_close()

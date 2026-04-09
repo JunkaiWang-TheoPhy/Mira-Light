@@ -22,7 +22,9 @@ if str(BRIDGE_DIR) not in sys.path:
     sys.path.insert(0, str(BRIDGE_DIR))
 
 from bridge_server import BridgeHTTPServer, BridgeHandler
-from mira_light_runtime import MiraLightRuntime
+import mira_light_runtime as runtime_module
+from mira_light_runtime import BoothController, MiraLightRuntime
+from scenes import POSES
 
 
 def request_json(url: str, *, method: str = "GET", payload: dict | None = None) -> tuple[int, dict]:
@@ -44,12 +46,25 @@ def request_json(url: str, *, method: str = "GET", payload: dict | None = None) 
 
 
 class MinimalSmokeTest(unittest.TestCase):
+    PRIMARY_SCENES = {
+        "wake_up",
+        "curious_observe",
+        "touch_affection",
+        "cute_probe",
+        "daydream",
+        "standup_reminder",
+        "track_target",
+        "celebrate",
+        "farewell",
+        "sleep",
+    }
+
     def test_runtime_lists_ready_scenes_only_by_default(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
         scenes = runtime.list_scenes()
         self.assertTrue(scenes)
-        self.assertEqual({item["id"] for item in scenes}, {"cute_probe", "daydream", "farewell"})
-        self.assertTrue(all(item["readiness"] == "ready" for item in scenes))
+        self.assertEqual({item["id"] for item in scenes}, self.PRIMARY_SCENES)
+        self.assertTrue(self.PRIMARY_SCENES.issuperset({item["id"] for item in scenes}))
 
     def test_bridge_supports_minimal_mode(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
@@ -71,12 +86,12 @@ class MinimalSmokeTest(unittest.TestCase):
 
                 status, scenes = request_json(f"{base_url}/v1/mira-light/scenes")
                 self.assertEqual(status, 200)
-                self.assertEqual({item["id"] for item in scenes["items"]}, {"cute_probe", "daydream", "farewell"})
+                self.assertEqual({item["id"] for item in scenes["items"]}, self.PRIMARY_SCENES)
 
                 status, blocked = request_json(
                     f"{base_url}/v1/mira-light/run-scene",
                     method="POST",
-                    payload={"scene": "celebrate", "async": False},
+                    payload={"scene": "voice_demo_tired", "async": False},
                 )
                 self.assertEqual(status, 400)
                 self.assertIn("minimal mode", blocked["error"])
@@ -95,6 +110,39 @@ class MinimalSmokeTest(unittest.TestCase):
                 log_text = "\n".join(item["text"] for item in logs["items"])
                 self.assertIn("[cue-host]", log_text)
                 self.assertIn("[audio-dry-run]", log_text)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
+    def test_bridge_silent_mode_skips_audio_steps(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        with TemporaryDirectory() as tmpdir:
+            server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=Path(tmpdir),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                status, ran = request_json(
+                    f"{base_url}/v1/mira-light/run-scene",
+                    method="POST",
+                    payload={"scene": "farewell", "async": False, "cueMode": "director", "silentMode": True},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(ran["ok"])
+
+                status, logs = request_json(f"{base_url}/v1/mira-light/logs")
+                self.assertEqual(status, 200)
+                log_text = "\n".join(item["text"] for item in logs["items"])
+                self.assertIn("[cue-host-muted]", log_text)
+                self.assertIn("[audio-skip-silent]", log_text)
+                self.assertNotIn("[audio-dry-run]", log_text)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -214,6 +262,56 @@ class MinimalSmokeTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "relative delta must be between"):
             runtime.control_joints({"mode": "relative", "servo2": 90})
 
+    def test_runtime_prealigns_scene_start_when_status_is_misaligned(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        fake_status = {
+            "servos": [
+                {"name": "servo1", "angle": 104},
+                {"name": "servo2", "angle": 96},
+                {"name": "servo3", "angle": 98},
+                {"name": "servo4", "angle": 90},
+            ]
+        }
+        control_calls: list[tuple[dict, int | None]] = []
+
+        def fake_control(payload: dict, *, move_ms: int | None = None) -> dict:
+            control_calls.append((payload, move_ms))
+            return {"ok": True}
+
+        with mock.patch.object(runtime_module, "SCENE_START_ALIGN_ENABLED", True):
+            with mock.patch.object(runtime, "get_status", return_value=fake_status):
+                with mock.patch.object(runtime.get_client(), "control", side_effect=fake_control):
+                    with mock.patch.object(BoothController, "run_scene", autospec=True, return_value=None):
+                        runtime.run_scene_blocking("wake_up")
+
+        self.assertEqual(len(control_calls), 1)
+        self.assertEqual(control_calls[0][0], {"mode": "absolute", **POSES["sleep"]["angles"]})
+        self.assertEqual(control_calls[0][1], 700)
+        log_text = "\n".join(item["text"] for item in runtime.get_logs())
+        self.assertIn("[pre-align] wake_up", log_text)
+
+    def test_runtime_skips_scene_prealign_when_status_already_matches_start_pose(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        sleep_angles = POSES["sleep"]["angles"]
+        fake_status = {
+            "servos": [
+                {"name": "servo1", "angle": sleep_angles["servo1"]},
+                {"name": "servo2", "angle": sleep_angles["servo2"]},
+                {"name": "servo3", "angle": sleep_angles["servo3"]},
+                {"name": "servo4", "angle": sleep_angles["servo4"]},
+            ]
+        }
+
+        with mock.patch.object(runtime_module, "SCENE_START_ALIGN_ENABLED", True):
+            with mock.patch.object(runtime, "get_status", return_value=fake_status):
+                with mock.patch.object(runtime.get_client(), "control") as mocked_control:
+                    with mock.patch.object(BoothController, "run_scene", autospec=True, return_value=None):
+                        runtime.run_scene_blocking("wake_up")
+
+        mocked_control.assert_not_called()
+        log_text = "\n".join(item["text"] for item in runtime.get_logs())
+        self.assertNotIn("[pre-align] wake_up", log_text)
+
     def test_runtime_blocks_manual_joint_and_led_changes_while_scene_running(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
         with runtime._state_lock:
@@ -305,6 +403,45 @@ class MinimalSmokeTest(unittest.TestCase):
             step for step in scene["steps"] if step.get("type") == "control" and step.get("payload", {}).get("mode") == "absolute"
         )
         self.assertEqual(first_absolute["payload"]["servo1"], 78)
+
+    def test_dynamic_curious_preview_uses_owner_direction_when_face_found(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        scene = runtime.preview_scene(
+            "curious_observe",
+            {
+                "ownerFaceFound": True,
+                "ownerDirection": "right",
+                "judgeDirection": "left",
+                "ownerDetector": "haar_face",
+            },
+        )
+        self.assertIn("主人的脸", scene["notes"][0])
+        self.assertIn("右侧", scene["notes"][0])
+        target_step = next(
+            step for step in scene["steps"]
+            if step.get("type") == "comment" and "找到主人的脸后" in step.get("text", "")
+        )
+        target_index = scene["steps"].index(target_step)
+        focus_step = scene["steps"][target_index + 1]
+        self.assertEqual(focus_step["payload"]["servo1"], 100)
+
+    def test_dynamic_curious_preview_falls_back_opposite_judge_direction(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        scene = runtime.preview_scene(
+            "curious_observe",
+            {
+                "ownerFaceFound": False,
+                "judgeDirection": "right",
+            },
+        )
+        self.assertIn("反方向左侧回退", scene["notes"][0])
+        fallback_step = next(
+            step for step in scene["steps"]
+            if step.get("type") == "comment" and "反方向左侧" in step.get("text", "")
+        )
+        fallback_index = scene["steps"].index(fallback_step)
+        fallback_pose = scene["steps"][fallback_index + 2]
+        self.assertEqual(fallback_pose["payload"]["servo1"], 78)
 
     def test_capture_pose_and_servo_meta_refresh_runtime_profile(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)

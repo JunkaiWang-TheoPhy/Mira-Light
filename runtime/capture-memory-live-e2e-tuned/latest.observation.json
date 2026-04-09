@@ -1,0 +1,77 @@
+{
+  "capturePath": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+  "observedAtLocal": "2026-04-09 18:42:44 CST",
+  "selection": {
+    "path": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+    "mtime": 1775731364.322636,
+    "width": 1280,
+    "height": 720,
+    "file_size": 136037,
+    "sharpness": 114.3879,
+    "contrast": 84.1848,
+    "brightness": 118.6805,
+    "score": 460.6478
+  },
+  "summary": {
+    "peopleCount": 1,
+    "peopleSummary": "一名长发女性部分身体入镜，正手持智能手机",
+    "objects": [
+      "黑色产品包装盒",
+      "青绿色提手",
+      "智能手机",
+      "笔记本电脑",
+      "黑色背包"
+    ],
+    "activity": "女性手持手机拍摄前景的产品包装盒",
+    "sceneSummary": "办公室内场景，前景排列多份带提手的黑色产品包装盒，背景为日常办公环境，有一名女性在场",
+    "time": "2026-04-09 18:42:44 CST",
+    "location": "San Jose, California, US; ip_address: 65.75.220.82",
+    "memoryWorthy": true,
+    "memoryReason": "该场景记录了办公场所陈列的新产品包装，属于工作中产品相关的记录场景，具备记忆留存价值"
+  },
+  "signature": "8fa638aeb6305b87413ccc0ce636613644583c44f1a4f4cfedde85d0778a1d71",
+  "location": {
+    "ip": "65.75.220.82",
+    "locationSummary": "San Jose, California, US",
+    "city": "San Jose",
+    "region": "California",
+    "country": "US",
+    "timezone": "America/Los_Angeles",
+    "org": "AS138997 Eons Data Communications Limited",
+    "loc": "37.3394,-121.8950",
+    "source": "https://ipinfo.io/json"
+  },
+  "volcModel": "doubao-seed-2-0-lite-260215",
+  "providerPayload": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "content": "{\n  \"peopleCount\": 1,\n  \"peopleSummary\": \"一名长发女性部分身体入镜，正手持智能手机\",\n  \"objects\": [\"黑色产品包装盒\", \"青绿色提手\", \"智能手机\", \"笔记本电脑\", \"黑色背包\"],\n  \"activity\": \"女性手持手机拍摄前景的产品包装盒\",\n  \"sceneSummary\": \"办公室内场景，前景排列多份带提手的黑色产品包装盒，背景为日常办公环境，有一名女性在场\",\n  \"time\": \"2026-04-09 18:42:44 CST\",\n  \"location\": \"San Jose, California, US; ip_address: 65.75.220.82\",\n  \"memoryWorthy\": true,\n  \"memoryReason\": \"该场景记录了办公场所陈列的新产品包装，属于工作中产品相关的记录场景，具备记忆留存价值\"\n}",
+          "reasoning_content": "\n我现在需要生成符合要求的JSON，首先一个个填字段：\npeopleCount是1对吧？因为图里有一个人。然后peopleSummary：能看到一名长发女性，正手持手机，只有部分身体入镜。然后objects，主要物体是黑色产品包装盒，青绿色提手，手机，笔记本电脑，办公椅这些？选1-6个，就是[\"黑色包装盒\", \"青绿色提手\", \"智能手机\", \"笔记本电脑\", \"办公背包\"]对吧？activity是：女性在使用手机拍摄面前的产品包装盒。sceneSummary是：办公环境内，前景摆放着多盒带提手的黑色产品，背景有一名女性在操作手机。time就是给的2026-04-09 18:42:44 CST。location就是按照要求，San Jose, California, US; ip:65.75.220.82？不对，要求直接用提供的location_summary和ip_address，所以location是\"San Jose, California, US, ip_address: 65.75.220.82\"对吗？然后memoryWorthy是true，因为这是办公场所展示新产品的场景，拍摄者近距离拍摄产品包装盒，背景人员记录产品，值得留存？memoryReason就是：这是办公场景中拍摄新产品包装的记录，呈现了产品陈列与现场记录的工作场景。\n等下再核对每个字段：\npeopleCount: 1，对，只有一个人。\npeopleSummary：一名长发女性部分身体入镜，正手持智能手机。对，没错，因为只看到下半部分脸和手。\nobjects：主要的，[\"黑色产品包装盒\", \"青绿色提手\", \"智能手机\", \"笔记本电脑\", \"黑色背包\"]，对，五个，符合1-6。\nactivity：女性手持手机，拍摄前景的产品包装盒。\nsceneSummary：办公室内场景，前景是多排排列的带提手黑色产品包装盒，背景有一名女性在操作手机，整体是办公工作环境。\ntime：就是给定的2026-04-09 18:42:44 CST，没错。\nlocation：按照要求，直接用location_summary和ip_address，所以是\"San Jose, California, US; ip_address: 65.75.220.82\"。\nmemoryWorthy：true，因为这是工作中记录产品包装的场景，有记忆价值。\nmemoryReason：该场景记录了办公场所中待展示的产品包装，记录了工作中的产品相关内容，具备记忆价值。\n等下有没有错？再检查规则：\n1. peopleSummary对，有人，概括了。\n2. objects 5个，符合，都是主要的。\n3. time用了给定的，对。\n4. location直接用了提供的，没瞎编，对。\n不确定的都没编，对。\n现在整理成严格的JSON，不要额外内容：\n哦对，peopleCount是数字，所以不要引号。memoryWorthy是布尔值。\n现在写出来：\n{\n  \"peopleCount\": 1,\n  \"peopleSummary\": \"一名长发女性部分身体入镜，正手持智能手机\",\n  \"objects\": [\"黑色产品包装盒\", \"青绿色提手\", \"智能手机\", \"笔记本电脑\", \"黑色背包\"],\n  \"activity\": \"女性手持手机拍摄前景摆放的产品包装盒\",\n  \"sceneSummary\": \"办公室内场景，前景排列着多份带提手的黑色产品包装盒，背景有一名女性，整体为日常办公环境\",\n  \"time\": \"2026-04-09 18:42:44 CST\",\n  \"location\": \"San Jose, California, US; ip_address: 65.75.220.82\",\n  \"memoryWorthy\": true,\n  \"memoryReason\": \"该场景记录了办公场所中陈列的新产品包装，属于工作中产品相关的记录场景，具备留存价值\"\n}\n对，这个应该对了。",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1775731504,
+    "id": "021775731492744c63a6ac480f44318ff02bbee696f61107e8434",
+    "model": "doubao-seed-2-0-lite",
+    "service_tier": "default",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1087,
+      "prompt_tokens": 1580,
+      "total_tokens": 2667,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 882
+      }
+    }
+  },
+  "memoryWriteSuggested": true,
+  "memoryWriteReason": "forced by operator override"
+}

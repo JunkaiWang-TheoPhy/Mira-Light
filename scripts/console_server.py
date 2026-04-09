@@ -25,6 +25,9 @@ DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
 DEFAULT_VISION_OPERATOR_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.operator.json"
 DEFAULT_VISION_EVENT_PATH = DEFAULT_LIVE_VISION_DIR / "vision.latest.json"
 DEFAULT_VISION_BRIDGE_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.bridge.state.json"
+DEFAULT_CAPTURE_MEMORY_RUNTIME_DIR = DEFAULT_LIVE_VISION_DIR / "capture-memory-observer"
+DEFAULT_CAPTURE_MEMORY_LATEST_OBSERVATION_PATH = DEFAULT_CAPTURE_MEMORY_RUNTIME_DIR / "latest.observation.json"
+DEFAULT_CAPTURE_MEMORY_STATUS_PATH = DEFAULT_CAPTURE_MEMORY_RUNTIME_DIR / "status.json"
 
 
 def _coerce_bool(value, default: bool) -> bool:
@@ -131,6 +134,8 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         vision_operator_state_path: Path,
         vision_event_path: Path,
         vision_bridge_state_path: Path,
+        capture_memory_latest_observation_path: Path,
+        capture_memory_status_path: Path,
     ):
         super().__init__(server_address, handler_class)
         self.web_root = web_root
@@ -140,6 +145,8 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         self.vision_operator_state_path = vision_operator_state_path
         self.vision_event_path = vision_event_path
         self.vision_bridge_state_path = vision_bridge_state_path
+        self.capture_memory_latest_observation_path = capture_memory_latest_observation_path
+        self.capture_memory_status_path = capture_memory_status_path
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -326,6 +333,21 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     "operator": self._load_vision_operator_state(),
                     "latestEvent": self._load_json_file(self.server.vision_event_path),
                     "bridgeState": self._load_json_file(self.server.vision_bridge_state_path),
+                    "captureMemory": {
+                        "latestObservation": self._load_json_file(self.server.capture_memory_latest_observation_path),
+                        "status": self._load_json_file(self.server.capture_memory_status_path),
+                    },
+                },
+            )
+            return
+
+        if path == "/api/capture-memory":
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "latestObservation": self._load_json_file(self.server.capture_memory_latest_observation_path),
+                    "status": self._load_json_file(self.server.capture_memory_status_path),
                 },
             )
             return
@@ -506,6 +528,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(os.environ.get("MIRA_LIGHT_VISION_BRIDGE_STATE_PATH", DEFAULT_VISION_BRIDGE_STATE_PATH)),
         help="Path to the vision bridge state JSON.",
     )
+    parser.add_argument(
+        "--capture-memory-latest-observation-path",
+        default=str(
+            os.environ.get(
+                "MIRA_LIGHT_CAPTURE_MEMORY_LATEST_OBSERVATION_PATH",
+                DEFAULT_CAPTURE_MEMORY_LATEST_OBSERVATION_PATH,
+            )
+        ),
+        help="Path to the latest capture-memory observation JSON.",
+    )
+    parser.add_argument(
+        "--capture-memory-status-path",
+        default=str(os.environ.get("MIRA_LIGHT_CAPTURE_MEMORY_STATUS_PATH", DEFAULT_CAPTURE_MEMORY_STATUS_PATH)),
+        help="Path to the capture-memory observer status JSON.",
+    )
     return parser
 
 
@@ -521,6 +558,8 @@ def main() -> int:
     print(f"[console] vision bridge state path {args.vision_bridge_state_path}")
     print(f"[console] vision event path {args.vision_event_path}")
     print(f"[console] vision operator state path {args.vision_operator_state_path}")
+    print(f"[console] capture memory latest observation path {args.capture_memory_latest_observation_path}")
+    print(f"[console] capture memory status path {args.capture_memory_status_path}")
 
     server = ConsoleHTTPServer(
         (args.host, args.port),
@@ -532,6 +571,8 @@ def main() -> int:
         vision_operator_state_path=Path(args.vision_operator_state_path).expanduser().resolve(),
         vision_event_path=Path(args.vision_event_path).expanduser().resolve(),
         vision_bridge_state_path=Path(args.vision_bridge_state_path).expanduser().resolve(),
+        capture_memory_latest_observation_path=Path(args.capture_memory_latest_observation_path).expanduser().resolve(),
+        capture_memory_status_path=Path(args.capture_memory_status_path).expanduser().resolve(),
     )
     try:
         server.serve_forever()

@@ -17,3 +17,8 @@ director console.
 The choreography source of truth still lives in `scripts/scenes.py`. The files
 here are thin launch manifests so the navigation page can route each scene
 button through its own script file.
+
+Additional planning notes live under:
+
+- `Motions/test/README.md`
+- `Motions/test/10-scene-capability-matrix.md`

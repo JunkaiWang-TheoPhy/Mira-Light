@@ -134,6 +134,43 @@ class EmbodiedMemoryTest(unittest.TestCase):
             self.assertEqual(items[0]["layer"], "episodic")
             self.assertEqual(items[1]["layer"], "working")
             self.assertEqual(items[0]["namespace"], "home")
+            self.assertEqual(items[0]["salience"], 0.84)
+            self.assertEqual(items[1]["salience"], 0.86)
+            self.assertIn("scene-failure", items[0]["tags"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
+    def test_embodied_memory_client_dedups_repeated_scene_failure_writes(self) -> None:
+        server = MemoryWriteCaptureServer(("127.0.0.1", 0))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            client = EmbodiedMemoryClient(
+                base_url=f"http://127.0.0.1:{server.server_address[1]}",
+                enabled=True,
+                user_id="mira-light-test",
+                scene_failure_dedup_seconds=600,
+            )
+            first = client.record_scene_outcome(
+                scene_name="celebrate",
+                status="failed",
+                runtime_state={"running": False, "lastError": "servo3 timed out"},
+                error="servo3 timed out",
+            )
+            second = client.record_scene_outcome(
+                scene_name="celebrate",
+                status="failed",
+                runtime_state={"running": False, "lastError": "servo3 timed out"},
+                error="servo3 timed out",
+            )
+
+            self.assertTrue(first["ok"])
+            self.assertTrue(second["ok"])
+            self.assertTrue(second["skipped"])
+            self.assertEqual(second["reason"], "scene_failure_dedup")
+            self.assertEqual(len(server.requests), 1)
         finally:
             server.shutdown()
             server.server_close()
@@ -265,6 +302,97 @@ class EmbodiedMemoryTest(unittest.TestCase):
 
             self.assertIn("send-off", farewell_note["currentState"].lower())
             self.assertIn("Figs/motions/09_farewell/README.md", farewell_note["relevantFiles"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
+    def test_capture_session_note_updates_with_latest_visual_observation(self) -> None:
+        server = MemoryWriteCaptureServer(("127.0.0.1", 0))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            client = EmbodiedMemoryClient(
+                base_url=f"http://127.0.0.1:{server.server_address[1]}",
+                enabled=True,
+                user_id="mira-light-bridge",
+            )
+            observation = {
+                "capturePath": "/tmp/demo-capture.jpg",
+                "captureName": "demo-capture.jpg",
+                "observedAtLocal": "2026-04-09 18:30:00 CST",
+                "summary": {
+                    "peopleCount": 1,
+                    "peopleSummary": "一位访客站在台灯前方",
+                    "objects": ["台灯", "桌面", "卡片"],
+                    "sceneSummary": "访客正在近距离观察展位上的 Mira Light",
+                    "location": "Shenzhen, Guangdong, CN (IP: 1.2.3.4)",
+                },
+            }
+
+            result = client.record_capture_session_state(
+                observation=observation,
+                session_id="mira-light-capture-observer",
+            )
+
+            self.assertTrue(result["ok"])
+            note = client.get_current_session_note(session_id="mira-light-capture-observer")["note"]
+            self.assertIsNotNone(note)
+            self.assertIn("demo-capture.jpg", " ".join(note["keyResults"]))
+            self.assertIn("访客正在近距离观察展位上的 Mira Light", note["currentState"])
+            self.assertIn("scripts/capture_memory_observer.py", note["relevantFiles"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
+    def test_capture_observation_writes_episodic_and_working_memory_items(self) -> None:
+        server = MemoryWriteCaptureServer(("127.0.0.1", 0))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            client = EmbodiedMemoryClient(
+                base_url=f"http://127.0.0.1:{server.server_address[1]}",
+                enabled=True,
+                user_id="mira-light-bridge",
+            )
+            observation = {
+                "capturePath": "/tmp/demo-capture.jpg",
+                "observedAtLocal": "2026-04-09 18:35:00 CST",
+                "signature": "capture-signature",
+                "selection": {"score": 321.5},
+                "summary": {
+                    "peopleCount": 2,
+                    "peopleSummary": "两位访客在灯前交流",
+                    "objects": ["台灯", "桌面", "徽章"],
+                    "sceneSummary": "两位访客停留并讨论 Mira Light",
+                    "location": "Shenzhen, Guangdong, CN (IP: 1.2.3.4)",
+                    "memoryWorthy": True,
+                },
+            }
+
+            result = client.record_capture_observation(
+                observation=observation,
+                working_ttl_seconds=600,
+            )
+
+            self.assertTrue(result["ok"])
+            last_request = server.requests[-1]
+            self.assertEqual(last_request["path"], "/v1/memory/write")
+            self.assertEqual(last_request["body"]["source"], "capture_observation")
+            items = last_request["body"]["items"]
+            self.assertEqual(len(items), 2)
+            self.assertEqual(items[0]["kind"], "environment_observation")
+            self.assertEqual(items[1]["layer"], "working")
+            self.assertEqual(items[0]["structured_value"]["signature"], "capture-signature")
+            self.assertGreaterEqual(items[0]["salience"], 0.95)
+            self.assertGreaterEqual(items[1]["salience"], 0.95)
+            self.assertIn("latest-observation", items[0]["tags"])
+            self.assertIn("capture-memory", items[0]["tags"])
+            self.assertIn("people-present", items[0]["tags"])
+            self.assertIn("object:台灯", items[0]["tags"])
+            self.assertEqual(items[0]["structured_value"]["recallHint"], "latest-booth-observation")
+            self.assertIn("Latest booth observation", items[1]["content"])
         finally:
             server.shutdown()
             server.server_close()

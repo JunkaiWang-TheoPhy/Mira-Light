@@ -84,6 +84,49 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertEqual(event["payload"]["primaryDirection"], "left")
         self.assertEqual(event["payload"]["secondaryDirection"], "right")
 
+    def test_build_event_surfaces_owner_face_metadata(self) -> None:
+        selected_target = {
+            "track_id": 5,
+            "lock_state": "locked",
+            "reason": "single visible target",
+            "target_class": "person",
+            "target_mode": "person_follow",
+            "detector": "haar_face",
+            "confidence": 0.94,
+            "bbox_norm": {"x": 0.30, "y": 0.18, "w": 0.18, "h": 0.26},
+            "center_norm": {"x": 0.39, "y": 0.31},
+            "horizontal_zone": "left",
+            "vertical_zone": "upper",
+            "size_norm": 0.046,
+            "distance_band": "mid",
+            "approach_state": "stable",
+            "selection_score": 1.26,
+            "owner_face_found": True,
+            "owner_id": "owner_main",
+            "owner_confidence": 0.91,
+            "owner_direction": "left",
+        }
+
+        event = build_event(
+            path=ROOT / "fixtures" / "vision_events" / "track_target_update_right.json",
+            frame=DummyFrame(),
+            bbox=(60, 24, 44, 52),
+            detector="haar_face",
+            target_class="person",
+            confidence=0.94,
+            state=ExtractorState(last_target_present=True),
+            args=self.make_args(),
+            target_mode="person_follow",
+            target_count=1,
+            selected_target=selected_target,
+            owner_observation={"owner_id": "owner_main", "owner_confidence": 0.91, "owner_direction": "left"},
+        )
+
+        self.assertTrue(event["tracking"]["owner_face_found"])
+        self.assertEqual(event["tracking"]["owner_id"], "owner_main")
+        self.assertEqual(event["tracking"]["owner_direction"], "left")
+        self.assertEqual(event["selected_target"]["owner_id"], "owner_main")
+
     def test_hold_selected_target_keeps_recent_target_alive_for_short_occlusion(self) -> None:
         state = ExtractorState(
             last_target_present=True,

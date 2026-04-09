@@ -1,0 +1,77 @@
+{
+  "lastProcessedPath": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+  "lastProcessedMtime": 1775731164.8416615,
+  "lastObservationArtifact": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/capture-memory-live-e2e/observations/20260409-183959-775f604f5122.json",
+  "latestObservationPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/capture-memory-live-e2e/latest.observation.json",
+  "lastObservationSignature": "775f604f5122747aeb938499678f573f8990b960c6baf41f435dc33ab7682690",
+  "lastObservationAt": 1775731201.503326,
+  "lastMemorySignature": "775f604f5122747aeb938499678f573f8990b960c6baf41f435dc33ab7682690",
+  "lastMemorySignatureAt": 1775731201.503326,
+  "lastSessionResult": {
+    "ok": true,
+    "note": {
+      "title": "Mira Light capture observer",
+      "currentState": "Latest booth capture at 2026-04-09 18:39:24 CST in San Jose, California, US, 65.75.220.82. capture=20260409-183924-841313-frame-155086-seq-3680.jpg; people=0; peopleSummary=未见明显人物; sceneSummary=为办公工位场景，画面以近距离特写对焦键盘黑色键帽，背景可见模糊的办公物品与设备.",
+      "nextStep": "Keep sampling captures on the 5-minute loop and only promote salient visual observations into episodic memory.",
+      "taskSpec": "Summarize representative booth captures into structured visual memory for Mira Light and cloud prompt-pack retrieval.",
+      "relevantFiles": [
+        "scripts/capture_memory_observer.py",
+        "docs/cam_receiver_new.py",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183706-468097-frame-153747-seq-2341.jpg",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183308-155058-frame-151406-seq-0.jpg"
+      ],
+      "errors": [],
+      "keyResults": [
+        "2026-04-09 18:39:24 CST capture=20260409-183924-841313-frame-155086-seq-3680.jpg people=0",
+        "2026-04-09 18:37:06 CST capture=20260409-183706-468097-frame-153747-seq-2341.jpg people=2",
+        "2026-04-09 18:33:08 CST capture=20260409-183308-155058-frame-151406-seq-0.jpg people=0"
+      ],
+      "worklog": [
+        "2026-04-09 18:39:24 CST objects=机械键盘键帽, 电脑显示器, 蓝色提手, 黑色背包",
+        "2026-04-09 18:37:06 CST objects=机械键盘, 网线, 笔记本电脑, 黑色背包",
+        "2026-04-09 18:33:08 CST objects=暗颗粒噪点渐变区域"
+      ]
+    },
+    "meta": {
+      "user_id": "mira-light-bridge",
+      "session_id": "mira-light-capture-observer",
+      "note": {
+        "title": "Mira Light capture observer",
+        "currentState": "Latest booth capture at 2026-04-09 18:39:24 CST in San Jose, California, US, 65.75.220.82. capture=20260409-183924-841313-frame-155086-seq-3680.jpg; people=0; peopleSummary=未见明显人物; sceneSummary=为办公工位场景，画面以近距离特写对焦键盘黑色键帽，背景可见模糊的办公物品与设备.",
+        "nextStep": "Keep sampling captures on the 5-minute loop and only promote salient visual observations into episodic memory.",
+        "taskSpec": "Summarize representative booth captures into structured visual memory for Mira Light and cloud prompt-pack retrieval.",
+        "relevantFiles": [
+          "scripts/capture_memory_observer.py",
+          "docs/cam_receiver_new.py",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183706-468097-frame-153747-seq-2341.jpg",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183308-155058-frame-151406-seq-0.jpg"
+        ],
+        "errors": [],
+        "keyResults": [
+          "2026-04-09 18:39:24 CST capture=20260409-183924-841313-frame-155086-seq-3680.jpg people=0",
+          "2026-04-09 18:37:06 CST capture=20260409-183706-468097-frame-153747-seq-2341.jpg people=2",
+          "2026-04-09 18:33:08 CST capture=20260409-183308-155058-frame-151406-seq-0.jpg people=0"
+        ],
+        "worklog": [
+          "2026-04-09 18:39:24 CST objects=机械键盘键帽, 电脑显示器, 蓝色提手, 黑色背包",
+          "2026-04-09 18:37:06 CST objects=机械键盘, 网线, 笔记本电脑, 黑色背包",
+          "2026-04-09 18:33:08 CST objects=暗颗粒噪点渐变区域"
+        ]
+      },
+      "updated_at": "2026-04-09T10:40:00.692Z"
+    }
+  },
+  "lastMemoryResult": {
+    "ok": true,
+    "stored": 2
+  },
+  "lastRemoteResult": {
+    "ok": true,
+    "skipped": true,
+    "reason": "cloud_claw_ssh_target_not_configured"
+  },
+  "lastPrunedObservationCount": 0,
+  "lastPrunedPromptCount": 0
+}

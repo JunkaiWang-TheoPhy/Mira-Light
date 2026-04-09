@@ -22,6 +22,13 @@ from pathlib import Path
 import time
 from typing import Any
 
+from face_identity import (
+    crop_bbox_with_padding,
+    extract_face_embedding,
+    load_face_registry,
+    match_face_embedding,
+)
+
 try:
     import cv2  # type: ignore
     import numpy as np  # type: ignore
@@ -310,6 +317,23 @@ def parse_args() -> argparse.Namespace:
         default=0.48,
         help="Maximum |aspect_ratio| delta allowed when recovering the previous tabletop target.",
     )
+    parser.add_argument(
+        "--owner-face-registry",
+        type=Path,
+        help="Optional owner-face registry JSON built by register_owner_face.py.",
+    )
+    parser.add_argument(
+        "--owner-match-threshold",
+        type=float,
+        default=0.82,
+        help="Cosine-similarity threshold for treating a detected face as the registered owner.",
+    )
+    parser.add_argument(
+        "--owner-selection-bonus",
+        type=float,
+        default=0.24,
+        help="Selection-score bonus applied when a candidate face/person matches the registered owner.",
+    )
     return parser.parse_args()
 
 
@@ -330,6 +354,55 @@ def find_latest_jpg(captures_dir: Path) -> Path | None:
 def load_image(path: Path) -> np.ndarray | None:
     data = np.frombuffer(path.read_bytes(), dtype=np.uint8)
     return cv2.imdecode(data, cv2.IMREAD_COLOR)
+
+
+def match_owner_faces(
+    frame: np.ndarray,
+    faces: list[tuple[int, int, int, int]],
+    owner_registry: dict[str, Any] | None,
+    *,
+    threshold: float,
+) -> list[dict[str, Any]]:
+    if owner_registry is None:
+        return []
+
+    matches: list[dict[str, Any]] = []
+    frame_width = float(frame.shape[1])
+    frame_height = float(frame.shape[0])
+    for bbox in faces:
+        crop = crop_bbox_with_padding(frame, bbox)
+        embedding = extract_face_embedding(crop) if crop is not None else None
+        match = match_face_embedding(embedding, owner_registry, threshold=threshold)
+        if not match["matched"]:
+            continue
+        x, y, bw, bh = bbox
+        center_x = (x + (bw / 2.0)) / frame_width
+        center_y = (y + (bh / 2.0)) / frame_height
+        matches.append(
+            {
+                "bbox": tuple(int(value) for value in bbox),
+                "owner_id": match["owner_id"],
+                "owner_confidence": round(float(match["confidence"]), 4),
+                "owner_direction": classify_horizontal_zone(center_x),
+                "center_norm": {"x": round(center_x, 4), "y": round(center_y, 4)},
+            }
+        )
+    return matches
+
+
+def select_best_owner_observation(owner_matches: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not owner_matches:
+        return None
+    return max(owner_matches, key=lambda item: float(item.get("owner_confidence") or 0.0))
+
+
+def apply_owner_match_to_track(track: dict[str, Any], owner_match: dict[str, Any], *, selection_bonus: float) -> None:
+    track["owner_face_found"] = True
+    track["owner_id"] = owner_match.get("owner_id")
+    track["owner_confidence"] = round(float(owner_match.get("owner_confidence") or 0.0), 4)
+    track["owner_direction"] = owner_match.get("owner_direction") or track.get("horizontal_zone") or "unknown"
+    track["selection_score"] = round(float(track.get("selection_score", 0.0) or 0.0) + selection_bonus, 4)
+    track["confidence"] = round(min(0.99, float(track.get("confidence", 0.0) or 0.0) + 0.04), 4)
 
 
 def classify_horizontal_zone(x_norm: float | None) -> str:
@@ -1220,6 +1293,7 @@ def build_event(
     selected_target: dict[str, Any] | None = None,
     multi_target_payload: dict[str, Any] | None = None,
     interaction_hint: dict[str, Any] | None = None,
+    owner_observation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     h, w = frame.shape[:2]
     size_norm = None
@@ -1336,6 +1410,10 @@ def build_event(
             "size_norm": None if size_norm is None else round(size_norm, 6),
             "distance_band": distance_band,
             "approach_state": approach_state,
+            "owner_face_found": False,
+            "owner_id": None,
+            "owner_confidence": None,
+            "owner_direction": "unknown",
         },
         "scene_hint": {
             "name": scene_name,
@@ -1350,6 +1428,16 @@ def build_event(
     }
     if tracks is not None:
         event["tracks"] = tracks
+    owner_source = None
+    if selected_target is not None and bool(selected_target.get("owner_face_found")):
+        owner_source = selected_target
+    elif owner_observation is not None:
+        owner_source = owner_observation
+    if owner_source is not None:
+        event["tracking"]["owner_face_found"] = True
+        event["tracking"]["owner_id"] = owner_source.get("owner_id")
+        event["tracking"]["owner_confidence"] = owner_source.get("owner_confidence")
+        event["tracking"]["owner_direction"] = owner_source.get("owner_direction") or owner_source.get("horizontal_zone") or "unknown"
     if selected_target is not None:
         event["tracking"]["selected_lock_state"] = selected_target.get("lock_state")
         event["tracking"]["selected_reason"] = selected_target.get("reason")
@@ -1384,6 +1472,11 @@ def build_event(
             "fill_ratio": selected_target.get("fill_ratio"),
             "object_lock_strength": selected_target.get("object_lock_strength"),
         }
+        if "owner_face_found" in selected_target:
+            event["selected_target"]["owner_face_found"] = bool(selected_target.get("owner_face_found"))
+            event["selected_target"]["owner_id"] = selected_target.get("owner_id")
+            event["selected_target"]["owner_confidence"] = selected_target.get("owner_confidence")
+            event["selected_target"]["owner_direction"] = selected_target.get("owner_direction")
     if multi_target_payload:
         event["payload"] = multi_target_payload
     if interaction_hint is not None:
@@ -1406,6 +1499,7 @@ def process_frame(
     subtractor: cv2.BackgroundSubtractor,
     cascade: cv2.CascadeClassifier,
     hog: Any,
+    owner_registry: dict[str, Any] | None,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     frame = load_image(path)
@@ -1419,6 +1513,7 @@ def process_frame(
     state.bg_warmup_count += 1
 
     candidates: list[dict[str, Any]] = []
+    owner_observation = None
     if target_mode == "tabletop_follow":
         candidates = detect_tabletop_object_candidates(
             frame,
@@ -1429,6 +1524,17 @@ def process_frame(
     else:
         person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
         faces = detect_faces(gray, cascade)
+        owner_matches = match_owner_faces(
+            frame,
+            faces,
+            owner_registry,
+            threshold=float(getattr(args, "owner_match_threshold", 0.82)),
+        )
+        owner_observation = select_best_owner_observation(owner_matches)
+        owner_matches_by_bbox = {
+            tuple(int(value) for value in item["bbox"]): item
+            for item in owner_matches
+        }
         if person_detections:
             for bbox, weight in person_detections:
                 candidates.append(
@@ -1450,6 +1556,7 @@ def process_frame(
                 fx, fy, fw, fh = face_bbox
                 face_cx = fx + (fw / 2.0)
                 face_cy = fy + (fh / 2.0)
+                owner_match = owner_matches_by_bbox.get(tuple(int(value) for value in face_bbox))
                 for item in candidates:
                     bx = item["bbox_norm"]["x"] * frame.shape[1]
                     by = item["bbox_norm"]["y"] * frame.shape[0]
@@ -1458,23 +1565,35 @@ def process_frame(
                     if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
                         item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
                         item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
+                        if owner_match is not None:
+                            apply_owner_match_to_track(
+                                item,
+                                owner_match,
+                                selection_bonus=float(getattr(args, "owner_selection_bonus", 0.24)),
+                            )
                         break
         elif faces:
             confidence = 0.92 if len(faces) >= 2 else 0.90
             for bbox in faces:
-                candidates.append(
-                    make_track_entry(
-                        track_id=0,
-                        bbox=bbox,
-                        detector="haar_face",
-                        target_class="person",
-                        target_mode="person_follow",
-                        confidence=confidence,
-                        frame_width=frame.shape[1],
-                        frame_height=frame.shape[0],
-                        previous_size_norm=state.last_size_norm,
-                    )
+                entry = make_track_entry(
+                    track_id=0,
+                    bbox=bbox,
+                    detector="haar_face",
+                    target_class="person",
+                    target_mode="person_follow",
+                    confidence=confidence,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
                 )
+                owner_match = owner_matches_by_bbox.get(tuple(int(value) for value in bbox))
+                if owner_match is not None:
+                    apply_owner_match_to_track(
+                        entry,
+                        owner_match,
+                        selection_bonus=float(getattr(args, "owner_selection_bonus", 0.24)),
+                    )
+                candidates.append(entry)
         elif args.enable_hog_person:
             people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
             for bbox, confidence in people:
@@ -1540,6 +1659,17 @@ def process_frame(
                 )
 
     candidates = [item for item in candidates if within_engagement_zone(item, args)]
+    owner_candidate_observations = [
+        {
+            "owner_id": item.get("owner_id"),
+            "owner_confidence": item.get("owner_confidence"),
+            "owner_direction": item.get("owner_direction") or item.get("horizontal_zone"),
+            "horizontal_zone": item.get("horizontal_zone"),
+        }
+        for item in candidates
+        if bool(item.get("owner_face_found"))
+    ]
+    owner_observation = select_best_owner_observation(owner_candidate_observations)
 
     tracks = assign_track_ids(candidates, state)
     selected_target = choose_selected_target(tracks, state, args=args, operator_state=operator_state)
@@ -1620,6 +1750,7 @@ def process_frame(
         selected_target=selected_target,
         multi_target_payload=multi_target_payload,
         interaction_hint=interaction_hint,
+        owner_observation=owner_observation,
     )
 
     state.last_frame_path = path
@@ -1642,6 +1773,7 @@ def main() -> int:
     captures_dir = args.captures_dir.expanduser().resolve()
     latest_event_out = args.latest_event_out.expanduser().resolve() if args.latest_event_out else None
     events_jsonl = args.events_jsonl.expanduser().resolve() if args.events_jsonl else None
+    owner_registry_path = args.owner_face_registry.expanduser().resolve() if args.owner_face_registry else None
 
     cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     if cascade.empty():
@@ -1652,6 +1784,7 @@ def main() -> int:
         hog = cv2.HOGDescriptor()
         hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
+    owner_registry = load_face_registry(owner_registry_path)
     subtractor = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=32, detectShadows=False)
     state = ExtractorState()
 
@@ -1660,11 +1793,18 @@ def main() -> int:
         LOGGER.info("Latest event output: %s", latest_event_out)
     if events_jsonl:
         LOGGER.info("JSONL event log: %s", events_jsonl)
+    if owner_registry is not None:
+        LOGGER.info(
+            "Owner-face registry loaded: %s (owner=%s samples=%s)",
+            owner_registry_path,
+            owner_registry.get("owner_id"),
+            owner_registry.get("sample_count"),
+        )
 
     while True:
         latest = find_latest_jpg(captures_dir)
         if latest is not None and latest != state.last_frame_path:
-            event = process_frame(latest, state, subtractor, cascade, hog, args)
+            event = process_frame(latest, state, subtractor, cascade, hog, owner_registry, args)
             print(json.dumps(event, ensure_ascii=False))
             write_event_outputs(event, latest_event_out, events_jsonl)
 

@@ -40,6 +40,7 @@
 21. [Tabletop Target Mode First Pass](./30-tabletop-target-mode-first-pass.md)
 22. [Tabletop Target Locking and Selection Policy](./31-tabletop-target-locking-and-selection-policy.md)
 23. [Active Runtime Mira Light Bridge Tool Enablement and Live Validation](./32-active-runtime-mira-light-bridge-tool-enablement-and-live-validation.md)
+24. [Portrait Person Count Tolerance Upgrade](./33-portrait-person-count-tolerance-upgrade.md)
 
 ## Integration and Operations
 

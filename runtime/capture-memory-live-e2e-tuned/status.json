@@ -1,0 +1,106 @@
+{
+  "ok": true,
+  "state": "ok",
+  "message": "Representative capture summarized successfully.",
+  "statusAt": "2026-04-09T18:44:51+08:00",
+  "capturesDir": "/Users/huhulitong/.openclaw/workspace/runtime/captures",
+  "latestObservationPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/capture-memory-live-e2e-tuned/latest.observation.json",
+  "lastProcessedPath": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+  "summary": {
+    "peopleCount": 1,
+    "peopleSummary": "一名长发女性部分身体入镜，正手持智能手机",
+    "objects": [
+      "黑色产品包装盒",
+      "青绿色提手",
+      "智能手机",
+      "笔记本电脑",
+      "黑色背包"
+    ],
+    "activity": "女性手持手机拍摄前景的产品包装盒",
+    "sceneSummary": "办公室内场景，前景排列多份带提手的黑色产品包装盒，背景为日常办公环境，有一名女性在场",
+    "time": "2026-04-09 18:42:44 CST",
+    "location": "San Jose, California, US; ip_address: 65.75.220.82",
+    "memoryWorthy": true,
+    "memoryReason": "该场景记录了办公场所陈列的新产品包装，属于工作中产品相关的记录场景，具备记忆留存价值"
+  },
+  "signature": "8fa638aeb6305b87413ccc0ce636613644583c44f1a4f4cfedde85d0778a1d71",
+  "capturePath": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+  "memoryWriteSuggested": true,
+  "memoryWriteReason": "forced by operator override",
+  "newCaptureCount": 6786,
+  "observationArtifactPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/capture-memory-live-e2e-tuned/observations/20260409-184504-8fa638aeb630.json",
+  "promptArtifactPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/capture-memory-live-e2e-tuned/prompts/20260409-184452-request.json",
+  "sessionResult": {
+    "ok": true,
+    "note": {
+      "title": "Mira Light capture observer",
+      "currentState": "Latest booth capture at 2026-04-09 18:42:44 CST in San Jose, California, US; ip_address: 65.75.220.82. capture=20260409-184244-299668-frame-156994-seq-5588.jpg; people=1; peopleSummary=一名长发女性部分身体入镜，正手持智能手机; sceneSummary=办公室内场景，前景排列多份带提手的黑色产品包装盒，背景为日常办公环境，有一名女性在场.",
+      "nextStep": "Keep sampling captures on the 5-minute loop and only promote salient visual observations into episodic memory.",
+      "taskSpec": "Summarize representative booth captures into structured visual memory for Mira Light and cloud prompt-pack retrieval.",
+      "relevantFiles": [
+        "scripts/capture_memory_observer.py",
+        "docs/cam_receiver_new.py",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183706-468097-frame-153747-seq-2341.jpg",
+        "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183308-155058-frame-151406-seq-0.jpg"
+      ],
+      "errors": [],
+      "keyResults": [
+        "2026-04-09 18:42:44 CST capture=20260409-184244-299668-frame-156994-seq-5588.jpg people=1",
+        "2026-04-09 18:39:24 CST capture=20260409-183924-841313-frame-155086-seq-3680.jpg people=0",
+        "2026-04-09 18:37:06 CST capture=20260409-183706-468097-frame-153747-seq-2341.jpg people=2",
+        "2026-04-09 18:33:08 CST capture=20260409-183308-155058-frame-151406-seq-0.jpg people=0"
+      ],
+      "worklog": [
+        "2026-04-09 18:42:44 CST objects=黑色产品包装盒, 青绿色提手, 智能手机, 笔记本电脑, 黑色背包",
+        "2026-04-09 18:39:24 CST objects=机械键盘键帽, 电脑显示器, 蓝色提手, 黑色背包",
+        "2026-04-09 18:37:06 CST objects=机械键盘, 网线, 笔记本电脑, 黑色背包",
+        "2026-04-09 18:33:08 CST objects=暗颗粒噪点渐变区域"
+      ]
+    },
+    "meta": {
+      "user_id": "mira-light-bridge",
+      "session_id": "mira-light-capture-observer",
+      "note": {
+        "title": "Mira Light capture observer",
+        "currentState": "Latest booth capture at 2026-04-09 18:42:44 CST in San Jose, California, US; ip_address: 65.75.220.82. capture=20260409-184244-299668-frame-156994-seq-5588.jpg; people=1; peopleSummary=一名长发女性部分身体入镜，正手持智能手机; sceneSummary=办公室内场景，前景排列多份带提手的黑色产品包装盒，背景为日常办公环境，有一名女性在场.",
+        "nextStep": "Keep sampling captures on the 5-minute loop and only promote salient visual observations into episodic memory.",
+        "taskSpec": "Summarize representative booth captures into structured visual memory for Mira Light and cloud prompt-pack retrieval.",
+        "relevantFiles": [
+          "scripts/capture_memory_observer.py",
+          "docs/cam_receiver_new.py",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-184244-299668-frame-156994-seq-5588.jpg",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183706-468097-frame-153747-seq-2341.jpg",
+          "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183308-155058-frame-151406-seq-0.jpg"
+        ],
+        "errors": [],
+        "keyResults": [
+          "2026-04-09 18:42:44 CST capture=20260409-184244-299668-frame-156994-seq-5588.jpg people=1",
+          "2026-04-09 18:39:24 CST capture=20260409-183924-841313-frame-155086-seq-3680.jpg people=0",
+          "2026-04-09 18:37:06 CST capture=20260409-183706-468097-frame-153747-seq-2341.jpg people=2",
+          "2026-04-09 18:33:08 CST capture=20260409-183308-155058-frame-151406-seq-0.jpg people=0"
+        ],
+        "worklog": [
+          "2026-04-09 18:42:44 CST objects=黑色产品包装盒, 青绿色提手, 智能手机, 笔记本电脑, 黑色背包",
+          "2026-04-09 18:39:24 CST objects=机械键盘键帽, 电脑显示器, 蓝色提手, 黑色背包",
+          "2026-04-09 18:37:06 CST objects=机械键盘, 网线, 笔记本电脑, 黑色背包",
+          "2026-04-09 18:33:08 CST objects=暗颗粒噪点渐变区域"
+        ]
+      },
+      "updated_at": "2026-04-09T10:45:05.747Z"
+    }
+  },
+  "memoryResult": {
+    "ok": true,
+    "stored": 2
+  },
+  "remoteResult": {
+    "ok": true,
+    "skipped": true,
+    "reason": "cloud_claw_ssh_target_not_configured"
+  },
+  "prunedObservationCount": 0,
+  "prunedPromptCount": 0
+}

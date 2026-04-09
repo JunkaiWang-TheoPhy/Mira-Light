@@ -57,6 +57,7 @@ from scenes import (
     comment,
     delay,
     led,
+    nudge,
     pose,
 )
 
@@ -71,6 +72,15 @@ LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
 MAX_PUBLIC_SPEAK_CHARS = int(os.environ.get("MIRA_LIGHT_MAX_SPEAK_CHARS", "80"))
 SUPPORTED_TCP_ACTIONS = ("control", "pose", "scene", "tracking", "sensor_cache")
 TCP_LED_UNSUPPORTED_REASON = "raw TCP servo endpoint does not expose a dedicated LED protocol"
+SCENE_START_ALIGN_ENABLED = os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN", "0").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+SCENE_START_ALIGN_TOLERANCE_DEG = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_TOLERANCE_DEG", "3"))
+SCENE_START_ALIGN_MOVE_MS = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_MOVE_MS", "700"))
+SCENE_START_ALIGN_SETTLE_MS = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_SETTLE_MS", "180"))
 
 
 class SceneStopped(RuntimeError):
@@ -158,6 +168,11 @@ def _save_profile_file(path: Path, payload: dict[str, Any]) -> None:
 def _status_to_angles(status_payload: dict[str, Any]) -> dict[str, int]:
     servos = status_payload.get("servos", [])
     result: dict[str, int] = {}
+    if isinstance(servos, dict):
+        for name, angle in servos.items():
+            if isinstance(name, str) and isinstance(angle, (int, float)):
+                result[name] = int(angle)
+        return result
     for item in servos:
         name = item.get("name")
         angle = item.get("angle")
@@ -429,12 +444,16 @@ class MiraLightClient:
                 return {"ok": True, "transport": "tcp", "sensors": deepcopy(self._sensors_cache), "simulated": True}
         return self._request("POST", "/sensors", payload)
 
-    def control(self, payload: Dict[str, Any]) -> Any:
+    def control(self, payload: Dict[str, Any], *, move_ms: int | None = None) -> Any:
         if self.transport_kind == "tcp":
             if self._bus_servo_adapter is None:
                 raise RuntimeError("TCP control requested but servo adapter is not initialized")
             with self._lock:
-                result = self._bus_servo_adapter.apply_control_payload(payload, source="mira-light-runtime")
+                result = self._bus_servo_adapter.apply_control_payload(
+                    payload,
+                    move_ms=move_ms,
+                    source="mira-light-runtime",
+                )
                 self._sync_status_cache(result.get("angles", {}), transport_result=result.get("transport"))
                 return deepcopy(result)
         return self._request("POST", "/control", payload)
@@ -477,6 +496,7 @@ class BoothController:
         on_step: Callable[[dict[str, Any]], None] | None = None,
         audio_player: AudioCuePlayer | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
     ):
         self.client = client
         self.emit = emit or print
@@ -484,6 +504,7 @@ class BoothController:
         self.on_step = on_step
         self.audio_player = audio_player
         self.cue_mode = cue_mode
+        self.silent_mode = silent_mode
 
     def _log(self, message: str) -> None:
         self.emit(message)
@@ -520,10 +541,12 @@ class BoothController:
         host_line = scene.get("host_line")
         if host_line:
             self._log(f"[host] {host_line}")
-            if self.cue_mode in {"director", "full"}:
+            if self.cue_mode in {"director", "full"} and not self.silent_mode:
                 self._log(f"[cue-host] {host_line}")
                 self.run_step({"type": "audio", "text": host_line, "voice": "tts", "wait": True})
                 self._sleep_ms(140)
+            elif self.cue_mode in {"director", "full"} and self.silent_mode:
+                self._log(f"[cue-host-muted] {host_line}")
 
         for note in scene.get("notes", []):
             self._log(f"[note] {note}")
@@ -621,6 +644,9 @@ class BoothController:
             return
 
         if step_type == "audio":
+            if self.silent_mode:
+                self._log(f"[audio-skip-silent] payload={json.dumps(step, ensure_ascii=False)}")
+                return
             if self.audio_player is None:
                 self._log(f"[skip-audio] payload={json.dumps(step, ensure_ascii=False)}")
                 return
@@ -687,6 +713,7 @@ class MiraLightRuntime:
         self._tracking_target: dict[str, Any] = {}
         self._tracking_servo_state: dict[str, int] = dict(POSES.get("neutral", {}).get("angles", {}))
         self._tracking_led_state: dict[str, Any] = {}
+        self._silent_mode = False
         self._client = self._build_client()
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
@@ -1021,6 +1048,7 @@ class MiraLightRuntime:
                 "lastStatusAt": self._last_status_at,
                 "sceneCount": len(SCENES),
                 "cueMode": self._cue_mode,
+                "silentMode": self._silent_mode,
                 "sceneContext": deepcopy(self._active_scene_context),
                 "lastSceneContext": deepcopy(self._last_scene_context),
                 "lastTrigger": deepcopy(self._last_trigger),
@@ -1062,6 +1090,89 @@ class MiraLightRuntime:
             "poses": POSES,
         }
 
+    def _scene_start_target_angles(self, scene_definition: dict[str, Any]) -> dict[str, int] | None:
+        for step in scene_definition.get("steps", []):
+            step_type = step.get("type")
+            if step_type == "pose":
+                pose_name = str(step.get("name") or "").strip()
+                pose_data = POSES.get(pose_name, {})
+                pose_angles = pose_data.get("angles", {})
+                angles = {
+                    servo_name: int(pose_angles[servo_name])
+                    for servo_name in SERVO_KEYS
+                    if isinstance(pose_angles.get(servo_name), (int, float))
+                }
+                return angles or None
+
+            if step_type == "control":
+                payload = step.get("payload", {})
+                if payload.get("mode") != "absolute":
+                    return None
+                angles = {
+                    servo_name: int(payload[servo_name])
+                    for servo_name in SERVO_KEYS
+                    if isinstance(payload.get(servo_name), (int, float))
+                }
+                return angles or None
+
+            if step_type in {"comment", "delay", "led", "audio", "sensor_gate"}:
+                continue
+
+            return None
+        return None
+
+    def _scene_start_misalignment(
+        self,
+        current_angles: dict[str, int],
+        target_angles: dict[str, int],
+    ) -> dict[str, dict[str, int | None]]:
+        mismatches: dict[str, dict[str, int | None]] = {}
+        for servo_name, target in target_angles.items():
+            current = current_angles.get(servo_name)
+            if not isinstance(current, int):
+                mismatches[servo_name] = {"current": None, "target": int(target), "delta": None}
+                continue
+            delta = abs(int(current) - int(target))
+            if delta > SCENE_START_ALIGN_TOLERANCE_DEG:
+                mismatches[servo_name] = {"current": int(current), "target": int(target), "delta": int(delta)}
+        return mismatches
+
+    def _maybe_align_scene_start(self, scene_name: str, scene_definition: dict[str, Any]) -> None:
+        if not SCENE_START_ALIGN_ENABLED:
+            return
+
+        target_angles = self._scene_start_target_angles(scene_definition)
+        if not target_angles:
+            return
+
+        try:
+            status_payload = self.get_status()
+        except Exception as exc:  # noqa: BLE001 - alignment should not make scene startup brittle
+            self.log(f"[pre-align-skip] {scene_name} could not read /status before start: {exc}")
+            return
+
+        if not isinstance(status_payload, dict):
+            self.log(f"[pre-align-skip] {scene_name} status payload is not a JSON object")
+            return
+
+        current_angles = _status_to_angles(status_payload)
+        if not current_angles:
+            self.log(f"[pre-align-skip] {scene_name} status did not include current servo angles")
+            return
+
+        mismatches = self._scene_start_misalignment(current_angles, target_angles)
+        if not mismatches:
+            return
+
+        payload = {"mode": "absolute", **target_angles}
+        self.log(
+            f"[pre-align] {scene_name} -> {json.dumps(payload, ensure_ascii=False)} "
+            f"because current={json.dumps(mismatches, ensure_ascii=False)}"
+        )
+        self.get_client().control(payload, move_ms=SCENE_START_ALIGN_MOVE_MS)
+        if not self.dry_run and SCENE_START_ALIGN_SETTLE_MS > 0:
+            time.sleep(SCENE_START_ALIGN_SETTLE_MS / 1000.0)
+
     def _profile_path(self) -> Path:
         return Path(PROFILE_INFO["path"])
 
@@ -1079,11 +1190,167 @@ class MiraLightRuntime:
             return "right"
         return default
 
+    @staticmethod
+    def _opposite_direction(direction: str) -> str:
+        normalized = str(direction or "").strip().lower()
+        if normalized == "left":
+            return "right"
+        if normalized == "right":
+            return "left"
+        return "center"
+
     def _direction_from_context(self, scene_context: dict[str, Any], *, default: str = "right") -> str:
         for key in ("departureDirection", "direction", "horizontalZone", "primaryDirection", "touchSide", "side"):
             if key in scene_context:
                 return self._normalize_direction(scene_context.get(key), default=default)
         return default
+
+    def _clamp_servo_target(self, servo_name: str, target: int, fallback: tuple[int, int]) -> int:
+        low, high = self._servo_rehearsal_range(servo_name, fallback)
+        return max(low, min(high, int(target)))
+
+    def _build_dynamic_curious_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        owner_direction_raw = None
+        for key in ("ownerDirection", "ownerFaceDirection", "targetDirection", "targetHorizontalZone"):
+            if key in scene_context:
+                owner_direction_raw = scene_context.get(key)
+                break
+
+        judge_direction = self._normalize_direction(
+            scene_context.get("judgeDirection") or scene_context.get("horizontalZone"),
+            default="center",
+        )
+        owner_direction = self._normalize_direction(owner_direction_raw, default="center")
+
+        owner_face_found_raw = scene_context.get("ownerFaceFound")
+        if isinstance(owner_face_found_raw, bool):
+            owner_face_found = owner_face_found_raw and owner_direction_raw is not None
+        else:
+            owner_detector = str(
+                scene_context.get("ownerDetector")
+                or scene_context.get("detector")
+                or scene_context.get("targetDetector")
+                or ""
+            ).strip().lower()
+            owner_face_found = owner_direction_raw is not None and owner_detector in {"haar_face", "face"}
+
+        fallback_direction = self._opposite_direction(judge_direction)
+        focus_direction = owner_direction if owner_face_found else fallback_direction
+        away_direction = self._opposite_direction(focus_direction) if owner_face_found else focus_direction
+
+        label = {"left": "左侧", "center": "正前方", "right": "右侧"}
+        focus_label = label[focus_direction]
+        judge_label = label[judge_direction]
+
+        search_left_yaw = self._clamp_servo_target("servo1", 80, (72, 110))
+        search_right_yaw = self._clamp_servo_target("servo1", 104, (72, 110))
+        focus_half_yaw = self._clamp_servo_target("servo1", {"left": 84, "center": 92, "right": 100}[focus_direction], (72, 110))
+        focus_full_yaw = self._clamp_servo_target("servo1", {"left": 80, "center": 92, "right": 104}[focus_direction], (72, 110))
+        focus_peek_yaw = self._clamp_servo_target("servo1", {"left": 82, "center": 94, "right": 102}[focus_direction], (72, 110))
+        away_shy_yaw = self._clamp_servo_target("servo1", {"left": 80, "center": 84, "right": 104}[away_direction], (72, 110))
+        away_hold_yaw = self._clamp_servo_target("servo1", {"left": 82, "center": 88, "right": 102}[away_direction], (72, 110))
+        fallback_hold_yaw = self._clamp_servo_target("servo1", {"left": 78, "center": 92, "right": 106}[focus_direction], (72, 110))
+
+        scene = deepcopy(SCENES["curious_observe"])
+        if owner_face_found:
+            scene["notes"] = [
+                f"先小幅环顾并上下找主人的脸，确认后朝{focus_label}做半转、试探和害羞回望。",
+                *scene.get("notes", []),
+            ]
+            scene["steps"] = [
+                pose("neutral"),
+                led("solid", brightness=124, color={"r": 255, "g": 225, "b": 190}),
+                delay(160),
+                comment("先环顾一下，再上下找主人的脸。"),
+                absolute(servo1=search_left_yaw, servo2=94, servo3=96, servo4=86),
+                delay(180),
+                absolute(servo1=search_right_yaw, servo2=98, servo3=100, servo4=96),
+                delay(180),
+                comment(f"找到主人的脸后，先朝{focus_label}半转过去。"),
+                absolute(servo1=focus_half_yaw, servo2=96, servo3=98, servo4=90),
+                delay(220),
+                comment("再轻轻靠近一点，像想确认你是谁。"),
+                absolute(servo1=focus_full_yaw, servo2=98, servo3=102, servo4=90),
+                delay(260),
+                comment("缓慢摇头一次，像在认真辨认。"),
+                nudge(servo1=3 if focus_direction != "right" else 2, servo4=-2),
+                delay(140),
+                nudge(servo1=-6 if focus_direction != "left" else -4, servo4=4),
+                delay(140),
+                nudge(servo1=3 if focus_direction != "right" else 2, servo4=-2),
+                delay(180),
+                comment("再更靠近一点，看着你。"),
+                absolute(servo1=focus_full_yaw, servo2=98, servo3=104, servo4=90),
+                delay(220),
+                comment("转开并低头，表示它有点害羞。"),
+                led("solid", brightness=100, color={"r": 246, "g": 214, "b": 186}),
+                absolute(servo1=away_shy_yaw, servo2=94, servo3=94, servo4=100),
+                delay(320),
+                nudge(servo4=4),
+                delay(120),
+                nudge(servo4=-8),
+                delay(120),
+                nudge(servo4=4),
+                delay(180),
+                comment("又忍不住朝你慢慢探出来。"),
+                led("solid", brightness=124, color={"r": 255, "g": 225, "b": 190}),
+                absolute(servo1=focus_peek_yaw, servo2=98, servo3=106, servo4=92),
+                delay(220),
+                nudge(servo1=3 if focus_direction != "right" else 2),
+                delay(110),
+                nudge(servo1=-6 if focus_direction != "left" else -4),
+                delay(110),
+                nudge(servo1=3 if focus_direction != "right" else 2),
+                delay(160),
+                comment("面对你点头一下。"),
+                absolute(servo1=focus_peek_yaw, servo2=98, servo3=102, servo4=90),
+                nudge(servo4=4),
+                delay(120),
+                nudge(servo4=-8),
+                delay(140),
+                nudge(servo4=4),
+                delay(180),
+                comment("如果你继续靠近，它会再往远离你的方向缩一点。"),
+                absolute(servo1=away_hold_yaw, servo2=94, servo3=98, servo4=102),
+                delay(240),
+                comment("害羞结束后，再慢慢往回和往前靠。"),
+                absolute(servo1=focus_half_yaw, servo2=98, servo3=102, servo4=92),
+            ]
+            return scene
+
+        scene["notes"] = [
+            f"先环顾并上下找主人的脸；如果没找到，就朝评委{judge_label}的反方向{focus_label}回退。",
+            *scene.get("notes", []),
+        ]
+        scene["steps"] = [
+            pose("neutral"),
+            led("solid", brightness=120, color={"r": 255, "g": 223, "b": 188}),
+            delay(160),
+            comment("先环顾一下，再上下找主人的脸。"),
+            absolute(servo1=search_left_yaw, servo2=94, servo3=96, servo4=86),
+            delay(180),
+            absolute(servo1=search_right_yaw, servo2=98, servo3=100, servo4=96),
+            delay(180),
+            absolute(servo1=92, servo2=93, servo3=96, servo4=100),
+            delay(180),
+            comment(f"还没找到主人的脸，就先扭向评委{judge_label}的反方向{focus_label}。"),
+            led("solid", brightness=108, color={"r": 246, "g": 214, "b": 186}),
+            absolute(servo1=fallback_hold_yaw, servo2=94, servo3=96, servo4=98),
+            delay(320),
+            comment("在那个方向停半拍，像是先留出一点安全距离。"),
+            nudge(servo4=3),
+            delay(120),
+            nudge(servo4=-6),
+            delay(120),
+            nudge(servo4=3),
+            delay(180),
+            comment("确认没有新的脸出现后，慢慢回到等待位。"),
+            absolute(servo1=focus_half_yaw, servo2=96, servo3=98, servo4=94),
+            delay(220),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
+        ]
+        return scene
 
     def _build_dynamic_farewell_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
         direction = self._direction_from_context(scene_context, default="right")
@@ -1194,7 +1461,9 @@ class MiraLightRuntime:
     def _resolve_scene_definition(self, scene_name: str, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
         resolved_context = deepcopy(scene_context or {})
 
-        if scene_name == "farewell":
+        if scene_name == "curious_observe":
+            scene = self._build_dynamic_curious_scene(resolved_context)
+        elif scene_name == "farewell":
             scene = self._build_dynamic_farewell_scene(resolved_context)
         elif scene_name == "touch_affection":
             scene = self._build_dynamic_touch_scene(resolved_context)
@@ -1451,6 +1720,7 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         if scene_name not in SCENES:
@@ -1477,13 +1747,15 @@ class MiraLightRuntime:
             self._current_step_type = "scene"
             self._last_command = f"run-scene:{scene_name}"
             self._cue_mode = cue_mode
+            self._silent_mode = bool(silent_mode)
             self._active_scene_context = deepcopy(scene_context or {})
             self._tracking_active = False
             self._tracking_target = {}
         scene_definition = self._resolve_scene_definition(scene_name, scene_context=scene_context)
+        self._maybe_align_scene_start(scene_name, scene_definition)
         with self._state_lock:
             self._current_step_total = len(scene_definition.get("steps", []))
-        self.log(f"[runtime] start scene {scene_name} cue_mode={cue_mode}")
+        self.log(f"[runtime] start scene {scene_name} cue_mode={cue_mode} silent_mode={bool(silent_mode)}")
         self._record_scene_session_state(scene_name, "started")
         return scene_definition
 
@@ -1501,6 +1773,7 @@ class MiraLightRuntime:
             self._last_scene_context = active_context
             self._active_scene_context = {}
             self._cue_mode = "scene"
+            self._silent_mode = False
         if error:
             self.log(f"[runtime-error] scene {scene_name}: {error}")
         else:
@@ -1525,12 +1798,14 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         scene_definition = self._prepare_run(
             scene_name,
             scene_context=scene_context,
             cue_mode=cue_mode,
+            silent_mode=silent_mode,
             allow_unavailable=allow_unavailable,
         )
         error_text = None
@@ -1542,6 +1817,7 @@ class MiraLightRuntime:
                 on_step=self._record_step,
                 audio_player=self.audio_player,
                 cue_mode=cue_mode,
+                silent_mode=silent_mode,
             )
             controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
@@ -1553,7 +1829,7 @@ class MiraLightRuntime:
             self._finish_run(scene_name, error_text)
         return self.get_runtime_state()
 
-    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any], cue_mode: str) -> None:
+    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any], cue_mode: str, silent_mode: bool) -> None:
         error_text = None
         try:
             controller = BoothController(
@@ -1563,6 +1839,7 @@ class MiraLightRuntime:
                 on_step=self._record_step,
                 audio_player=self.audio_player,
                 cue_mode=cue_mode,
+                silent_mode=silent_mode,
             )
             controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
@@ -1578,17 +1855,19 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         scene_definition = self._prepare_run(
             scene_name,
             scene_context=scene_context,
             cue_mode=cue_mode,
+            silent_mode=silent_mode,
             allow_unavailable=allow_unavailable,
         )
         worker = threading.Thread(
             target=self._run_scene_worker,
-            args=(scene_name, scene_definition, cue_mode),
+            args=(scene_name, scene_definition, cue_mode, silent_mode),
             daemon=True,
         )
         with self._state_lock:
@@ -1646,6 +1925,7 @@ class MiraLightRuntime:
             scene_name,
             scene_context=scene_context,
             cue_mode=str(event_payload.get("cueMode") or "scene"),
+            silent_mode=bool(event_payload.get("silentMode", False)),
             allow_unavailable=True,
         )
 

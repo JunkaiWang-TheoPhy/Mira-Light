@@ -19,6 +19,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from track_target_event_extractor import (
     ExtractorState,
     build_event,
+    build_person_candidates,
     choose_selected_target,
     detect_hand_arm_cue,
     hold_selected_target,
@@ -37,6 +38,7 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             motion_near_area_ratio=0.18,
             motion_mid_area_ratio=0.06,
             hold_missing_frames=3,
+            standalone_hog_min_confidence=0.72,
             hand_cue_min_area_ratio=0.0015,
             hand_cue_max_area_ratio=0.06,
             hand_cue_min_center_y=0.34,
@@ -177,6 +179,66 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         )
 
         self.assertIsNone(cue)
+
+    def test_build_person_candidates_counts_two_people_from_two_face_cues(self) -> None:
+        candidates = build_person_candidates(
+            face_detections=[((20, 12, 28, 32), 0.92), ((132, 18, 26, 30), 0.88)],
+            upperbody_detections=[],
+            hog_detections=[],
+            frame_width=200,
+            frame_height=120,
+            previous_size_norm=None,
+            standalone_hog_min_confidence=0.72,
+        )
+
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(candidates[0]["target_class"], "person")
+        self.assertIn(candidates[0]["detector"], {"haar_face", "hog_person"})
+
+    def test_build_person_candidates_merges_face_and_upperbody_for_same_person(self) -> None:
+        candidates = build_person_candidates(
+            face_detections=[((72, 10, 26, 30), 0.92)],
+            upperbody_detections=[((55, 8, 64, 92), 0.72)],
+            hog_detections=[],
+            frame_width=200,
+            frame_height=120,
+            previous_size_norm=None,
+            standalone_hog_min_confidence=0.72,
+        )
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["detector"], "haar_face")
+        self.assertGreaterEqual(float(candidates[0]["confidence"]), 0.9)
+
+    def test_build_person_candidates_rejects_weak_standalone_hog_false_positive(self) -> None:
+        candidates = build_person_candidates(
+            face_detections=[],
+            upperbody_detections=[],
+            hog_detections=[((16, 2, 18, 42), 0.66)],
+            frame_width=200,
+            frame_height=120,
+            previous_size_norm=None,
+            standalone_hog_min_confidence=0.72,
+        )
+
+        self.assertEqual(candidates, [])
+
+    def test_build_person_candidates_merges_split_vertical_face_cues_for_same_person(self) -> None:
+        candidates = build_person_candidates(
+            face_detections=[
+                ((92, 10, 28, 30), 0.92),
+                ((100, 62, 34, 34), 0.88),
+                ((18, 54, 30, 32), 0.9),
+            ],
+            upperbody_detections=[],
+            hog_detections=[],
+            frame_width=200,
+            frame_height=120,
+            previous_size_norm=None,
+            standalone_hog_min_confidence=0.72,
+        )
+
+        self.assertEqual(len(candidates), 2)
 
 
 if __name__ == "__main__":

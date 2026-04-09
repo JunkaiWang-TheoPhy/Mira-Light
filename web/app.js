@@ -4,6 +4,14 @@ const dryRunInput = document.getElementById("dry-run");
 const cueModeDirectorInput = document.getElementById("cue-mode-director");
 const farewellDirectionInput = document.getElementById("farewell-direction");
 const FIXED_LAMP_BASE_URL = "tcp://192.168.31.10:9527";
+const CONSOLE_VARIANT = document.body.dataset.consoleVariant === "silent" ? "silent" : "director";
+const IS_SILENT_VARIANT = CONSOLE_VARIANT === "silent";
+const ATTACHMENT_STORAGE_KEY = IS_SILENT_VARIANT ? "mira-light-attachments-silent" : "mira-light-attachments";
+const CUE_MODE_STORAGE_KEY = IS_SILENT_VARIANT ? "mira-light-cue-mode-silent" : "mira-light-cue-mode";
+const SILENT_HIDDEN_ATTACHMENT_IDS = new Set(["audio_ready", "mic_ready"]);
+
+document.body.dataset.consoleVariant = CONSOLE_VARIANT;
+document.body.classList.toggle("is-silent-console", IS_SILENT_VARIANT);
 
 const runtimeRunning = document.getElementById("runtime-running");
 const runtimeScene = document.getElementById("runtime-scene");
@@ -217,22 +225,52 @@ const ATTACHMENT_DEFS = [
 
 function readAttachmentState() {
   try {
-    return JSON.parse(localStorage.getItem("mira-light-attachments") || "{}");
+    return JSON.parse(localStorage.getItem(ATTACHMENT_STORAGE_KEY) || "{}");
   } catch {
     return {};
   }
 }
 
 function writeAttachmentState(state) {
-  localStorage.setItem("mira-light-attachments", JSON.stringify(state));
+  localStorage.setItem(ATTACHMENT_STORAGE_KEY, JSON.stringify(state));
 }
 
 function readCueMode() {
-  return localStorage.getItem("mira-light-cue-mode") === "scene" ? "scene" : "director";
+  if (IS_SILENT_VARIANT) return "scene";
+  return localStorage.getItem(CUE_MODE_STORAGE_KEY) === "scene" ? "scene" : "director";
 }
 
 function writeCueMode(mode) {
-  localStorage.setItem("mira-light-cue-mode", mode === "scene" ? "scene" : "director");
+  localStorage.setItem(CUE_MODE_STORAGE_KEY, mode === "scene" || IS_SILENT_VARIANT ? "scene" : "director");
+}
+
+function visibleAttachmentDefs() {
+  if (!IS_SILENT_VARIANT) return ATTACHMENT_DEFS;
+  return ATTACHMENT_DEFS.filter((item) => !SILENT_HIDDEN_ATTACHMENT_IDS.has(item.id));
+}
+
+function visibleRequirementPairs(scene) {
+  const requirements = Array.isArray(scene?.requirements) ? scene.requirements : [];
+  const requirementIds = Array.isArray(scene?.requirementIds) ? scene.requirementIds : [];
+  return requirements
+    .map((label, index) => ({ label, id: requirementIds[index] || null }))
+    .filter((item) => !IS_SILENT_VARIANT || !item.id || !SILENT_HIDDEN_ATTACHMENT_IDS.has(item.id));
+}
+
+function sceneSupportText(scene) {
+  if (!scene) return "";
+  if (IS_SILENT_VARIANT) {
+    return scene.operatorCue || scene.fallbackHint || "";
+  }
+  return scene.hostLine || "";
+}
+
+function sceneSummaryCue(scene) {
+  if (!scene) return "-";
+  if (IS_SILENT_VARIANT) {
+    return scene.operatorCue || scene.fallbackHint || "-";
+  }
+  return scene.operatorCue || scene.hostLine || "-";
 }
 
 async function fetchJson(url, options = {}) {
@@ -274,6 +312,21 @@ function formatDuration(durationMs) {
   return `${(durationMs / 1000).toFixed(1)}s`;
 }
 
+function estimateSceneRemainingMs(scene, runtime = runtimeState) {
+  if (!scene || !runtime?.running || runtime.runningScene !== scene.id) return null;
+  if (!scene.durationMs || !runtime.lastStartedAt) return null;
+  const startedAtMs = Date.parse(runtime.lastStartedAt);
+  if (Number.isNaN(startedAtMs)) return null;
+  const elapsedMs = Math.max(0, Date.now() - startedAtMs);
+  return Math.max(0, scene.durationMs - elapsedMs);
+}
+
+function formatRemainingDuration(durationMs) {
+  if (durationMs == null) return "运行中";
+  const seconds = Math.max(1, Math.ceil(durationMs / 1000));
+  return `约 ${seconds}s`;
+}
+
 function readinessLabel(value) {
   return value || "prototype";
 }
@@ -294,10 +347,13 @@ function renderRuntime(runtime) {
   baseUrlInput.value = FIXED_LAMP_BASE_URL;
   baseUrlInput.readOnly = true;
   dryRunInput.checked = Boolean(runtime.dryRun);
-  cueModeDirectorInput.checked = readCueMode() === "director";
+  if (cueModeDirectorInput) {
+    cueModeDirectorInput.checked = readCueMode() === "director";
+  }
 
   document.body.classList.toggle("is-running", Boolean(runtime.running));
   document.body.classList.toggle("is-error", Boolean(runtime.lastError));
+  document.body.classList.toggle("is-runtime-silent", Boolean(runtime.silentMode));
 
   renderSceneGrid();
   renderDirectorSummary();
@@ -514,8 +570,9 @@ function renderSceneGrid() {
     card.dataset.accent = scene.accent || "prototype";
 
     const emotionTags = (scene.emotionTags || []).slice(0, 3);
-    const requirements = (scene.requirements || []).slice(0, 2);
-    const unmetCount = (scene.requirementIds || []).filter((id) => readinessState[id] !== true).length;
+    const requirementPairs = visibleRequirementPairs(scene);
+    const requirements = requirementPairs.slice(0, 2);
+    const unmetCount = requirementPairs.filter((item) => item.id && readinessState[item.id] !== true).length;
 
     const halo = document.createElement("div");
     halo.className = "scene-halo";
@@ -525,6 +582,9 @@ function renderSceneGrid() {
     badges.appendChild(buildTag(scene.priority || "P2", "priority"));
     badges.appendChild(buildTag(readinessLabel(scene.readiness), scene.readiness || "prototype"));
     badges.appendChild(buildTag(formatDuration(scene.durationMs), "duration"));
+    if (isRunning) {
+      badges.appendChild(buildTag(`运行中 · ${formatRemainingDuration(estimateSceneRemainingMs(scene))}`, "running"));
+    }
     if (unmetCount > 0) {
       badges.appendChild(buildTag(`${unmetCount} 项未就绪`, "warning"));
     }
@@ -538,7 +598,7 @@ function renderSceneGrid() {
 
     const host = document.createElement("p");
     host.className = "scene-host";
-    host.textContent = scene.hostLine || "";
+    host.textContent = sceneSupportText(scene);
 
     const emotions = document.createElement("div");
     emotions.className = "tag-list";
@@ -546,7 +606,7 @@ function renderSceneGrid() {
 
     const needs = document.createElement("div");
     needs.className = "scene-needs";
-    requirements.forEach((item) => needs.appendChild(buildTag(item, "need")));
+    requirements.forEach((item) => needs.appendChild(buildTag(item.label, "need")));
 
     card.appendChild(halo);
     card.appendChild(badges);
@@ -563,6 +623,9 @@ function renderSceneGrid() {
       triggerSceneBurst(scene.id);
       try {
         const payload = { cueMode: readCueMode(), allowUnavailable: true };
+        if (IS_SILENT_VARIANT) {
+          payload.silentMode = true;
+        }
         if (scene.id === "farewell") {
           payload.context = { departureDirection: farewellDirectionInput.value };
         }
@@ -607,12 +670,16 @@ function renderDirectorSummary() {
   const currentIndex = runtimeState?.currentStepIndex;
   const currentTotal = runtimeState?.currentStepTotal;
   if (currentIndex && currentTotal) {
-    summaryStepCounter.textContent = `${currentIndex} / ${currentTotal}`;
+    const remainingMs = estimateSceneRemainingMs(scene);
+    summaryStepCounter.textContent =
+      remainingMs != null ? `${currentIndex} / ${currentTotal} · 约剩 ${Math.max(1, Math.ceil(remainingMs / 1000))}s` : `${currentIndex} / ${currentTotal}`;
   } else {
-    summaryStepCounter.textContent = `预计 ${formatDuration(scene.durationMs)}`;
+    const remainingMs = estimateSceneRemainingMs(scene);
+    summaryStepCounter.textContent =
+      remainingMs != null ? `运行中 · 约剩 ${Math.max(1, Math.ceil(remainingMs / 1000))}s` : `预计 ${formatDuration(scene.durationMs)}`;
   }
 
-  summaryHostCue.textContent = scene.operatorCue || scene.hostLine || "-";
+  summaryHostCue.textContent = sceneSummaryCue(scene);
   summaryFallback.textContent = scene.fallbackHint || "-";
 
   const showcaseHref = SHOWCASE_PAGES[scene.id];
@@ -629,10 +696,9 @@ function renderDirectorSummary() {
   }
 
   summaryRequirements.innerHTML = "";
-  (scene.requirements || []).forEach((item, index) => {
-    const requirementId = (scene.requirementIds || [])[index];
-    const ready = requirementId ? readinessState[requirementId] === true : true;
-    summaryRequirements.appendChild(buildTag(item, ready ? "need" : "warning"));
+  visibleRequirementPairs(scene).forEach((item) => {
+    const ready = item.id ? readinessState[item.id] === true : true;
+    summaryRequirements.appendChild(buildTag(item.label, ready ? "need" : "warning"));
   });
 
   updateSceneAccent();
@@ -642,7 +708,7 @@ function renderReadinessPanel() {
   const state = readAttachmentState();
   readinessGrid.innerHTML = "";
 
-  ATTACHMENT_DEFS.forEach((item) => {
+  visibleAttachmentDefs().forEach((item) => {
     const card = document.createElement("label");
     card.className = "readiness-card";
 
@@ -1386,11 +1452,16 @@ async function saveConfig() {
 
 async function triggerEvent(eventName, payload = {}) {
   try {
+    const nextPayload = { ...payload };
+    if (IS_SILENT_VARIANT) {
+      nextPayload.cueMode = "scene";
+      nextPayload.silentMode = true;
+    }
     await fetchJson("/api/trigger", {
       method: "POST",
       body: JSON.stringify({
         event: eventName,
-        payload,
+        payload: nextPayload,
       }),
     });
     await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed()]);
@@ -1580,7 +1651,9 @@ bindClick("refresh-profile", refreshProfile);
 
 async function bootstrap() {
   try {
-    cueModeDirectorInput.checked = readCueMode() === "director";
+    if (cueModeDirectorInput) {
+      cueModeDirectorInput.checked = readCueMode() === "director";
+    }
     setProfileFlash("等待操作");
     renderReadinessPanel();
     await refreshRuntime();
@@ -1607,6 +1680,12 @@ async function bootstrap() {
       appendLocalLog(`[poll-error] ${error.message}`);
     }
   }, 2500);
+
+  setInterval(() => {
+    if (!runtimeState?.running) return;
+    renderSceneGrid();
+    renderDirectorSummary();
+  }, 500);
 }
 
 bootstrap();

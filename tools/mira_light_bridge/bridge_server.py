@@ -308,12 +308,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 async_run = bool(body.get("async", True))
                 scene_context = body.get("context") if isinstance(body.get("context"), dict) else None
                 cue_mode = str(body.get("cueMode") or "scene")
+                silent_mode = bool(body.get("silentMode", False))
                 allow_unavailable = bool(body.get("allowUnavailable", False))
                 if async_run:
                     runtime_state = self.server.runtime.start_scene(
                         scene_name,
                         scene_context=scene_context,
                         cue_mode=cue_mode,
+                        silent_mode=silent_mode,
                         allow_unavailable=allow_unavailable,
                     )
                 else:
@@ -321,6 +323,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         scene_name,
                         scene_context=scene_context,
                         cue_mode=cue_mode,
+                        silent_mode=silent_mode,
                         allow_unavailable=allow_unavailable,
                     )
                 self._send_json(200, {"ok": True, "runtime": runtime_state})

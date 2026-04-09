@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "我是米拉，一个会陪着你、先照顾你再回答你的智能助手。 如果你愿意，我更喜欢被你叫“米拉”。"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我是米拉，一个会陪着你、先照顾你再回答你的智能助手。 如果你愿意，我更喜欢被你叫“米拉”。",
+  "spokenText": "我是米拉，一个会陪着你、先照顾你再回答你的智能助手。 如果你愿意，我更喜欢被你叫“米拉”。"
+}

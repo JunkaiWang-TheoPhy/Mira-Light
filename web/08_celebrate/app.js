@@ -364,7 +364,23 @@ async function fetchJson(url, options = {}) {
 
 async function triggerCelebrateScene() {
   try {
-    await fetchJson("/api/run-motion-script/celebrate", { method: "POST" });
+    // Clicking "accept reward" is the handoff from the web celebration page
+    // into Mira Light's physical "celebrate" dance scene.
+    await fetchJson("/api/run-motion-script/celebrate", {
+      method: "POST",
+      body: JSON.stringify({
+        scene: "celebrate",
+        cueMode: "director",
+        async: true,
+        allowUnavailable: true,
+        source: "celebrate_accept_reward",
+        context: {
+          trigger: "accept_reward",
+          rewardType: "token_bonus",
+          rewardAmount: TOKEN_TOTAL,
+        },
+      }),
+    });
   } catch (error) {
     console.warn("Lamp celebrate trigger failed:", error);
   }

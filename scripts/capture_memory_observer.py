@@ -63,6 +63,12 @@ DEFAULT_INTERVAL_SECONDS = 300
 DEFAULT_LOOKBACK_SECONDS = 900
 DEFAULT_SAMPLE_LIMIT = 18
 DEFAULT_MIN_IMAGE_DIMENSION = 64
+DEFAULT_NETWORK_TIMEOUT_SECONDS = 20.0
+DEFAULT_MAX_ATTEMPTS = 3
+DEFAULT_RETRY_DELAY_SECONDS = 1.2
+DEFAULT_MAX_OBSERVATION_ARTIFACTS = 288
+DEFAULT_MAX_PROMPT_ARTIFACTS = 144
+DEFAULT_ARTIFACT_MAX_AGE_DAYS = 7
 DEFAULT_VOLC_BASE_URL = os.environ.get("MIRA_LIGHT_VOLC_BASE_URL", "https://ark.cn-beijing.volces.com/api/coding/v3")
 DEFAULT_VOLC_MODEL = os.environ.get("MIRA_LIGHT_VOLC_MODEL", "doubao-seed-2-0-lite-260215")
 DEFAULT_VOLC_API_KEY_ENV = "MIRA_LIGHT_VOLC_API_KEY"
@@ -86,6 +92,12 @@ class CaptureScore:
     contrast: float
     brightness: float
     score: float
+
+
+def capture_score_to_dict(score: CaptureScore) -> dict[str, Any]:
+    payload = asdict(score)
+    payload["path"] = str(score.path)
+    return payload
 
 
 def configure_logging(level: str) -> None:
@@ -126,9 +138,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Minimum allowed width/height before a JPG is ignored.",
     )
     parser.add_argument("--state-file", type=Path, help="Optional explicit JSON state file path.")
+    parser.add_argument("--latest-observation-out", type=Path, help="Optional explicit latest observation JSON path.")
+    parser.add_argument("--status-out", type=Path, help="Optional explicit observer status JSON path.")
     parser.add_argument("--once", action="store_true", help="Run one batch only.")
     parser.add_argument("--dry-run", action="store_true", help="Do not call Volc or memory-context; write local artifacts only.")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"], help="Logging level.")
+    parser.add_argument(
+        "--network-timeout-seconds",
+        type=float,
+        default=DEFAULT_NETWORK_TIMEOUT_SECONDS,
+        help="Timeout for outbound HTTP calls and memory-context requests.",
+    )
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=DEFAULT_MAX_ATTEMPTS,
+        help="Maximum attempts for outbound network operations.",
+    )
+    parser.add_argument(
+        "--retry-delay-seconds",
+        type=float,
+        default=DEFAULT_RETRY_DELAY_SECONDS,
+        help="Delay between retry attempts.",
+    )
+    parser.add_argument(
+        "--max-observation-artifacts",
+        type=int,
+        default=DEFAULT_MAX_OBSERVATION_ARTIFACTS,
+        help="How many observation JSON artifacts to retain under runtime/observations.",
+    )
+    parser.add_argument(
+        "--max-prompt-artifacts",
+        type=int,
+        default=DEFAULT_MAX_PROMPT_ARTIFACTS,
+        help="How many prompt JSON artifacts to retain under runtime/prompts.",
+    )
+    parser.add_argument(
+        "--artifact-max-age-days",
+        type=int,
+        default=DEFAULT_ARTIFACT_MAX_AGE_DAYS,
+        help="Delete prompt/observation artifacts older than this many days.",
+    )
 
     parser.add_argument("--volc-base-url", default=DEFAULT_VOLC_BASE_URL, help="Volc OpenAI-compatible base URL.")
     parser.add_argument("--volc-model", default=DEFAULT_VOLC_MODEL, help="Volc multimodal model id.")
@@ -177,6 +227,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=30,
         help="Do not write duplicate episodic observations within this many minutes.",
     )
+    parser.add_argument(
+        "--force-memory-write",
+        action="store_true",
+        help="Force a memory write even when the current observation would normally be considered low-salience.",
+    )
 
     parser.add_argument(
         "--cloud-claw-ssh-target",
@@ -196,7 +251,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def ensure_runtime_layout(runtime_dir: Path, state_file: Path | None) -> tuple[Path, Path, Path]:
+def ensure_runtime_layout(
+    runtime_dir: Path,
+    state_file: Path | None,
+    latest_observation_out: Path | None,
+    status_out: Path | None,
+) -> tuple[Path, Path, Path, Path, Path]:
     runtime_dir.mkdir(parents=True, exist_ok=True)
     observations_dir = runtime_dir / "observations"
     observations_dir.mkdir(parents=True, exist_ok=True)
@@ -204,7 +264,13 @@ def ensure_runtime_layout(runtime_dir: Path, state_file: Path | None) -> tuple[P
     prompts_dir.mkdir(parents=True, exist_ok=True)
     final_state = state_file.expanduser().resolve() if state_file else runtime_dir / "state.json"
     final_state.parent.mkdir(parents=True, exist_ok=True)
-    return observations_dir, prompts_dir, final_state
+    final_latest_observation = (
+        latest_observation_out.expanduser().resolve() if latest_observation_out else runtime_dir / "latest.observation.json"
+    )
+    final_latest_observation.parent.mkdir(parents=True, exist_ok=True)
+    final_status = status_out.expanduser().resolve() if status_out else runtime_dir / "status.json"
+    final_status.parent.mkdir(parents=True, exist_ok=True)
+    return observations_dir, prompts_dir, final_state, final_latest_observation, final_status
 
 
 def load_state(path: Path) -> dict[str, Any]:
@@ -221,7 +287,21 @@ def load_state(path: Path) -> dict[str, Any]:
 
 
 def save_state(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default) + "\n", encoding="utf-8")
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")
+
+
+def write_status(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default) + "\n", encoding="utf-8")
+
+
+def iso_now() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def list_new_capture_paths(captures_dir: Path, state: dict[str, Any], *, lookback_seconds: int) -> list[Path]:
@@ -317,7 +397,44 @@ def choose_capture(paths: list[Path], *, limit: int, min_dimension: int) -> Capt
     return best
 
 
-def load_json_response(url: str, *, headers: dict[str, str] | None = None, method: str = "GET", body: dict[str, Any] | None = None) -> dict[str, Any]:
+def run_with_retries(
+    description: str,
+    *,
+    max_attempts: int,
+    retry_delay_seconds: float,
+    callback,
+):
+    final_exc: Exception | None = None
+    attempts = max(1, int(max_attempts))
+    for attempt in range(1, attempts + 1):
+        try:
+            return callback()
+        except Exception as exc:  # noqa: BLE001
+            final_exc = exc
+            if attempt >= attempts:
+                break
+            LOGGER.warning(
+                "%s failed on attempt %s/%s: %s",
+                description,
+                attempt,
+                attempts,
+                exc,
+            )
+            time.sleep(max(0.0, retry_delay_seconds))
+    assert final_exc is not None
+    raise final_exc
+
+
+def load_json_response(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    method: str = "GET",
+    body: dict[str, Any] | None = None,
+    timeout_seconds: float = DEFAULT_NETWORK_TIMEOUT_SECONDS,
+    max_attempts: int = 1,
+    retry_delay_seconds: float = 0.0,
+) -> dict[str, Any]:
     data = None if body is None else json.dumps(body, ensure_ascii=False).encode("utf-8")
     request_obj = urllib.request.Request(
         url,
@@ -328,12 +445,29 @@ def load_json_response(url: str, *, headers: dict[str, str] | None = None, metho
             **(headers or {}),
         },
     )
-    with urllib.request.urlopen(request_obj, timeout=30) as response:
-        raw = response.read().decode("utf-8")
-        return json.loads(raw) if raw.strip() else {}
+
+    def _do_request() -> dict[str, Any]:
+        with urllib.request.urlopen(request_obj, timeout=max(1.0, float(timeout_seconds))) as response:
+            raw = response.read().decode("utf-8")
+            return json.loads(raw) if raw.strip() else {}
+
+    return run_with_retries(
+        f"HTTP {method} {url}",
+        max_attempts=max_attempts,
+        retry_delay_seconds=retry_delay_seconds,
+        callback=_do_request,
+    )
 
 
-def get_ip_location(*, ipinfo_url: str, ipinfo_token: str = "", explicit_ip: str = "") -> dict[str, Any]:
+def get_ip_location(
+    *,
+    ipinfo_url: str,
+    ipinfo_token: str = "",
+    explicit_ip: str = "",
+    timeout_seconds: float = DEFAULT_NETWORK_TIMEOUT_SECONDS,
+    max_attempts: int = 1,
+    retry_delay_seconds: float = 0.0,
+) -> dict[str, Any]:
     if explicit_ip.strip():
         if ipinfo_url.endswith("/json"):
             url = ipinfo_url[: -len("/json")] + f"/{explicit_ip.strip()}/json"
@@ -347,7 +481,12 @@ def get_ip_location(*, ipinfo_url: str, ipinfo_token: str = "", explicit_ip: str
         url = f"{url}{joiner}token={urllib.parse.quote(ipinfo_token.strip())}"
 
     try:
-        payload = load_json_response(url)
+        payload = load_json_response(
+            url,
+            timeout_seconds=timeout_seconds,
+            max_attempts=max_attempts,
+            retry_delay_seconds=retry_delay_seconds,
+        )
     except Exception as exc:  # noqa: BLE001
         LOGGER.warning("IP location lookup failed: %s", exc)
         return {
@@ -449,6 +588,9 @@ def summarize_capture_with_volc(
     location_summary: str,
     ip_address: str,
     max_tokens: int,
+    timeout_seconds: float = DEFAULT_NETWORK_TIMEOUT_SECONDS,
+    max_attempts: int = 1,
+    retry_delay_seconds: float = 0.0,
 ) -> dict[str, Any]:
     url = base_url.rstrip("/") + "/chat/completions"
     payload = build_volc_request_payload(
@@ -464,6 +606,9 @@ def summarize_capture_with_volc(
         headers={"Authorization": f"Bearer {api_key}"},
         method="POST",
         body=payload,
+        timeout_seconds=timeout_seconds,
+        max_attempts=max_attempts,
+        retry_delay_seconds=retry_delay_seconds,
     )
     choices = raw.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -542,7 +687,28 @@ def should_write_episodic_memory(
 
 
 def write_local_artifact(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default) + "\n", encoding="utf-8")
+
+
+def prune_json_artifacts(directory: Path, *, max_items: int, max_age_days: int) -> int:
+    if not directory.is_dir():
+        return 0
+
+    now = time.time()
+    age_cutoff = now - max(1, max_age_days) * 86400
+    removed = 0
+    files = sorted((path for path in directory.glob("*.json") if path.is_file()), key=lambda item: item.stat().st_mtime, reverse=True)
+    for index, path in enumerate(files):
+        remove_for_count = index >= max(1, max_items)
+        remove_for_age = path.stat().st_mtime < age_cutoff
+        if not (remove_for_count or remove_for_age):
+            continue
+        try:
+            path.unlink()
+            removed += 1
+        except OSError:
+            continue
+    return removed
 
 
 def update_capture_session_note(
@@ -552,41 +718,15 @@ def update_capture_session_note(
     title: str,
     observation: dict[str, Any],
 ) -> dict[str, Any]:
-    if not client.enabled:
-        return {"ok": True, "skipped": True}
-
-    observed_at = str(observation.get("observedAtLocal") or "")
-    summary = observation.get("summary", {}) if isinstance(observation.get("summary"), dict) else {}
-    people_summary = str(summary.get("peopleSummary") or "未见明显人物")
-    scene_summary = str(summary.get("sceneSummary") or "未知")
-    location = str(summary.get("location") or "unknown")
-    objects = summary.get("objects") if isinstance(summary.get("objects"), list) else []
-    key_result = f"{observed_at} capture={Path(str(observation.get('capturePath') or '')).name} people={summary.get('peopleCount', 0)}"
-
-    try:
-        existing = client.get_current_session_note(session_id=session_id).get("note")
-    except Exception as exc:  # noqa: BLE001
-        LOGGER.warning("session-memory current note read failed: %s", exc)
-        existing = None
-
-    note = client._merged_session_note(  # type: ignore[attr-defined]
-        existing_note=existing,
+    note_observation = {
+        **observation,
+        "captureName": Path(str(observation.get("capturePath") or "")).name,
+    }
+    return client.record_capture_session_state(
+        observation=note_observation,
+        session_id=session_id,
         title=title,
-        current_state=(
-            f"Latest booth capture at {observed_at} in {location}. "
-            f"people={summary.get('peopleCount', 0)}; peopleSummary={people_summary}; sceneSummary={scene_summary}."
-        ),
-        next_step="Keep sampling captures every 5 minutes and promote only salient visual observations into episodic memory.",
-        task_spec="Summarize representative booth captures into structured visual memory for Mira Light and cloud Claw prompt-pack retrieval.",
-        relevant_files=[
-            "scripts/capture_memory_observer.py",
-            "docs/cam_receiver_new.py",
-            str(observation.get("capturePath") or ""),
-        ],
-        key_results=[key_result],
-        worklog=[f"{observed_at} objects={', '.join(objects) if objects else 'none'}"],
     )
-    return client.update_session_note(session_id=session_id, note=note)
 
 
 def write_capture_memory(
@@ -595,72 +735,10 @@ def write_capture_memory(
     observation: dict[str, Any],
     working_ttl_seconds: int,
 ) -> dict[str, Any]:
-    if not client.enabled:
-        return {"ok": True, "skipped": True}
-
-    summary = observation["summary"]
-    observed_at = observation["observedAtLocal"]
-    capture_path = str(observation["capturePath"])
-    signature = str(observation["signature"])
-    selection = observation["selection"]
-
-    content = (
-        f"At {observed_at}, Mira Light observed: {summary['sceneSummary']}. "
-        f"People: {summary['peopleSummary']}. Objects: {', '.join(summary['objects']) if summary['objects'] else 'none'}."
+    return client.record_capture_observation(
+        observation=observation,
+        working_ttl_seconds=working_ttl_seconds,
     )
-
-    episodic_item = {
-        "user_id": client.user_id,
-        "namespace": "home",
-        "layer": "episodic",
-        "kind": "environment_observation",
-        "content": content,
-        "structured_value": {
-            "system": "mira-light",
-            "observer": "capture-memory-observer",
-            "capturePath": capture_path,
-            "observedAtLocal": observed_at,
-            "summary": summary,
-            "selection": selection,
-            "signature": signature,
-        },
-        "confidence": 0.9,
-        "salience": 0.88 if summary["memoryWorthy"] else 0.76,
-        "sensitivity": "normal",
-        "tags": [
-            "mira-light",
-            "visual-observation",
-            f"location:{summary['location']}",
-            f"people:{summary['peopleCount']}",
-        ],
-        "evidence_refs": [f"mira-light:capture:{signature}", capture_path],
-    }
-
-    working_item = {
-        "user_id": client.user_id,
-        "namespace": "home",
-        "layer": "working",
-        "kind": "scene_state",
-        "content": (
-            f"Recent booth capture summary: {summary['sceneSummary']} "
-            f"(people={summary['peopleCount']}, location={summary['location']})."
-        ),
-        "structured_value": {
-            "system": "mira-light",
-            "observer": "capture-memory-observer",
-            "signature": signature,
-            "capturePath": capture_path,
-            "summary": summary,
-        },
-        "confidence": 0.93,
-        "salience": 0.8,
-        "sensitivity": "normal",
-        "tags": ["mira-light", "working", "visual-observation"],
-        "evidence_refs": [f"mira-light:capture:{signature}"],
-        "expires_at": datetime.fromtimestamp(time.time() + max(60, working_ttl_seconds)).astimezone().isoformat(timespec="seconds"),
-    }
-
-    return client._post_write("capture_observation", [episodic_item, working_item])  # type: ignore[attr-defined]
 
 
 def maybe_upload_remote_artifact(
@@ -697,11 +775,66 @@ def shlex_quote(value: str) -> str:
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
 
-def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_dir: Path, state_path: Path) -> int:
+def build_status_payload(
+    *,
+    state: str,
+    message: str,
+    captures_dir: Path,
+    status_at: str,
+    latest_observation_path: Path | None = None,
+    last_processed_path: str = "",
+    observation: dict[str, Any] | None = None,
+    error: str = "",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "ok": state not in {"error", "failed"},
+        "state": state,
+        "message": message,
+        "statusAt": status_at,
+        "capturesDir": str(captures_dir),
+        "latestObservationPath": str(latest_observation_path) if latest_observation_path else "",
+        "lastProcessedPath": last_processed_path,
+    }
+    if observation is not None:
+        payload["summary"] = observation.get("summary")
+        payload["signature"] = observation.get("signature")
+        payload["capturePath"] = observation.get("capturePath")
+        payload["memoryWriteSuggested"] = observation.get("memoryWriteSuggested")
+        payload["memoryWriteReason"] = observation.get("memoryWriteReason")
+    if error:
+        payload["error"] = error
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def process_once(
+    args: argparse.Namespace,
+    *,
+    observations_dir: Path,
+    prompts_dir: Path,
+    state_path: Path,
+    latest_observation_path: Path,
+    status_path: Path,
+) -> int:
     state = load_state(state_path)
+    status_at = iso_now()
     new_paths = list_new_capture_paths(args.captures_dir, state, lookback_seconds=args.lookback_seconds)
     if not new_paths:
         LOGGER.info("No new captures found under %s", args.captures_dir)
+        write_status(
+            status_path,
+            build_status_payload(
+                state="idle",
+                message="No new captures found in the current polling window.",
+                captures_dir=args.captures_dir,
+                status_at=status_at,
+                latest_observation_path=latest_observation_path if latest_observation_path.is_file() else None,
+                last_processed_path=str(state.get("lastProcessedPath") or ""),
+                extra={"newCaptureCount": 0},
+            ),
+        )
         return 0
 
     chosen = choose_capture(
@@ -711,6 +844,18 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
     )
     if chosen is None:
         LOGGER.warning("No suitable JPG could be selected from %s new captures", len(new_paths))
+        write_status(
+            status_path,
+            build_status_payload(
+                state="warning",
+                message="New JPG frames were found, but none passed the representative-image filter.",
+                captures_dir=args.captures_dir,
+                status_at=status_at,
+                latest_observation_path=latest_observation_path if latest_observation_path.is_file() else None,
+                last_processed_path=str(state.get("lastProcessedPath") or ""),
+                extra={"newCaptureCount": len(new_paths)},
+            ),
+        )
         return 1
 
     observed_at_local = datetime.fromtimestamp(chosen.mtime).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
@@ -719,6 +864,9 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
         ipinfo_url=args.ipinfo_url,
         ipinfo_token=ipinfo_token,
         explicit_ip=args.location_ip,
+        timeout_seconds=args.network_timeout_seconds,
+        max_attempts=args.max_attempts,
+        retry_delay_seconds=args.retry_delay_seconds,
     )
 
     prompt_artifact = prompts_dir / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-request.json"
@@ -758,6 +906,9 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
             location_summary=location["locationSummary"],
             ip_address=location["ip"],
             max_tokens=args.volc_max_tokens,
+            timeout_seconds=args.network_timeout_seconds,
+            max_attempts=args.max_attempts,
+            retry_delay_seconds=args.retry_delay_seconds,
         )
         provider_payload = raw_summary.pop("_providerResponse", {})
         summary = normalize_summary(
@@ -773,11 +924,14 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
         state=state,
         dedup_minutes=args.memory_dedup_minutes,
     )
+    if args.force_memory_write:
+        should_write = True
+        write_reason = "forced by operator override"
 
     observation = {
         "capturePath": str(chosen.path),
         "observedAtLocal": observed_at_local,
-        "selection": asdict(chosen),
+        "selection": capture_score_to_dict(chosen),
         "summary": summary,
         "signature": signature,
         "location": location,
@@ -789,41 +943,70 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
 
     artifact_path = observations_dir / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{signature[:12]}.json"
     write_local_artifact(artifact_path, observation)
+    write_local_artifact(latest_observation_path, observation)
 
     memory_client = EmbodiedMemoryClient(
         base_url=args.memory_base_url.strip(),
         auth_token=os.environ.get(args.memory_auth_token_env, "").strip(),
         user_id=args.memory_user_id.strip() or DEFAULT_MEMORY_USER_ID,
+        request_timeout_seconds=args.network_timeout_seconds,
         enabled=bool(args.memory_base_url.strip() and not args.dry_run),
     )
 
-    session_result = update_capture_session_note(
-        memory_client,
-        session_id=args.memory_session_id,
-        title=args.memory_session_title,
-        observation=observation,
+    session_result = run_with_retries(
+        "capture session-memory update",
+        max_attempts=args.max_attempts,
+        retry_delay_seconds=args.retry_delay_seconds,
+        callback=lambda: update_capture_session_note(
+            memory_client,
+            session_id=args.memory_session_id,
+            title=args.memory_session_title,
+            observation=observation,
+        ),
     )
     memory_result = {"ok": True, "skipped": True, "reason": write_reason}
     if should_write:
-        memory_result = write_capture_memory(
-            memory_client,
-            observation=observation,
-            working_ttl_seconds=args.memory_working_ttl_seconds,
+        memory_result = run_with_retries(
+            "capture memory write",
+            max_attempts=args.max_attempts,
+            retry_delay_seconds=args.retry_delay_seconds,
+            callback=lambda: write_capture_memory(
+                memory_client,
+                observation=observation,
+                working_ttl_seconds=args.memory_working_ttl_seconds,
+            ),
         )
 
-    remote_result = {"ok": True, "skipped": True, "reason": "cloud hook disabled"}
-    if not args.dry_run:
-        remote_result = maybe_upload_remote_artifact(
-            ssh_target=args.cloud_claw_ssh_target,
-            remote_dir=args.cloud_claw_drop_dir,
-            artifact_prefix=args.cloud_claw_artifact_prefix,
-            payload=observation,
+    remote_result = {"ok": True, "skipped": True, "reason": write_reason}
+    if should_write and not args.dry_run:
+        remote_result = run_with_retries(
+            "cloud Claw artifact upload",
+            max_attempts=args.max_attempts,
+            retry_delay_seconds=args.retry_delay_seconds,
+            callback=lambda: maybe_upload_remote_artifact(
+                ssh_target=args.cloud_claw_ssh_target,
+                remote_dir=args.cloud_claw_drop_dir,
+                artifact_prefix=args.cloud_claw_artifact_prefix,
+                payload=observation,
+            ),
         )
+
+    pruned_observation_count = prune_json_artifacts(
+        observations_dir,
+        max_items=args.max_observation_artifacts,
+        max_age_days=args.artifact_max_age_days,
+    )
+    pruned_prompt_count = prune_json_artifacts(
+        prompts_dir,
+        max_items=args.max_prompt_artifacts,
+        max_age_days=args.artifact_max_age_days,
+    )
 
     next_state = {
         "lastProcessedPath": str(chosen.path),
         "lastProcessedMtime": chosen.mtime,
         "lastObservationArtifact": str(artifact_path),
+        "latestObservationPath": str(latest_observation_path),
         "lastObservationSignature": signature,
         "lastObservationAt": time.time(),
         "lastMemorySignature": signature if should_write else state.get("lastMemorySignature"),
@@ -831,16 +1014,40 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
         "lastSessionResult": session_result,
         "lastMemoryResult": memory_result,
         "lastRemoteResult": remote_result,
+        "lastPrunedObservationCount": pruned_observation_count,
+        "lastPrunedPromptCount": pruned_prompt_count,
     }
     save_state(state_path, next_state)
+    write_status(
+        status_path,
+        build_status_payload(
+            state="ok",
+            message="Representative capture summarized successfully.",
+            captures_dir=args.captures_dir,
+            status_at=status_at,
+            latest_observation_path=latest_observation_path,
+            last_processed_path=str(chosen.path),
+            observation=observation,
+            extra={
+                "newCaptureCount": len(new_paths),
+                "observationArtifactPath": str(artifact_path),
+                "promptArtifactPath": str(prompt_artifact),
+                "sessionResult": session_result,
+                "memoryResult": memory_result,
+                "remoteResult": remote_result,
+                "prunedObservationCount": pruned_observation_count,
+                "prunedPromptCount": pruned_prompt_count,
+            },
+        ),
+    )
 
     LOGGER.info(
-        "selected=%s people=%s objects=%s memory_write=%s remote=%s",
+        "selected=%s people=%s objects=%s memory_write=%s remote_uploaded=%s",
         chosen.path.name,
         summary["peopleCount"],
         len(summary["objects"]),
         should_write,
-        remote_result.get("ok", False),
+        bool(remote_result.get("remotePath")),
     )
     return 0
 
@@ -848,19 +1055,40 @@ def process_once(args: argparse.Namespace, *, observations_dir: Path, prompts_di
 def main() -> int:
     args = build_parser().parse_args()
     configure_logging(args.log_level)
-    observations_dir, prompts_dir, state_path = ensure_runtime_layout(
+    observations_dir, prompts_dir, state_path, latest_observation_path, status_path = ensure_runtime_layout(
         args.runtime_dir.expanduser().resolve(),
         args.state_file,
+        args.latest_observation_out,
+        args.status_out,
     )
 
     while True:
         try:
-            code = process_once(args, observations_dir=observations_dir, prompts_dir=prompts_dir, state_path=state_path)
+            code = process_once(
+                args,
+                observations_dir=observations_dir,
+                prompts_dir=prompts_dir,
+                state_path=state_path,
+                latest_observation_path=latest_observation_path,
+                status_path=status_path,
+            )
         except KeyboardInterrupt:
             LOGGER.info("Stopped by user")
             return 0
         except Exception as exc:  # noqa: BLE001
             LOGGER.exception("capture memory observer failed: %s", exc)
+            write_status(
+                status_path,
+                build_status_payload(
+                    state="error",
+                    message="capture_memory_observer failed during the latest loop.",
+                    captures_dir=args.captures_dir,
+                    status_at=iso_now(),
+                    latest_observation_path=latest_observation_path if latest_observation_path.is_file() else None,
+                    last_processed_path=str(load_state(state_path).get("lastProcessedPath") or ""),
+                    error=str(exc),
+                ),
+            )
             code = 1
 
         if args.once:

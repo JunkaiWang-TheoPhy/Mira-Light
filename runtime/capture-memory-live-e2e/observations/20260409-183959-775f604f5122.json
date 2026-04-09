@@ -1,0 +1,76 @@
+{
+  "capturePath": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+  "observedAtLocal": "2026-04-09 18:39:24 CST",
+  "selection": {
+    "path": "/Users/huhulitong/.openclaw/workspace/runtime/captures/20260409-183924-841313-frame-155086-seq-3680.jpg",
+    "mtime": 1775731164.8416615,
+    "width": 1280,
+    "height": 720,
+    "file_size": 129408,
+    "sharpness": 94.3968,
+    "contrast": 87.2,
+    "brightness": 120.3219,
+    "score": 450.03
+  },
+  "summary": {
+    "peopleCount": 0,
+    "peopleSummary": "未见明显人物",
+    "objects": [
+      "机械键盘键帽",
+      "电脑显示器",
+      "蓝色提手",
+      "黑色背包"
+    ],
+    "activity": "近距离拍摄办公桌面的键盘区域",
+    "sceneSummary": "为办公工位场景，画面以近距离特写对焦键盘黑色键帽，背景可见模糊的办公物品与设备",
+    "time": "2026-04-09 18:39:24 CST",
+    "location": "San Jose, California, US, 65.75.220.82",
+    "memoryWorthy": true,
+    "memoryReason": "记录了日常办公工位的日常状态，是普通办公生活的生活化留影，具备日常记忆留存价值"
+  },
+  "signature": "775f604f5122747aeb938499678f573f8990b960c6baf41f435dc33ab7682690",
+  "location": {
+    "ip": "65.75.220.82",
+    "locationSummary": "San Jose, California, US",
+    "city": "San Jose",
+    "region": "California",
+    "country": "US",
+    "timezone": "America/Los_Angeles",
+    "org": "AS138997 Eons Data Communications Limited",
+    "loc": "37.3394,-121.8950",
+    "source": "https://ipinfo.io/json"
+  },
+  "volcModel": "doubao-seed-2-0-lite-260215",
+  "providerPayload": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "content": "{\n  \"peopleCount\": 0,\n  \"peopleSummary\": \"未见明显人物\",\n  \"objects\": [\"机械键盘键帽\", \"电脑显示器\", \"蓝色提手\", \"黑色背包\"],\n  \"activity\": \"近距离拍摄办公桌面的键盘区域\",\n  \"sceneSummary\": \"为办公工位场景，画面以近距离特写对焦键盘黑色键帽，背景可见模糊的办公物品与设备\",\n  \"time\": \"2026-04-09 18:39:24 CST\",\n  \"location\": \"San Jose, California, US, 65.75.220.82\",\n  \"memoryWorthy\": true,\n  \"memoryReason\": \"记录了日常办公工位的日常状态，是普通办公生活的生活化留影，具备日常记忆留存价值\"\n}",
+          "reasoning_content": "\n用户现在需要生成符合要求的JSON，首先逐个填字段：\npeopleCount：0，因为图里没看到人对吧？然后peopleSummary就是“未见明显人物”。objects的话，主要是键盘键帽、显示器、蓝色提手、黑色背包，对吧？对，就列[\"机械键盘键帽\", \"电脑显示器\", \"蓝色提手\", \"黑色背包\"]。activity就是“静态拍摄办公桌面场景，无明显动态活动”？不对，应该说，哦，就是近距离拍摄键盘，对吧？activity写“近距离拍摄办公桌面的键盘区域”？然后sceneSummary：这是办公工位场景，近距离对焦在键盘的黑色键帽上，背景模糊可见办公设备与物品。time就用给的2026-04-09 18:39:24 CST。location就是San Jose, California, US; ip: 65.75.220.82？不对，要求直接用提供的location_summary和ip_address，所以location写\"San Jose, California, US, 65.75.220.82\"对吗？然后memoryWorthy是true？不对，为什么，哦，这是近距离拍摄的工位键盘，记录了办公环境的日常场景，对吧？memoryReason：这是日常办公工位的特写记录，展现了日常办公场景的细节。等下再理清楚每个字段：\npeopleCount: 0，没错，图里没人。\npeopleSummary: \"未见明显人物\"\nobjects: [\"机械键盘键帽\", \"电脑显示器\", \"蓝色提手\", \"黑色背包\"] 对，四个，符合1-6个。\nactivity: \"近距离拍摄办公桌面的键盘区域\"\nsceneSummary: \"办公工位场景，以近距离特写对焦键盘黑色键帽，背景可见模糊的办公物品与设备\"\ntime: \"2026-04-09 18:39:24 CST\"\nlocation: \"San Jose, California, US, 65.75.220.82\"\nmemoryWorthy: true\nmemoryReason: \"记录了日常办公工位的日常场景，是普通办公日常的生活化留影\"\n等下，有没有错？检查规则：time对，location用了给的，没错。peopleCount是0，对，没人。objects四个，对。peopleSummary对。那现在整理成严格的JSON，不要多余。哦，location的要求是“直接使用提供的 location_summary 与 ip_address”，所以就写\"San Jose, California, US; 65.75.220.82\"也可以，对吧？对的。然后memoryWorthy，是的，值得保留日常记忆，所以true。那现在写出来：\n{\n  \"peopleCount\": 0,\n  \"peopleSummary\": \"未见明显人物\",\n  \"objects\": [\"机械键盘键帽\", \"电脑显示器\", \"蓝色提手\", \"黑色背包\"],\n  \"activity\": \"近距离拍摄办公桌面的键盘区域\",\n  \"sceneSummary\": \"这是一处办公工位场景，画面以近距离特写对焦在键盘的黑色键帽上，背景模糊分布着各类办公物品与设备\",\n  \"time\": \"2026-04-09 18:39:24 CST\",\n  \"location\": \"San Jose, California, US, 65.75.220.82\",\n  \"memoryWorthy\": true,\n  \"memoryReason\": \"记录了日常办公场景的细节，是普通办公日常的生活化记忆留存\"\n}\n对，这样就对了，检查所有字段都有，符合要求，没有编造，不确定的都没瞎写，没人就0，没错。",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1775731199,
+    "id": "0217757311890884bb2d320cfcd0d3dcaa0804120ace3f96929be",
+    "model": "doubao-seed-2-0-lite",
+    "service_tier": "default",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 996,
+      "prompt_tokens": 1580,
+      "total_tokens": 2576,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 812
+      }
+    }
+  },
+  "memoryWriteSuggested": true,
+  "memoryWriteReason": "forced by operator override"
+}

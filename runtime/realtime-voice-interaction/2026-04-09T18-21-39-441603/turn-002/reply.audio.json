@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-12%",
+    "--pitch",
+    "-20%",
+    "你可以直接回： **“你可以叫我米拉，是一个温柔陪伴你的助手。”**"
+  ],
+  "description": "speech:gentle_sister",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "你可以直接回： **“你可以叫我米拉，是一个温柔陪伴你的助手。”**",
+  "spokenText": "你可以直接回： **“你可以叫我米拉，是一个温柔陪伴你的助手。”**"
+}

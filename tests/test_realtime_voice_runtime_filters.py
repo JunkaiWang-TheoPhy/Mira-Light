@@ -17,6 +17,7 @@ from mira_realtime_voice_interaction import (
     apply_latency_preset,
     build_low_latency_system_prompt,
     low_energy_skip_reason,
+    normalize_reply_text,
     repetitive_transcript_details,
 )
 from mira_voice_intents import is_brief_greeting, should_skip_short_reply
@@ -139,6 +140,17 @@ class RealtimeVoiceRuntimeFiltersTest(unittest.TestCase):
         self.assertEqual(details["reason"], "repetitive-transcript")
         self.assertEqual(details["mode"], "token")
         self.assertEqual(details["dominantToken"], "lawmakers")
+
+    def test_instructional_reply_prefix_and_markdown_are_removed(self) -> None:
+        text, flags = normalize_reply_text('你可以直接回： **“你可以叫我米拉，是一个温柔陪伴你的助手。”**')
+        self.assertEqual(text, "你可以叫我米拉，是一个温柔陪伴你的助手。")
+        self.assertTrue(flags["markdownStripped"])
+        self.assertTrue(flags["instructionalPrefixStripped"])
+
+    def test_normal_reply_text_is_preserved(self) -> None:
+        text, flags = normalize_reply_text("你好呀，我在这里。")
+        self.assertEqual(text, "你好呀，我在这里。")
+        self.assertFalse(flags["instructionalPrefixStripped"])
 
 
 if __name__ == "__main__":

@@ -82,6 +82,13 @@ EMOJI_PATTERN = re.compile(
     "]+",
     flags=re.UNICODE,
 )
+MARKDOWN_DECORATION_PATTERN = re.compile(r"[*_`#>]+")
+INSTRUCTIONAL_REPLY_PREFIX_PATTERN = re.compile(
+    r"^\s*(?:你(?:现在)?(?:可以|就)?|可以|请|建议你)?\s*"
+    r"(?:直接)?\s*(?:回|回复|说|这样回|这样说|回答)\s*[:：]\s*",
+    flags=re.UNICODE,
+)
+WRAPPING_QUOTES_PATTERN = re.compile(r'^[“"\'`]+|[”"\'`]+$')
 
 
 def timestamp_slug() -> str:
@@ -108,6 +115,39 @@ def strip_emoji(text: str) -> str:
     cleaned = EMOJI_PATTERN.sub("", text)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     return cleaned.strip()
+
+
+def normalize_reply_text(text: str) -> tuple[str, dict[str, bool]]:
+    raw = str(text or "").strip()
+    if not raw:
+        return "", {"emojiStripped": False, "markdownStripped": False, "instructionalPrefixStripped": False}
+
+    emoji_cleaned = strip_emoji(raw)
+    markdown_cleaned = MARKDOWN_DECORATION_PATTERN.sub("", emoji_cleaned)
+    markdown_cleaned = re.sub(r"\s{2,}", " ", markdown_cleaned).strip()
+
+    instructional_stripped = False
+    extracted = markdown_cleaned
+    prefix_match = INSTRUCTIONAL_REPLY_PREFIX_PATTERN.match(markdown_cleaned)
+    if prefix_match:
+        instructional_stripped = True
+        remainder = markdown_cleaned[prefix_match.end():].strip()
+        quoted_match = re.search(r'[“"](.+?)[”"]', remainder)
+        if quoted_match:
+            extracted = quoted_match.group(1).strip()
+        else:
+            extracted = remainder
+
+    normalized = WRAPPING_QUOTES_PATTERN.sub("", extracted).strip()
+    normalized = re.sub(r"\s{2,}", " ", normalized).strip()
+    if not normalized:
+        normalized = markdown_cleaned
+
+    return normalized, {
+        "emojiStripped": emoji_cleaned != raw,
+        "markdownStripped": markdown_cleaned != emoji_cleaned,
+        "instructionalPrefixStripped": instructional_stripped,
+    }
 
 
 def build_agent_message(transcript: str) -> str:
@@ -284,13 +324,13 @@ def run_turn(
         session_id=session_id,
         additional_user_ids=lingzhu_additional_user_ids,
     )
-    reply_text = strip_emoji(raw_reply_text)
+    reply_text, reply_normalization = normalize_reply_text(raw_reply_text)
     (turn_dir / "reply.txt").write_text(reply_text + "\n", encoding="utf-8")
     write_json(turn_dir / "reply.api.json", api_meta["payload"])
     result["replyBackend"] = reply_backend
     result["replyText"] = reply_text
     result["rawReplyText"] = raw_reply_text
-    result["emojiStripped"] = reply_text != raw_reply_text
+    result.update(reply_normalization)
     result["apiMeta"] = {k: v for k, v in api_meta.items() if k != "payload"}
 
     reply_text = str(result.get("replyText") or "").strip()

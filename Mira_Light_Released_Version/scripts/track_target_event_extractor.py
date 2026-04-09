@@ -53,6 +53,14 @@ class ExtractorState:
             self.previous_tracks = {}
 
 
+@dataclass
+class CascadeBundle:
+    frontal_default: Any
+    frontal_alt2: Any | None = None
+    profile: Any | None = None
+    upperbody: Any | None = None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Watch saved JPEGs and emit Mira Light vision events.")
     parser.add_argument(
@@ -165,6 +173,42 @@ def parse_args() -> argparse.Namespace:
         dest="enable_hog_person",
         action="store_false",
         help="Disable HOG person detector fallback when face detection misses.",
+    )
+    parser.add_argument(
+        "--face-min-neighbors",
+        type=int,
+        default=4,
+        help="Base minNeighbors used by the frontal-face cascades.",
+    )
+    parser.add_argument(
+        "--face-min-size",
+        type=int,
+        default=30,
+        help="Minimum face size in pixels for near-field booth portraits.",
+    )
+    parser.add_argument(
+        "--profile-face-min-neighbors",
+        type=int,
+        default=4,
+        help="minNeighbors used by the profile-face cascade.",
+    )
+    parser.add_argument(
+        "--upperbody-min-neighbors",
+        type=int,
+        default=3,
+        help="minNeighbors used by the upper-body cascade.",
+    )
+    parser.add_argument(
+        "--upperbody-min-size",
+        type=int,
+        default=56,
+        help="Minimum upper-body size in pixels for tolerant person counting.",
+    )
+    parser.add_argument(
+        "--standalone-hog-min-confidence",
+        type=float,
+        default=0.72,
+        help="Minimum confidence required before an unanchored HOG box counts as a person.",
     )
     parser.add_argument(
         "--hand-cue-min-area-ratio",
@@ -520,14 +564,369 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def detect_faces(gray: np.ndarray, cascade: cv2.CascadeClassifier) -> list[tuple[int, int, int, int]]:
-    faces = cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(40, 40),
+def bbox_iou(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    left = max(ax, bx)
+    top = max(ay, by)
+    right = min(ax + aw, bx + bw)
+    bottom = min(ay + ah, by + bh)
+    if right <= left or bottom <= top:
+        return 0.0
+    intersection = float((right - left) * (bottom - top))
+    union = float(max(1, aw * ah) + max(1, bw * bh) - intersection)
+    return intersection / union
+
+
+def clip_bbox(
+    bbox: tuple[int, int, int, int],
+    *,
+    frame_width: int,
+    frame_height: int,
+) -> tuple[int, int, int, int] | None:
+    x, y, bw, bh = bbox
+    left = max(0, int(round(x)))
+    top = max(0, int(round(y)))
+    right = min(frame_width, int(round(x + bw)))
+    bottom = min(frame_height, int(round(y + bh)))
+    if right <= left or bottom <= top:
+        return None
+    return (left, top, right - left, bottom - top)
+
+
+def expand_face_bbox(
+    bbox: tuple[int, int, int, int],
+    *,
+    frame_width: int,
+    frame_height: int,
+) -> tuple[int, int, int, int] | None:
+    x, y, bw, bh = bbox
+    expanded = (
+        x - (bw * 0.55),
+        y - (bh * 0.35),
+        bw * 2.1,
+        bh * 3.3,
     )
-    return [tuple(int(value) for value in box) for box in faces]
+    return clip_bbox(expanded, frame_width=frame_width, frame_height=frame_height)
+
+
+def merge_ranked_boxes(
+    detections: list[tuple[tuple[int, int, int, int], float]],
+    *,
+    iou_threshold: float,
+) -> list[tuple[tuple[int, int, int, int], float]]:
+    merged: list[tuple[tuple[int, int, int, int], float]] = []
+    for bbox, score in sorted(detections, key=lambda item: item[1], reverse=True):
+        if any(bbox_iou(bbox, existing_bbox) >= iou_threshold for existing_bbox, _ in merged):
+            continue
+        merged.append((bbox, score))
+    return merged
+
+
+def detect_faces(gray: np.ndarray, cascades: CascadeBundle, args: argparse.Namespace) -> list[tuple[tuple[int, int, int, int], float]]:
+    min_face = max(18, int(args.face_min_size))
+    detections: list[tuple[tuple[int, int, int, int], float]] = []
+
+    frontal_specs = [
+        (cascades.frontal_default, 0.92, max(3, int(args.face_min_neighbors))),
+        (cascades.frontal_alt2, 0.84, max(2, int(args.face_min_neighbors) - 1)),
+    ]
+    for cascade, confidence, min_neighbors in frontal_specs:
+        if cascade is None:
+            continue
+        faces = cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.08,
+            minNeighbors=min_neighbors,
+            minSize=(min_face, min_face),
+        )
+        detections.extend((tuple(int(value) for value in box), confidence) for box in faces)
+
+    if cascades.profile is not None:
+        profile_neighbors = max(2, int(args.profile_face_min_neighbors))
+        profile_faces = cascades.profile.detectMultiScale(
+            gray,
+            scaleFactor=1.08,
+            minNeighbors=profile_neighbors,
+            minSize=(min_face, min_face),
+        )
+        detections.extend((tuple(int(value) for value in box), 0.8) for box in profile_faces)
+
+        flipped = cv2.flip(gray, 1)
+        mirrored_faces = cascades.profile.detectMultiScale(
+            flipped,
+            scaleFactor=1.08,
+            minNeighbors=profile_neighbors,
+            minSize=(min_face, min_face),
+        )
+        frame_width = gray.shape[1]
+        for x, y, bw, bh in mirrored_faces:
+            mirrored_x = frame_width - int(x) - int(bw)
+            detections.append(((mirrored_x, int(y), int(bw), int(bh)), 0.8))
+
+    return merge_ranked_boxes(detections, iou_threshold=0.24)
+
+
+def detect_upper_bodies(
+    gray: np.ndarray,
+    cascades: CascadeBundle,
+    args: argparse.Namespace,
+) -> list[tuple[tuple[int, int, int, int], float]]:
+    if cascades.upperbody is None:
+        return []
+    min_size = max(32, int(args.upperbody_min_size))
+    bodies = cascades.upperbody.detectMultiScale(
+        gray,
+        scaleFactor=1.06,
+        minNeighbors=max(2, int(args.upperbody_min_neighbors)),
+        minSize=(min_size, min_size),
+    )
+    detections: list[tuple[tuple[int, int, int, int], float]] = []
+    for x, y, bw, bh in bodies:
+        aspect = float(bh) / max(1.0, float(bw))
+        if aspect < 0.8 or aspect > 3.4:
+            continue
+        detections.append(((int(x), int(y), int(bw), int(bh)), 0.72))
+    return merge_ranked_boxes(detections, iou_threshold=0.28)
+
+
+def is_plausible_standalone_hog(
+    bbox: tuple[int, int, int, int],
+    *,
+    frame_width: int,
+    frame_height: int,
+    confidence: float,
+    min_confidence: float,
+) -> bool:
+    if confidence < min_confidence:
+        return False
+    x, y, bw, bh = bbox
+    center_y = (y + (bh / 2.0)) / max(1.0, float(frame_height))
+    width_norm = bw / max(1.0, float(frame_width))
+    height_norm = bh / max(1.0, float(frame_height))
+    aspect = float(bh) / max(1.0, float(bw))
+    if center_y < 0.30:
+        return False
+    if width_norm < 0.10 or height_norm < 0.18:
+        return False
+    if aspect < 1.05 or aspect > 3.8:
+        return False
+    return True
+
+
+def same_person_candidate(a: dict[str, Any], b: dict[str, Any], *, frame_width: int, frame_height: int) -> bool:
+    bbox_a = denormalize_bbox(a.get("bbox_norm"), frame_width=frame_width, frame_height=frame_height)
+    bbox_b = denormalize_bbox(b.get("bbox_norm"), frame_width=frame_width, frame_height=frame_height)
+    if bbox_a is None or bbox_b is None:
+        return False
+    if bbox_iou(bbox_a, bbox_b) >= 0.18:
+        return True
+
+    center_a = a.get("center_norm") if isinstance(a.get("center_norm"), dict) else {}
+    center_b = b.get("center_norm") if isinstance(b.get("center_norm"), dict) else {}
+    try:
+        ax = float(center_a.get("x", 0.5))
+        ay = float(center_a.get("y", 0.5))
+        bx = float(center_b.get("x", 0.5))
+        by = float(center_b.get("y", 0.5))
+    except (TypeError, ValueError):
+        return False
+
+    support_a = a.get("cue_support") if isinstance(a.get("cue_support"), dict) else {}
+    support_b = b.get("cue_support") if isinstance(b.get("cue_support"), dict) else {}
+    face_only_a = bool(support_a.get("face")) and not bool(support_a.get("upperbody")) and not bool(support_a.get("hog"))
+    face_only_b = bool(support_b.get("face")) and not bool(support_b.get("upperbody")) and not bool(support_b.get("hog"))
+    if face_only_a and face_only_b and abs(ax - bx) <= 0.16 and abs(ay - by) <= 0.5:
+        return True
+    if abs(ax - bx) <= 0.11 and abs(ay - by) <= 0.42 and (face_only_a or face_only_b):
+        return True
+    return False
+
+
+def build_person_candidates(
+    *,
+    face_detections: list[tuple[tuple[int, int, int, int], float]],
+    upperbody_detections: list[tuple[tuple[int, int, int, int], float]],
+    hog_detections: list[tuple[tuple[int, int, int, int], float]],
+    frame_width: int,
+    frame_height: int,
+    previous_size_norm: float | None,
+    standalone_hog_min_confidence: float,
+) -> list[dict[str, Any]]:
+    anchors: list[dict[str, Any]] = []
+    frame_area = float(max(1, frame_width * frame_height))
+
+    for bbox, confidence in face_detections:
+        expanded = expand_face_bbox(bbox, frame_width=frame_width, frame_height=frame_height)
+        if expanded is None:
+            continue
+        face_center_x = (bbox[0] + (bbox[2] / 2.0)) / frame_width
+        face_center_y = (bbox[1] + (bbox[3] / 2.0)) / frame_height
+        merged = False
+        for anchor in anchors:
+            if not anchor["has_face"]:
+                continue
+            existing_face_center_x, existing_face_center_y = anchor["face_center"]
+            if abs(face_center_x - existing_face_center_x) > 0.1:
+                continue
+            if abs(face_center_y - existing_face_center_y) > 0.3:
+                continue
+            if bbox_iou(expanded, anchor["bbox"]) < 0.05 and face_center_y <= existing_face_center_y:
+                continue
+            anchor["bbox"] = clip_bbox(
+                (
+                    min(anchor["bbox"][0], expanded[0]),
+                    min(anchor["bbox"][1], expanded[1]),
+                    max(anchor["bbox"][0] + anchor["bbox"][2], expanded[0] + expanded[2]) - min(anchor["bbox"][0], expanded[0]),
+                    max(anchor["bbox"][1] + anchor["bbox"][3], expanded[1] + expanded[3]) - min(anchor["bbox"][1], expanded[1]),
+                ),
+                frame_width=frame_width,
+                frame_height=frame_height,
+            ) or anchor["bbox"]
+            anchor["confidence"] = max(anchor["confidence"], confidence)
+            anchor["face_hits"] += 1
+            anchor["face_area"] = max(anchor["face_area"], float(max(1, bbox[2] * bbox[3])))
+            anchor["face_center"] = (
+                (existing_face_center_x + face_center_x) / 2.0,
+                (existing_face_center_y + face_center_y) / 2.0,
+            )
+            merged = True
+            break
+        if merged:
+            continue
+        anchors.append(
+            {
+                "bbox": expanded,
+                "confidence": confidence,
+                "has_face": True,
+                "face_hits": 1,
+                "face_area": float(max(1, bbox[2] * bbox[3])),
+                "face_center": (face_center_x, face_center_y),
+                "has_upperbody": False,
+                "has_hog": False,
+            }
+        )
+
+    for bbox, confidence in upperbody_detections:
+        merged = False
+        for anchor in anchors:
+            if bbox_iou(bbox, anchor["bbox"]) >= 0.12:
+                anchor["bbox"] = clip_bbox(
+                    (
+                        min(anchor["bbox"][0], bbox[0]),
+                        min(anchor["bbox"][1], bbox[1]),
+                        max(anchor["bbox"][0] + anchor["bbox"][2], bbox[0] + bbox[2]) - min(anchor["bbox"][0], bbox[0]),
+                        max(anchor["bbox"][1] + anchor["bbox"][3], bbox[1] + bbox[3]) - min(anchor["bbox"][1], bbox[1]),
+                    ),
+                    frame_width=frame_width,
+                    frame_height=frame_height,
+                ) or anchor["bbox"]
+                anchor["confidence"] = max(anchor["confidence"], confidence)
+                anchor["has_upperbody"] = True
+                merged = True
+                break
+        if not merged:
+            anchors.append(
+                {
+                    "bbox": bbox,
+                    "confidence": confidence,
+                    "has_face": False,
+                    "face_hits": 0,
+                    "face_area": 0.0,
+                    "face_center": (0.5, 0.5),
+                    "has_upperbody": True,
+                    "has_hog": False,
+                }
+            )
+
+    for bbox, confidence in hog_detections:
+        matched = False
+        for anchor in anchors:
+            if bbox_iou(bbox, anchor["bbox"]) >= 0.1:
+                anchor["bbox"] = clip_bbox(
+                    (
+                        min(anchor["bbox"][0], bbox[0]),
+                        min(anchor["bbox"][1], bbox[1]),
+                        max(anchor["bbox"][0] + anchor["bbox"][2], bbox[0] + bbox[2]) - min(anchor["bbox"][0], bbox[0]),
+                        max(anchor["bbox"][1] + anchor["bbox"][3], bbox[1] + bbox[3]) - min(anchor["bbox"][1], bbox[1]),
+                    ),
+                    frame_width=frame_width,
+                    frame_height=frame_height,
+                ) or anchor["bbox"]
+                anchor["confidence"] = max(anchor["confidence"], min(0.96, confidence + 0.04))
+                anchor["has_hog"] = True
+                matched = True
+                break
+        if not matched and is_plausible_standalone_hog(
+            bbox,
+            frame_width=frame_width,
+            frame_height=frame_height,
+            confidence=confidence,
+            min_confidence=standalone_hog_min_confidence,
+        ):
+            anchors.append(
+                {
+                    "bbox": bbox,
+                    "confidence": confidence,
+                    "has_face": False,
+                    "face_hits": 0,
+                    "face_area": 0.0,
+                    "face_center": (0.5, 0.5),
+                    "has_upperbody": False,
+                    "has_hog": True,
+                }
+            )
+
+    candidates: list[dict[str, Any]] = []
+    for anchor in anchors:
+        bbox = anchor["bbox"]
+        confidence = float(anchor["confidence"])
+        face_area_ratio = float(anchor.get("face_area") or 0.0) / frame_area
+        bbox_top_norm = bbox[1] / max(1.0, float(frame_height))
+        bbox_size_norm = (bbox[2] * bbox[3]) / frame_area
+        if (
+            anchor["has_face"]
+            and not anchor["has_upperbody"]
+            and not anchor["has_hog"]
+            and anchor["face_hits"] <= 1
+            and face_area_ratio < 0.0018
+            and bbox_top_norm < 0.24
+            and bbox_size_norm < 0.018
+        ):
+            continue
+        if anchor["has_face"]:
+            detector = "haar_face"
+            confidence = min(0.98, confidence + (0.03 if anchor["has_upperbody"] else 0.0) + (0.02 if anchor["has_hog"] else 0.0))
+        else:
+            detector = "hog_person"
+            confidence = min(0.94, confidence + (0.04 if anchor["has_upperbody"] else 0.0))
+
+        candidates.append(
+            make_track_entry(
+                track_id=0,
+                bbox=bbox,
+                detector=detector,
+                target_class="person",
+                confidence=confidence,
+                frame_width=frame_width,
+                frame_height=frame_height,
+                previous_size_norm=previous_size_norm,
+            )
+        )
+        candidates[-1]["cue_support"] = {
+            "face": bool(anchor["has_face"]),
+            "upperbody": bool(anchor["has_upperbody"]),
+            "hog": bool(anchor["has_hog"]),
+        }
+        candidates[-1]["face_hits"] = int(anchor["face_hits"])
+
+    ranked = sorted(candidates, key=lambda item: item.get("selection_score", 0.0), reverse=True)
+    filtered: list[dict[str, Any]] = []
+    for item in ranked:
+        if any(same_person_candidate(item, existing, frame_width=frame_width, frame_height=frame_height) for existing in filtered):
+            continue
+        filtered.append(item)
+    return filtered
 
 
 def compute_foreground_mask(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor) -> np.ndarray:
@@ -902,7 +1301,7 @@ def process_frame(
     path: Path,
     state: ExtractorState,
     subtractor: cv2.BackgroundSubtractor,
-    cascade: cv2.CascadeClassifier,
+    cascades: CascadeBundle,
     hog: Any,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -916,91 +1315,18 @@ def process_frame(
     state.bg_warmup_count += 1
 
     person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
-    faces = detect_faces(gray, cascade)
-    candidates: list[dict[str, Any]] = []
-    if person_detections:
-        for bbox, weight in person_detections:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="person_hog",
-                    target_class="person",
-                    confidence=weight,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-
-        # Face detections are used as confidence hints when they land inside a person box.
-        for face_bbox in faces:
-            fx, fy, fw, fh = face_bbox
-            face_cx = fx + (fw / 2.0)
-            face_cy = fy + (fh / 2.0)
-            for item in candidates:
-                bx = item["bbox_norm"]["x"] * frame.shape[1]
-                by = item["bbox_norm"]["y"] * frame.shape[0]
-                bw = item["bbox_norm"]["w"] * frame.shape[1]
-                bh = item["bbox_norm"]["h"] * frame.shape[0]
-                if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
-                    item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
-                    item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
-                    break
-    elif faces:
-        confidence = 0.92 if len(faces) >= 2 else 0.90
-        for bbox in faces:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="haar_face",
-                    target_class="person",
-                    confidence=confidence,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-    elif args.enable_hog_person:
-        people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
-        for bbox, confidence in people:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=bbox,
-                    detector="hog_person",
-                    target_class="person",
-                    confidence=confidence,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-    else:
-        motion_bbox, warmup_count = detect_motion_from_mask(
-            frame,
-            fg_mask,
-            min_area_ratio=args.min_motion_area_ratio,
-            warmup_count=state.bg_warmup_count,
-            warmup_frames=args.warmup_frames,
-        )
-        state.bg_warmup_count = warmup_count
-        if motion_bbox is not None:
-            candidates.append(
-                make_track_entry(
-                    track_id=0,
-                    bbox=motion_bbox,
-                    detector="background_motion",
-                    target_class="motion_blob",
-                    confidence=0.55,
-                    frame_width=frame.shape[1],
-                    frame_height=frame.shape[0],
-                    previous_size_norm=state.last_size_norm,
-                )
-            )
-
-    if not candidates and args.enable_hog_person:
+    faces = detect_faces(gray, cascades, args)
+    upper_bodies = detect_upper_bodies(gray, cascades, args)
+    candidates = build_person_candidates(
+        face_detections=faces,
+        upperbody_detections=upper_bodies,
+        hog_detections=person_detections,
+        frame_width=frame.shape[1],
+        frame_height=frame.shape[0],
+        previous_size_norm=state.last_size_norm,
+        standalone_hog_min_confidence=args.standalone_hog_min_confidence,
+    )
+    if not candidates:
         motion_bbox, warmup_count = detect_motion_from_mask(
             frame,
             fg_mask,
@@ -1123,9 +1449,24 @@ def main() -> int:
     latest_event_out = args.latest_event_out.expanduser().resolve() if args.latest_event_out else None
     events_jsonl = args.events_jsonl.expanduser().resolve() if args.events_jsonl else None
 
-    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    if cascade.empty():
+    frontal_default = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    if frontal_default.empty():
         raise SystemExit("OpenCV haarcascade_frontalface_default.xml is unavailable.")
+    frontal_alt2 = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml")
+    if frontal_alt2.empty():
+        frontal_alt2 = None
+    profile = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_profileface.xml")
+    if profile.empty():
+        profile = None
+    upperbody = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_upperbody.xml")
+    if upperbody.empty():
+        upperbody = None
+    cascades = CascadeBundle(
+        frontal_default=frontal_default,
+        frontal_alt2=frontal_alt2,
+        profile=profile,
+        upperbody=upperbody,
+    )
 
     hog = None
     if args.enable_hog_person:
@@ -1144,7 +1485,7 @@ def main() -> int:
     while True:
         latest = find_latest_jpg(captures_dir)
         if latest is not None and latest != state.last_frame_path:
-            event = process_frame(latest, state, subtractor, cascade, hog, args)
+            event = process_frame(latest, state, subtractor, cascades, hog, args)
             print(json.dumps(event, ensure_ascii=False))
             write_event_outputs(event, latest_event_out, events_jsonl)
 

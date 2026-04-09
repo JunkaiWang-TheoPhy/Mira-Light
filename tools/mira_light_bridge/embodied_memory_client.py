@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import json
+import re
+import time
 from typing import Any
 import urllib.error
 import urllib.request
@@ -43,6 +45,111 @@ def _prepend_unique(existing: list[str], new_items: list[str], *, max_items: int
         if len(merged) >= max_items:
             break
     return merged
+
+
+def _safe_tag(value: Any, *, max_chars: int = 80) -> str:
+    text = _trim_text(value, max_chars)
+    if not text:
+        return "unknown"
+    return re.sub(r"\s+", "_", text).replace(":", "_").replace("/", "_")
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def _capture_memory_salience(
+    *,
+    memory_worthy: bool,
+    people_count: int,
+    object_count: int,
+    has_activity: bool,
+    has_scene_summary: bool,
+) -> tuple[float, float]:
+    episodic = 0.84
+    working = 0.89
+
+    if memory_worthy:
+        episodic += 0.06
+        working += 0.03
+    if people_count > 0:
+        episodic += min(0.07, 0.03 + 0.02 * min(people_count, 2))
+        working += min(0.05, 0.02 + 0.015 * min(people_count, 2))
+    if object_count >= 3:
+        episodic += 0.03
+        working += 0.025
+    elif object_count > 0:
+        episodic += 0.01
+        working += 0.01
+    if has_activity:
+        episodic += 0.015
+        working += 0.01
+    if has_scene_summary:
+        episodic += 0.015
+        working += 0.01
+
+    return round(_clamp(episodic, 0.72, 0.97), 3), round(_clamp(working, 0.82, 0.96), 3)
+
+
+def _capture_observation_tags(
+    *,
+    location_tag: str,
+    objects: list[str],
+    people_count: int,
+    memory_worthy: bool,
+    activity: str,
+    extra_tags: list[str] | None = None,
+) -> list[str]:
+    tags = [
+        "mira-light",
+        "visual-observation",
+        "capture-memory",
+        "booth-observation",
+        "latest-observation",
+        f"location:{location_tag}",
+        f"people:{people_count}",
+    ]
+    if memory_worthy:
+        tags.append("memory-worthy")
+    if people_count > 0:
+        tags.append("people-present")
+    activity_tag = _safe_tag(activity, max_chars=48)
+    if activity_tag != "unknown":
+        tags.append(f"activity:{activity_tag}")
+    for object_name in objects[:3]:
+        object_tag = _safe_tag(object_name, max_chars=48)
+        if object_tag != "unknown":
+            tags.append(f"object:{object_tag}")
+    for tag in extra_tags or []:
+        if tag and tag not in tags:
+            tags.append(tag)
+    return tags
+
+
+def _scene_outcome_salience(status: str) -> tuple[float, float | None]:
+    status_label = _trim_text(status, 40).lower()
+    if status_label == "completed":
+        return 0.88, None
+    if status_label == "stopped":
+        return 0.8, 0.82
+    if status_label == "failed":
+        return 0.84, 0.86
+    return 0.82, 0.84
+
+
+def _scene_outcome_tags(scene_name: str, status: str, error: str | None = None) -> list[str]:
+    tags = ["mira-light", f"scene:{scene_name}", f"status:{status}"]
+    status_label = _trim_text(status, 40).lower()
+    if status_label == "failed":
+        tags.append("scene-failure")
+    elif status_label == "stopped":
+        tags.append("scene-stopped")
+    elif status_label == "completed":
+        tags.append("scene-completed")
+    error_tag = _safe_tag(error, max_chars=48)
+    if error_tag != "unknown":
+        tags.append(f"error:{error_tag}")
+    return tags
 
 
 def _scene_note_profile(scene_name: str, phase: str) -> dict[str, Any]:
@@ -176,6 +283,7 @@ class EmbodiedMemoryClient:
         request_timeout_seconds: float = 2.0,
         device_status_ttl_seconds: int = 900,
         failure_ttl_seconds: int = 3600,
+        scene_failure_dedup_seconds: int = 900,
         enabled: bool = False,
         emit: callable | None = None,
     ) -> None:
@@ -185,8 +293,10 @@ class EmbodiedMemoryClient:
         self.request_timeout_seconds = max(0.2, float(request_timeout_seconds))
         self.device_status_ttl_seconds = max(30, int(device_status_ttl_seconds))
         self.failure_ttl_seconds = max(60, int(failure_ttl_seconds))
+        self.scene_failure_dedup_seconds = max(0, int(scene_failure_dedup_seconds))
         self.enabled = bool(enabled and self.base_url)
         self.emit = emit
+        self._recent_scene_failures: dict[str, float] = {}
 
     def _log(self, message: str) -> None:
         if self.emit:
@@ -220,6 +330,27 @@ class EmbodiedMemoryClient:
         if not self.enabled or not items:
             return {"ok": True, "skipped": True}
         return self._post_json("/v1/memory/write", {"source": source, "items": items})
+
+    def _scene_failure_dedup_key(self, *, scene_name: str, status: str, error: str | None) -> str:
+        status_label = _trim_text(status, 40).lower()
+        error_label = _trim_text(error, 120).lower()
+        return f"{_trim_text(scene_name, 80).lower()}::{status_label}::{error_label}"
+
+    def _should_skip_scene_outcome(self, *, scene_name: str, status: str, error: str | None) -> bool:
+        status_label = _trim_text(status, 40).lower()
+        if status_label not in {"failed", "stopped"} or self.scene_failure_dedup_seconds <= 0:
+            return False
+
+        now = time.time()
+        cutoff = now - self.scene_failure_dedup_seconds
+        self._recent_scene_failures = {
+            key: observed_at for key, observed_at in self._recent_scene_failures.items() if observed_at >= cutoff
+        }
+
+        dedup_key = self._scene_failure_dedup_key(scene_name=scene_name, status=status_label, error=error)
+        previous = self._recent_scene_failures.get(dedup_key)
+        self._recent_scene_failures[dedup_key] = now
+        return previous is not None
 
     def get_current_session_note(self, *, session_id: str, user_id: str | None = None) -> dict[str, Any]:
         return self._post_json(
@@ -392,6 +523,165 @@ class EmbodiedMemoryClient:
         )
         return self.update_session_note(session_id=session_id, note=note)
 
+    def record_capture_session_state(
+        self,
+        *,
+        observation: dict[str, Any],
+        session_id: str = "mira-light-capture-observer",
+        title: str = "Mira Light capture observer",
+    ) -> dict[str, Any]:
+        if not self.enabled:
+            return {"ok": True, "skipped": True}
+
+        observed_at = _trim_text(observation.get("observedAtLocal"), 120) or _now_iso()
+        capture_name = _trim_text(observation.get("captureName"), 160)
+        summary = observation.get("summary") if isinstance(observation.get("summary"), dict) else {}
+        people_count = int(summary.get("peopleCount") or 0)
+        people_summary = _trim_text(summary.get("peopleSummary"), 240) or "未见明显人物"
+        scene_summary = _trim_text(summary.get("sceneSummary"), 320) or "未知"
+        location = _trim_text(summary.get("location"), 240) or "unknown"
+        objects = _normalize_string_list(summary.get("objects") if isinstance(summary.get("objects"), list) else [], max_items=6, max_chars=60)
+
+        try:
+            existing = self.get_current_session_note(session_id=session_id).get("note")
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"[session-memory] current note read failed: {exc}")
+            existing = None
+
+        note = self._merged_session_note(
+            existing_note=existing,
+            title=title,
+            current_state=(
+                f"Latest booth capture at {observed_at} in {location}. "
+                f"capture={capture_name or 'unknown'}; people={people_count}; "
+                f"peopleSummary={people_summary}; sceneSummary={scene_summary}."
+            ),
+            next_step="Keep sampling captures on the 5-minute loop and only promote salient visual observations into episodic memory.",
+            task_spec="Summarize representative booth captures into structured visual memory for Mira Light and cloud prompt-pack retrieval.",
+            relevant_files=[
+                "scripts/capture_memory_observer.py",
+                "docs/cam_receiver_new.py",
+                _trim_text(observation.get("capturePath"), 240),
+            ],
+            key_results=[f"{observed_at} capture={capture_name or 'unknown'} people={people_count}"],
+            worklog=[f"{observed_at} objects={', '.join(objects) if objects else 'none'}"],
+        )
+        return self.update_session_note(session_id=session_id, note=note)
+
+    def record_capture_observation(
+        self,
+        *,
+        observation: dict[str, Any],
+        working_ttl_seconds: int = 1800,
+    ) -> dict[str, Any]:
+        if not self.enabled:
+            return {"ok": True, "skipped": True}
+
+        summary = observation.get("summary") if isinstance(observation.get("summary"), dict) else {}
+        observed_at = _trim_text(observation.get("observedAtLocal"), 120) or _now_iso()
+        capture_path = _trim_text(observation.get("capturePath"), 260)
+        signature = _trim_text(observation.get("signature"), 120) or "unknown"
+        selection = observation.get("selection") if isinstance(observation.get("selection"), dict) else {}
+        people_count = int(summary.get("peopleCount") or 0)
+        people_summary = _trim_text(summary.get("peopleSummary"), 240) or "未见明显人物"
+        objects = _normalize_string_list(summary.get("objects") if isinstance(summary.get("objects"), list) else [], max_items=6, max_chars=60)
+        scene_summary = _trim_text(summary.get("sceneSummary"), 320) or "未知"
+        activity = _trim_text(summary.get("activity"), 180)
+        location = _trim_text(summary.get("location"), 240) or "unknown"
+        memory_worthy = bool(summary.get("memoryWorthy"))
+        episodic_salience, working_salience = _capture_memory_salience(
+            memory_worthy=memory_worthy,
+            people_count=people_count,
+            object_count=len(objects),
+            has_activity=bool(activity),
+            has_scene_summary=bool(scene_summary and scene_summary != "未知"),
+        )
+
+        content = (
+            f"Latest booth observation at {observed_at}: {scene_summary}. "
+            f"People: {people_summary}. "
+            f"Objects: {', '.join(objects) if objects else 'none'}. "
+            f"Location: {location}."
+        )
+        location_tag = _safe_tag(location, max_chars=60)
+        common_tags = _capture_observation_tags(
+            location_tag=location_tag,
+            objects=objects,
+            people_count=people_count,
+            memory_worthy=memory_worthy,
+            activity=activity,
+        )
+
+        episodic_item = {
+            "user_id": self.user_id,
+            "namespace": "home",
+            "layer": "episodic",
+            "kind": "environment_observation",
+            "content": content,
+            "structured_value": {
+                "system": "mira-light",
+                "observer": "capture-memory-observer",
+                "capturePath": capture_path,
+                "observedAtLocal": observed_at,
+                "summary": summary,
+                "selection": selection,
+                "signature": signature,
+                "sceneSummary": scene_summary,
+                "peopleCount": people_count,
+                "peopleSummary": people_summary,
+                "objects": objects,
+                "activity": activity,
+                "location": location,
+                "memoryWorthy": memory_worthy,
+                "recallHint": "latest-booth-observation",
+            },
+            "confidence": 0.9,
+            "salience": episodic_salience,
+            "sensitivity": "normal",
+            "tags": common_tags,
+            "evidence_refs": [f"mira-light:capture:{signature}", capture_path],
+        }
+
+        working_item = {
+            "user_id": self.user_id,
+            "namespace": "home",
+            "layer": "working",
+            "kind": "scene_state",
+            "content": (
+                f"Latest booth observation: {scene_summary} "
+                f"(people={people_count}, location={location}, activity={activity or 'unknown'})."
+            ),
+            "structured_value": {
+                "system": "mira-light",
+                "observer": "capture-memory-observer",
+                "signature": signature,
+                "capturePath": capture_path,
+                "summary": summary,
+                "sceneSummary": scene_summary,
+                "peopleCount": people_count,
+                "peopleSummary": people_summary,
+                "objects": objects,
+                "activity": activity,
+                "location": location,
+                "recallHint": "latest-booth-observation",
+            },
+            "confidence": 0.93,
+            "salience": working_salience,
+            "sensitivity": "normal",
+            "tags": _capture_observation_tags(
+                location_tag=location_tag,
+                objects=objects,
+                people_count=people_count,
+                memory_worthy=memory_worthy,
+                activity=activity,
+                extra_tags=["working", "scene-state", "recent"],
+            ),
+            "evidence_refs": [f"mira-light:capture:{signature}"],
+            "expires_at": _expires_after(working_ttl_seconds),
+        }
+
+        return self._post_write("capture_observation", [episodic_item, working_item])
+
     def record_scene_outcome(
         self,
         *,
@@ -400,11 +690,22 @@ class EmbodiedMemoryClient:
         runtime_state: dict[str, Any],
         error: str | None = None,
     ) -> dict[str, Any]:
+        if self._should_skip_scene_outcome(scene_name=scene_name, status=status, error=error):
+            return {
+                "ok": True,
+                "skipped": True,
+                "reason": "scene_failure_dedup",
+                "sceneName": scene_name,
+                "status": status,
+            }
+
         scene_label = _trim_text(scene_name, 80) or "unknown-scene"
         status_label = _trim_text(status, 40) or "unknown"
         message = f"Mira Light scene '{scene_label}' finished with status '{status_label}'."
         if error:
             message = f"{message} Error: {_trim_text(error, 180)}"
+        episodic_salience, working_salience = _scene_outcome_salience(status)
+        tags = _scene_outcome_tags(scene_name, status, error)
 
         items: list[dict[str, Any]] = [
             {
@@ -422,14 +723,14 @@ class EmbodiedMemoryClient:
                     "observedAt": _now_iso(),
                 },
                 "confidence": 0.96,
-                "salience": 0.88 if status == "completed" else 0.95,
+                "salience": episodic_salience,
                 "sensitivity": "normal",
-                "tags": ["mira-light", f"scene:{scene_name}", f"status:{status}"],
+                "tags": tags,
                 "evidence_refs": [f"mira-light:scene:{scene_name}:{status}"],
             }
         ]
 
-        if status != "completed":
+        if status != "completed" and working_salience is not None:
             items.append(
                 {
                     "user_id": self.user_id,
@@ -447,9 +748,9 @@ class EmbodiedMemoryClient:
                         "error": error,
                     },
                     "confidence": 1,
-                    "salience": 0.95,
+                    "salience": working_salience,
                     "sensitivity": "normal",
-                    "tags": ["mira-light", "working", f"scene:{scene_name}", f"status:{status}"],
+                    "tags": ["mira-light", "working", *tags],
                     "evidence_refs": [f"mira-light:scene:{scene_name}:{status}"],
                     "expires_at": _expires_after(self.failure_ttl_seconds),
                 }

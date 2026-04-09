@@ -529,6 +529,57 @@ def extract_multi_person_payload(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def extract_curious_observe_context(
+    event: dict[str, Any],
+    tracking: dict[str, Any],
+    selected: dict[str, Any] | None,
+) -> dict[str, Any]:
+    effective = selected if selected is not None else tracking
+    detector = str(
+        effective.get("detector")
+        or tracking.get("detector")
+        or ""
+    ).strip().lower()
+    judge_direction = normalize_direction(
+        effective.get("horizontal_zone") if isinstance(effective, dict) else None,
+        default="center",
+    )
+    owner_face_found = bool(tracking.get("owner_face_found"))
+    owner_direction = normalize_direction(
+        tracking.get("owner_direction"),
+        default=judge_direction,
+    )
+    if not owner_face_found:
+        owner_face_found = bool(tracking.get("target_present")) and detector in {"haar_face", "face"}
+        owner_direction = judge_direction
+
+    context = {
+        "judgeDirection": judge_direction,
+        "ownerFaceFound": owner_face_found,
+        "cueMode": "scene",
+        "source": "vision-bridge",
+    }
+    if owner_face_found:
+        context["ownerDirection"] = owner_direction
+        context["ownerDetector"] = detector
+        if tracking.get("owner_id") is not None:
+            context["ownerId"] = tracking.get("owner_id")
+        if tracking.get("owner_confidence") is not None:
+            context["ownerConfidence"] = tracking.get("owner_confidence")
+
+    vertical_zone = effective.get("vertical_zone") if isinstance(effective, dict) else None
+    if vertical_zone:
+        context["targetVerticalZone"] = vertical_zone
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+    if "ownerFaceFound" in payload:
+        context["ownerFaceFound"] = bool(payload.get("ownerFaceFound"))
+    if "ownerDirection" in payload:
+        context["ownerDirection"] = normalize_direction(payload.get("ownerDirection"), default=judge_direction)
+    if "judgeDirection" in payload:
+        context["judgeDirection"] = normalize_direction(payload.get("judgeDirection"), default=judge_direction)
+    return context
+
+
 def resolve_touch_side(tracking: dict[str, Any], selected: dict[str, Any] | None) -> str:
     effective = selected if selected is not None else tracking
     return normalize_direction(
@@ -785,8 +836,16 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
     return "none", "no target and no prior target state"
 
 
-def apply_scene(scene_name: str, runtime: MiraLightRuntime, bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> None:
-    runtime.start_scene(scene_name)
+def apply_scene(
+    scene_name: str,
+    runtime: MiraLightRuntime,
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+    *,
+    scene_context: dict[str, Any] | None = None,
+) -> None:
+    runtime.start_scene(scene_name, scene_context=scene_context)
     bridge_state.last_scene_started = scene_name
     bridge_state.last_scene_started_at_monotonic = now_mono
     bridge_state.scene_counts[scene_name] = bridge_state.scene_counts.get(scene_name, 0) + 1
@@ -1247,6 +1306,17 @@ def handle_event(
             scene_name="multi_person_demo",
             now_mono=now_mono,
             args=args,
+        )
+    elif candidate_scene == "curious_observe" and allowed:
+        action = "start_scene:curious_observe"
+        action_reason = allowed_reason
+        apply_scene(
+            candidate_scene,
+            runtime,
+            bridge_state,
+            now_mono,
+            args,
+            scene_context=extract_curious_observe_context(event, tracking, selected_target),
         )
     elif allowed:
         action = f"start_scene:{candidate_scene}"

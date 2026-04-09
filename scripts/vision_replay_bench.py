@@ -69,6 +69,8 @@ def build_extractor_args(args: argparse.Namespace) -> argparse.Namespace:
         hand_cue_min_center_y=0.34,
         hand_cue_min_motion_ratio=0.12,
         hand_cue_min_confidence=0.55,
+        owner_match_threshold=0.82,
+        owner_selection_bonus=0.24,
     )
 
 
@@ -152,7 +154,7 @@ def run_replay_bench(args: argparse.Namespace) -> dict[str, Any]:
     simulated_mono = 0.0
 
     for index, frame_path in enumerate(frames, start=1):
-        event = process_frame(frame_path, extractor_state, subtractor, cascade, hog, extractor_args)
+        event = process_frame(frame_path, extractor_state, subtractor, cascade, hog, None, extractor_args)
         write_event_outputs(event, latest_event_out, events_jsonl)
         event_counter[event["event_type"]] += 1
 

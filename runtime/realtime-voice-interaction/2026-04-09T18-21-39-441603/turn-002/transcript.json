@@ -1,0 +1,34 @@
+{
+  "text": "所以我应该怎么回...",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 2.0,
+      "text": "所以我应该怎么回...",
+      "tokens": [
+        50364,
+        7239,
+        1654,
+        44297,
+        44646,
+        15282,
+        8350,
+        485,
+        50464
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.7378659725189209,
+      "compression_ratio": 0.7105263157894737,
+      "no_speech_prob": 0.21039889752864838
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "所以我应该怎么回...",
+  "normalizationApplied": false,
+  "captureMode": "enter-vad",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}
