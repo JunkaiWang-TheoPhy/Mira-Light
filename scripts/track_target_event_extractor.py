@@ -196,6 +196,24 @@ def parse_args() -> argparse.Namespace:
         default=0.55,
         help="Minimum normalized confidence emitted for a hand/arm cue.",
     )
+    parser.add_argument(
+        "--selected-target-max-center-distance",
+        type=float,
+        default=0.16,
+        help="Maximum normalized center distance allowed when recovering the previous target after track-id churn.",
+    )
+    parser.add_argument(
+        "--selected-target-max-size-delta",
+        type=float,
+        default=0.045,
+        help="Maximum |size_norm| delta allowed when recovering the previous target by spatial continuity.",
+    )
+    parser.add_argument(
+        "--selected-target-switch-margin",
+        type=float,
+        default=0.22,
+        help="Required score advantage before automatic selection abandons the current stable target.",
+    )
     return parser.parse_args()
 
 
@@ -389,30 +407,124 @@ def assign_track_ids(candidates: list[dict[str, Any]], state: ExtractorState) ->
             "detector": item["detector"],
             "target_class": item["target_class"],
             "size_norm": item["size_norm"],
+            "bbox_norm": dict(item["bbox_norm"]),
         }
         for item in assigned
     }
     return assigned
 
 
+def continuity_center_distance(track: dict[str, Any], reference: dict[str, Any]) -> float | None:
+    center = track.get("center_norm")
+    ref_center = reference.get("center_norm")
+    if not isinstance(center, dict) or not isinstance(ref_center, dict):
+        return None
+    try:
+        dx = float(center.get("x", 0.5)) - float(ref_center.get("x", 0.5))
+        dy = float(center.get("y", 0.5)) - float(ref_center.get("y", 0.5))
+    except (TypeError, ValueError):
+        return None
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def continuity_size_delta(track: dict[str, Any], reference: dict[str, Any]) -> float | None:
+    try:
+        track_size = float(track.get("size_norm"))
+        ref_size = float(reference.get("size_norm"))
+    except (TypeError, ValueError):
+        return None
+    return abs(track_size - ref_size)
+
+
+def find_continuity_target(
+    tracks: list[dict[str, Any]],
+    reference: dict[str, Any] | None,
+    *,
+    max_center_distance: float,
+    max_size_delta: float,
+) -> tuple[dict[str, Any] | None, float | None, float | None]:
+    if reference is None:
+        return None, None, None
+
+    best_track = None
+    best_center_distance = None
+    best_size_delta = None
+    best_metric = 999.0
+    reference_class = str(reference.get("target_class") or "")
+
+    for item in tracks:
+        if reference_class and str(item.get("target_class") or "") != reference_class:
+            continue
+        center_distance = continuity_center_distance(item, reference)
+        if center_distance is None or center_distance > max_center_distance:
+            continue
+        size_delta = continuity_size_delta(item, reference)
+        if size_delta is not None and size_delta > max_size_delta:
+            continue
+        detector_penalty = 0.0 if str(item.get("detector") or "") == str(reference.get("detector") or "") else 0.03
+        metric = center_distance + ((size_delta or 0.0) * 0.85) + detector_penalty
+        if metric < best_metric:
+            best_metric = metric
+            best_track = item
+            best_center_distance = center_distance
+            best_size_delta = size_delta
+
+    return best_track, best_center_distance, best_size_delta
+
+
+def decorate_selected_target(
+    track: dict[str, Any],
+    *,
+    lock_state: str,
+    reason: str,
+    best_score: float | None = None,
+    continuity_distance_norm: float | None = None,
+    continuity_size_delta: float | None = None,
+) -> dict[str, Any]:
+    selected = dict(track)
+    selected["lock_state"] = lock_state
+    selected["reason"] = reason
+    if best_score is not None:
+        try:
+            margin = max(0.0, float(best_score) - float(track.get("selection_score", 0.0) or 0.0))
+        except (TypeError, ValueError):
+            margin = 0.0
+        selected["score_margin_to_best"] = round(margin, 4)
+    if continuity_distance_norm is not None:
+        selected["continuity_distance_norm"] = round(continuity_distance_norm, 4)
+    if continuity_size_delta is not None:
+        selected["continuity_size_delta"] = round(continuity_size_delta, 4)
+    return selected
+
+
 def choose_selected_target(
     tracks: list[dict[str, Any]],
     state: ExtractorState,
     *,
+    args: argparse.Namespace | None = None,
     operator_state: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not tracks:
         return None
+
+    switch_margin = float(getattr(args, "selected_target_switch_margin", 0.22))
+    max_center_distance = float(getattr(args, "selected_target_max_center_distance", 0.16))
+    max_size_delta = float(getattr(args, "selected_target_max_size_delta", 0.045))
+    ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
+    best_track = ranked[0]
+    best_score = float(best_track.get("selection_score", 0.0) or 0.0)
 
     operator_lock_track_id = parse_operator_lock_track_id(operator_state)
     if operator_lock_track_id is not None:
         for item in tracks:
             if int(item["track_id"]) == operator_lock_track_id:
                 state.selected_track_id = operator_lock_track_id
-                selected = dict(item)
-                selected["lock_state"] = "operator_locked"
-                selected["reason"] = "director console requested target lock"
-                return selected
+                return decorate_selected_target(
+                    item,
+                    lock_state="operator_locked",
+                    reason="director console requested target lock",
+                    best_score=best_score,
+                )
 
     locked_track = None
     if state.selected_track_id is not None:
@@ -422,22 +534,61 @@ def choose_selected_target(
                 break
 
     if locked_track is not None:
-        selected = dict(locked_track)
-        selected["lock_state"] = "locked"
-        selected["reason"] = "previous selected target still visible"
-        return selected
+        margin = max(0.0, best_score - float(locked_track.get("selection_score", 0.0) or 0.0))
+        if int(best_track["track_id"]) != int(locked_track["track_id"]) and margin > switch_margin:
+            state.selected_track_id = int(best_track["track_id"])
+            return decorate_selected_target(
+                best_track,
+                lock_state="locked",
+                reason=(
+                    f"auto-switched from track {locked_track['track_id']} because "
+                    f"score margin {margin:.2f} exceeded {switch_margin:.2f}"
+                ),
+                best_score=best_score,
+            )
+        return decorate_selected_target(
+            locked_track,
+            lock_state="locked",
+            reason="previous selected target still visible",
+            best_score=best_score,
+        )
 
-    ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
-    selected = dict(ranked[0])
+    continuity_track, continuity_distance, continuity_size = find_continuity_target(
+        tracks,
+        state.last_selected_target,
+        max_center_distance=max_center_distance,
+        max_size_delta=max_size_delta,
+    )
+    if continuity_track is not None:
+        margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
+        if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
+            state.selected_track_id = int(continuity_track["track_id"])
+            return decorate_selected_target(
+                continuity_track,
+                lock_state="locked",
+                reason="recovered previous selected target by spatial continuity",
+                best_score=best_score,
+                continuity_distance_norm=continuity_distance,
+                continuity_size_delta=continuity_size,
+            )
+
+    selected = dict(best_track)
     if len(tracks) == 1:
-        selected["lock_state"] = "locked"
-        selected["reason"] = "single visible target"
         state.selected_track_id = int(selected["track_id"])
+        return decorate_selected_target(
+            selected,
+            lock_state="locked",
+            reason="single visible target",
+            best_score=best_score,
+        )
     else:
-        selected["lock_state"] = "candidate"
-        selected["reason"] = "highest score among multiple visible targets"
         state.selected_track_id = None
-    return selected
+        return decorate_selected_target(
+            selected,
+            lock_state="candidate",
+            reason="highest score among multiple visible targets",
+            best_score=best_score,
+        )
 
 def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int | None:
     if not isinstance(operator_state, dict):
@@ -486,6 +637,7 @@ def hold_selected_target(state: ExtractorState, args: argparse.Namespace) -> dic
     held["lock_state"] = "held"
     held["reason"] = f"short occlusion hold ({state.missing_frame_count}/{args.hold_missing_frames})"
     held["approach_state"] = "stable"
+    held["score_margin_to_best"] = 0.0
     return held
 
 
@@ -866,6 +1018,8 @@ def build_event(
     if tracks is not None:
         event["tracks"] = tracks
     if selected_target is not None:
+        event["tracking"]["selected_lock_state"] = selected_target.get("lock_state")
+        event["tracking"]["selected_reason"] = selected_target.get("reason")
         event["selected_target"] = {
             "track_id": selected_target.get("track_id"),
             "lock_state": selected_target.get("lock_state"),
@@ -881,6 +1035,9 @@ def build_event(
             "distance_band": selected_target.get("distance_band"),
             "approach_state": selected_target.get("approach_state"),
             "selection_score": selected_target.get("selection_score"),
+            "score_margin_to_best": selected_target.get("score_margin_to_best"),
+            "continuity_distance_norm": selected_target.get("continuity_distance_norm"),
+            "continuity_size_delta": selected_target.get("continuity_size_delta"),
         }
     if multi_target_payload:
         event["payload"] = multi_target_payload
@@ -924,7 +1081,7 @@ def process_frame(
                 make_track_entry(
                     track_id=0,
                     bbox=bbox,
-                    detector="person_hog",
+                    detector="hog_person",
                     target_class="person",
                     confidence=weight,
                     frame_width=frame.shape[1],
@@ -1026,7 +1183,7 @@ def process_frame(
     candidates = [item for item in candidates if within_engagement_zone(item, args)]
 
     tracks = assign_track_ids(candidates, state)
-    selected_target = choose_selected_target(tracks, state, operator_state=operator_state)
+    selected_target = choose_selected_target(tracks, state, args=args, operator_state=operator_state)
     bbox = None
     detector = "none"
     target_class = "none"

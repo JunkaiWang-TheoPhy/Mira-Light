@@ -173,6 +173,18 @@ DIRECTION_YAW = {
 }
 
 TRACKING_FOCUS = {"r": 232, "g": 242, "b": 255}
+DIRECTOR_PRIMARY_SCENES = {
+    "wake_up",
+    "curious_observe",
+    "touch_affection",
+    "cute_probe",
+    "daydream",
+    "standup_reminder",
+    "track_target",
+    "celebrate",
+    "farewell",
+    "sleep",
+}
 
 
 class MiraLightClient:
@@ -959,6 +971,8 @@ class MiraLightRuntime:
         return self.get_runtime_state()
 
     def is_scene_available(self, scene_name: str) -> bool:
+        if scene_name in DIRECTOR_PRIMARY_SCENES:
+            return True
         readiness = SCENE_META.get(scene_name, {}).get("readiness", "prototype")
         return self.show_experimental or readiness == "ready"
 
@@ -1381,6 +1395,7 @@ class MiraLightRuntime:
                 "detector": tracking.get("detector"),
                 "confidence": tracking.get("confidence"),
                 "selectedLockState": tracking.get("selected_lock_state"),
+                "selectedReason": tracking.get("selected_reason"),
                 "bboxNorm": tracking.get("bbox_norm"),
                 "centerNorm": tracking.get("center_norm"),
                 "controlHint": {

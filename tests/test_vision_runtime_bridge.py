@@ -130,6 +130,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertFalse(runtime.started_scenes)
         self.assertEqual(len(runtime.tracking_events), 1)
         self.assertEqual(runtime.tracking_events[0]["source"], "vision")
+        self.assertEqual(bridge_state.last_decision["action"], "apply_tracking")
+        self.assertEqual(bridge_state.last_decision["candidateScene"], "track_target")
 
     def test_target_lost_triggers_dynamic_farewell_event(self) -> None:
         runtime = FakeRuntime()
@@ -184,6 +186,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
 
         self.assertFalse(runtime.started_scenes)
         self.assertFalse(runtime.tracking_events)
+        self.assertEqual(bridge_state.last_decision["action"], "blocked")
+        self.assertIn("background_motion", bridge_state.last_decision["sceneGateReason"])
 
     def test_locked_selected_target_prefers_tracking_over_multi_person_demo(self) -> None:
         runtime = FakeRuntime()

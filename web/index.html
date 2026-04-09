@@ -120,44 +120,7 @@
           <div id="scene-grid" class="scene-grid"></div>
         </section>
 
-        <aside class="director-column">
-          <section class="panel director-panel">
-            <div class="panel-header">
-              <div>
-                <h2>导演摘要</h2>
-                <p>优先回答“现在灯在干什么”“下一步该说什么”。</p>
-              </div>
-            </div>
-            <div class="summary-stack">
-              <div class="summary-card">
-                <span class="summary-label">当前场景</span>
-                <strong id="summary-scene-title">-</strong>
-                <small id="summary-scene-id">-</small>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">当前步骤</span>
-                <strong id="summary-current-step">-</strong>
-                <small id="summary-step-counter">-</small>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">主持人口播</span>
-                <p id="summary-host-cue" class="summary-text">-</p>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">依赖附件 / 条件</span>
-                <div id="summary-requirements" class="tag-list"></div>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">失败回退</span>
-                <p id="summary-fallback" class="summary-text">-</p>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">场景展示页</span>
-                <a id="summary-showcase-link" class="summary-link is-disabled" href="#" target="_blank" rel="noreferrer">当前场景暂无单独展示页</a>
-              </div>
-            </div>
-          </section>
-
+        <aside class="support-column">
           <section class="panel operator-panel">
             <div class="panel-header">
               <div>
@@ -205,6 +168,55 @@
             </div>
           </section>
 
+          <section class="panel readiness-panel">
+            <div class="panel-header">
+              <div>
+                <h2>附件 / 依赖就绪</h2>
+                <p>这里用于标记当前展位依赖条件是否准备完毕。</p>
+              </div>
+            </div>
+            <div id="readiness-grid" class="readiness-grid"></div>
+          </section>
+        </aside>
+
+        <aside class="director-column">
+          <section class="panel director-panel">
+            <div class="panel-header">
+              <div>
+                <h2>导演摘要</h2>
+                <p>优先回答“现在灯在干什么”“下一步该说什么”。</p>
+              </div>
+            </div>
+            <div class="summary-stack">
+              <div class="summary-card">
+                <span class="summary-label">当前场景</span>
+                <strong id="summary-scene-title">-</strong>
+                <small id="summary-scene-id">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">当前步骤</span>
+                <strong id="summary-current-step">-</strong>
+                <small id="summary-step-counter">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">主持人口播</span>
+                <p id="summary-host-cue" class="summary-text">-</p>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">依赖附件 / 条件</span>
+                <div id="summary-requirements" class="tag-list"></div>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">失败回退</span>
+                <p id="summary-fallback" class="summary-text">-</p>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">场景展示页</span>
+                <a id="summary-showcase-link" class="summary-link is-disabled" href="#" target="_blank" rel="noreferrer">当前场景暂无单独展示页</a>
+              </div>
+            </div>
+          </section>
+
           <section class="panel vision-panel">
             <div class="panel-header">
               <div>
@@ -236,6 +248,11 @@
                 <span class="summary-label">Operator Lock</span>
                 <strong id="vision-operator-lock">-</strong>
                 <small id="vision-operator-note">-</small>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Bridge Decision</span>
+                <strong id="vision-decision-title">-</strong>
+                <small id="vision-decision-note">-</small>
               </div>
             </div>
             <div class="vision-track-tools">
@@ -322,16 +339,6 @@
               </div>
               <div id="mock-pixel-strip" class="mock-pixel-strip"></div>
             </div>
-          </section>
-
-          <section class="panel readiness-panel">
-            <div class="panel-header">
-              <div>
-                <h2>附件 / 依赖就绪</h2>
-                <p>这里用于标记当前展位依赖条件是否准备完毕。</p>
-              </div>
-            </div>
-            <div id="readiness-grid" class="readiness-grid"></div>
           </section>
 
           <section class="panel calibration-panel">

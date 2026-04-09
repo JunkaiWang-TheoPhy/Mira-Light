@@ -364,7 +364,7 @@ async function fetchJson(url, options = {}) {
 
 async function triggerCelebrateScene() {
   try {
-    await fetchJson("/api/run/celebrate", { method: "POST" });
+    await fetchJson("/api/run-motion-script/celebrate", { method: "POST" });
   } catch (error) {
     console.warn("Lamp celebrate trigger failed:", error);
   }

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import mimetypes
 import os
@@ -15,6 +16,7 @@ from urllib.request import Request, urlopen
 
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
+MOTIONS_ROOT = Path(__file__).resolve().parent.parent / "Motions"
 DEFAULT_LIVE_VISION_DIR = Path(__file__).resolve().parent.parent / "runtime" / "live-vision"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
@@ -23,6 +25,98 @@ DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
 DEFAULT_VISION_OPERATOR_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.operator.json"
 DEFAULT_VISION_EVENT_PATH = DEFAULT_LIVE_VISION_DIR / "vision.latest.json"
 DEFAULT_VISION_BRIDGE_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.bridge.state.json"
+
+
+def _coerce_bool(value, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", ""}:
+            return False
+    return default
+
+
+def _iter_motion_script_paths(root: Path) -> list[Path]:
+    if not root.is_dir():
+        return []
+    return sorted(path for path in root.glob("*/scene_script.py") if path.is_file())
+
+
+def _load_motion_script_module(path: Path):
+    module_name = f"mira_light_motion_{path.parent.name}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load module spec from {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _motion_script_info_from_module(root: Path, path: Path, module) -> dict:
+    raw_info = getattr(module, "SCENE_SCRIPT", {})
+    info = dict(raw_info) if isinstance(raw_info, dict) else {}
+    scene_id = str(info.get("sceneId") or getattr(module, "SCENE_ID", "")).strip()
+    if not scene_id:
+        raise ValueError(f"Motion script {path} does not declare sceneId")
+
+    repo_root = root.parent
+    info["sceneId"] = scene_id
+    info.setdefault("folderName", path.parent.name)
+    info.setdefault("folderPath", str(path.parent.relative_to(repo_root)))
+    info.setdefault("scriptPath", str(path.relative_to(repo_root)))
+    info.setdefault("apiRunPath", f"/api/run-motion-script/{scene_id}")
+    return info
+
+
+def _load_motion_script_catalog(root: Path) -> list[dict]:
+    items: list[dict] = []
+    for path in _iter_motion_script_paths(root):
+        try:
+            module = _load_motion_script_module(path)
+            info = _motion_script_info_from_module(root, path, module)
+            info["ok"] = True
+            items.append(info)
+        except Exception as exc:  # pragma: no cover - surfaced in API output
+            repo_root = root.parent
+            items.append(
+                {
+                    "ok": False,
+                    "folderName": path.parent.name,
+                    "folderPath": str(path.parent.relative_to(repo_root)),
+                    "scriptPath": str(path.relative_to(repo_root)),
+                    "error": str(exc),
+                }
+            )
+    return items
+
+
+def _load_motion_script_by_scene_id(root: Path, scene_id: str) -> dict | None:
+    normalized_scene_id = scene_id.strip()
+    if not normalized_scene_id:
+        return None
+
+    for path in _iter_motion_script_paths(root):
+        try:
+            module = _load_motion_script_module(path)
+            info = _motion_script_info_from_module(root, path, module)
+            if info["sceneId"] != normalized_scene_id:
+                continue
+            builder = getattr(module, "build_request_body", None)
+            return {
+                "info": info,
+                "build_request_body": builder if callable(builder) else None,
+            }
+        except Exception:
+            continue
+
+    return None
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -180,6 +274,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/scenes")
             return
 
+        if path == "/api/motion-scripts":
+            self._send_json(200, {"ok": True, "items": _load_motion_script_catalog(MOTIONS_ROOT)})
+            return
+
         if path == "/api/runtime":
             self._proxy_json("GET", "/v1/mira-light/runtime")
             return
@@ -233,6 +331,54 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
+
+        if path.startswith("/api/run-motion-script/"):
+            scene_name = unquote(path.removeprefix("/api/run-motion-script/"))
+            body = self._read_json_body()
+            motion_script = _load_motion_script_by_scene_id(MOTIONS_ROOT, scene_name)
+            if motion_script is None:
+                self._send_json(404, {"ok": False, "error": f"Motion script not found: {scene_name}"})
+                return
+
+            payload: dict
+            build_request_body = motion_script.get("build_request_body")
+            if build_request_body is not None:
+                cue_mode = "director"
+                context = None
+                async_run = True
+                allow_unavailable = None
+                if isinstance(body, dict):
+                    cue_mode = str(body.get("cueMode") or cue_mode)
+                    context = body.get("context")
+                    async_run = _coerce_bool(body.get("async"), True)
+                    if "allowUnavailable" in body:
+                        allow_unavailable = _coerce_bool(body.get("allowUnavailable"), False)
+                payload = build_request_body(
+                    cue_mode=cue_mode,
+                    context=context,
+                    async_run=async_run,
+                    allow_unavailable=allow_unavailable,
+                )
+            else:
+                payload = {
+                    "scene": scene_name,
+                    "async": True,
+                    "cueMode": "director",
+                }
+
+            if not isinstance(payload, dict):
+                self._send_json(500, {"ok": False, "error": f"Motion script payload must be a JSON object: {scene_name}"})
+                return
+
+            payload.setdefault("scene", scene_name)
+            if isinstance(body, dict):
+                for key, value in body.items():
+                    if key == "scene":
+                        continue
+                    payload.setdefault(key, value)
+
+            self._proxy_json("POST", "/v1/mira-light/run-scene", payload)
+            return
 
         if path.startswith("/api/run/"):
             scene_name = unquote(path.removeprefix("/api/run/"))
@@ -367,6 +513,7 @@ def main() -> int:
     print(f"[console] starting at http://{args.host}:{args.port}")
     print(f"[console] proxying bridge {args.bridge_base_url}")
     print(f"[console] bridge token env {args.bridge_token_env} present={bool(bridge_token)}")
+    print(f"[console] motion scripts root {MOTIONS_ROOT}")
     print(f"[console] vision bridge state path {args.vision_bridge_state_path}")
     print(f"[console] vision event path {args.vision_event_path}")
     print(f"[console] vision operator state path {args.vision_operator_state_path}")

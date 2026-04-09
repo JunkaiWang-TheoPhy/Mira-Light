@@ -66,7 +66,7 @@ async function triggerScene() {
   setWebPhase("triggering");
   runtimeNote.textContent = `尝试触发 ${config.sceneId} 场景`;
   try {
-    await fetchJson(`/api/run/${encodeURIComponent(config.sceneId)}`, { method: "POST" });
+    await fetchJson(`/api/run-motion-script/${encodeURIComponent(config.sceneId)}`, { method: "POST" });
     setWebPhase("running");
     await refreshRuntime();
   } catch (error) {

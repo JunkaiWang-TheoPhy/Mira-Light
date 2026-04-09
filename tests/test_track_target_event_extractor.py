@@ -37,6 +37,9 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             motion_near_area_ratio=0.18,
             motion_mid_area_ratio=0.06,
             hold_missing_frames=3,
+            selected_target_max_center_distance=0.16,
+            selected_target_max_size_delta=0.045,
+            selected_target_switch_margin=0.22,
             hand_cue_min_area_ratio=0.0015,
             hand_cue_max_area_ratio=0.06,
             hand_cue_min_center_y=0.34,
@@ -124,6 +127,102 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertEqual(selected["track_id"], 8)
         self.assertEqual(selected["lock_state"], "operator_locked")
+
+    def test_choose_selected_target_recovers_previous_target_by_spatial_continuity(self) -> None:
+        state = ExtractorState(
+            last_selected_target={
+                "track_id": 3,
+                "lock_state": "locked",
+                "reason": "previous selected target still visible",
+                "target_class": "person",
+                "detector": "haar_face",
+                "confidence": 0.89,
+                "bbox_norm": {"x": 0.42, "y": 0.18, "w": 0.16, "h": 0.28},
+                "center_norm": {"x": 0.50, "y": 0.32},
+                "horizontal_zone": "center",
+                "vertical_zone": "upper",
+                "size_norm": 0.052,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.08,
+            },
+        )
+        tracks = [
+            {
+                "track_id": 11,
+                "detector": "haar_face",
+                "target_class": "person",
+                "confidence": 0.91,
+                "bbox_norm": {"x": 0.43, "y": 0.19, "w": 0.17, "h": 0.27},
+                "center_norm": {"x": 0.515, "y": 0.325},
+                "horizontal_zone": "center",
+                "vertical_zone": "upper",
+                "size_norm": 0.051,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.03,
+            },
+            {
+                "track_id": 12,
+                "detector": "haar_face",
+                "target_class": "person",
+                "confidence": 0.95,
+                "bbox_norm": {"x": 0.70, "y": 0.22, "w": 0.18, "h": 0.28},
+                "center_norm": {"x": 0.79, "y": 0.36},
+                "horizontal_zone": "right",
+                "vertical_zone": "middle",
+                "size_norm": 0.056,
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "selection_score": 1.15,
+            },
+        ]
+
+        selected = choose_selected_target(
+            tracks,
+            state,
+            args=self.make_args(),
+            operator_state={},
+        )
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["track_id"], 11)
+        self.assertEqual(selected["lock_state"], "locked")
+        self.assertIn("spatial continuity", selected["reason"])
+        self.assertAlmostEqual(float(selected["continuity_distance_norm"]), 0.0158, places=3)
+
+    def test_choose_selected_target_keeps_visible_target_until_margin_is_decisive(self) -> None:
+        state = ExtractorState(selected_track_id=3)
+        tracks = [
+            {
+                "track_id": 3,
+                "detector": "haar_face",
+                "target_class": "person",
+                "confidence": 0.88,
+                "center_norm": {"x": 0.22, "y": 0.40},
+                "selection_score": 1.00,
+            },
+            {
+                "track_id": 8,
+                "detector": "haar_face",
+                "target_class": "person",
+                "confidence": 0.91,
+                "center_norm": {"x": 0.65, "y": 0.38},
+                "selection_score": 1.14,
+            },
+        ]
+
+        selected = choose_selected_target(
+            tracks,
+            state,
+            args=self.make_args(),
+            operator_state={},
+        )
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["track_id"], 3)
+        self.assertEqual(selected["lock_state"], "locked")
+        self.assertEqual(state.selected_track_id, 3)
 
     def test_detect_hand_arm_cue_finds_moving_skin_blob_in_lower_region(self) -> None:
         frame = np.zeros((120, 200, 3), dtype=np.uint8)

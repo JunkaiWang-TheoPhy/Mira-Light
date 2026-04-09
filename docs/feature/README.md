@@ -36,6 +36,7 @@
 17. [Bus Servo Protocol and Four-Joint Mapping Memo](./21-bus-servo-protocol-and-four-joint-mapping-memo.md)
 18. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
 19. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
+20. [Vision Target Stability and Bridge Observability Upgrade](./29-vision-target-stability-and-bridge-observability-upgrade.md)
 
 ## Integration and Operations
 

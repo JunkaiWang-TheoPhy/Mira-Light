@@ -20,6 +20,8 @@ const visionConfidence = document.getElementById("vision-confidence");
 const visionLastTrigger = document.getElementById("vision-last-trigger");
 const visionOperatorLock = document.getElementById("vision-operator-lock");
 const visionOperatorNote = document.getElementById("vision-operator-note");
+const visionDecisionTitle = document.getElementById("vision-decision-title");
+const visionDecisionNote = document.getElementById("vision-decision-note");
 const visionTrackList = document.getElementById("vision-track-list");
 
 const summarySceneTitle = document.getElementById("summary-scene-title");
@@ -332,9 +334,23 @@ function renderVisionSummary() {
   visionOperatorNote.textContent = visionOperatorState?.note || (lockedTrackId ? "导演台手动锁定中" : "跟随当前自动选择");
 
   const latestEvent = visionState?.latestEvent || {};
+  const bridgeDecision = visionState?.bridgeState?.lastDecision || {};
   const selectedTarget = latestEvent.selected_target || null;
   const tracks = Array.isArray(latestEvent.tracks) ? latestEvent.tracks : [];
   const sceneHint = latestEvent.scene_hint || {};
+  const decisionAction = bridgeDecision.action || "-";
+  const decisionScene = bridgeDecision.candidateScene || sceneHint.name || "-";
+
+  if (visionDecisionTitle) {
+    visionDecisionTitle.textContent = `${decisionAction} · ${decisionScene}`;
+  }
+  if (visionDecisionNote) {
+    visionDecisionNote.textContent =
+      bridgeDecision.actionReason ||
+      bridgeDecision.candidateReason ||
+      bridgeDecision.sceneAllowedReason ||
+      "-";
+  }
 
   if (selectedTarget) {
     visionTargetTitle.textContent = `track ${selectedTarget.track_id} · ${selectedTarget.lock_state || "selected"}`;
@@ -344,19 +360,27 @@ function renderVisionSummary() {
     visionDetector.textContent = selectedTarget.detector || detector;
     visionConfidence.textContent =
       typeof selectedTarget.confidence === "number" ? selectedTarget.confidence.toFixed(2) : confidence;
+    if (!visionOperatorState?.note) {
+      visionOperatorNote.textContent =
+        selectedTarget.reason ||
+        (lockedTrackId ? "导演台手动锁定中" : "跟随当前自动选择");
+    }
   }
 
-  renderVisionTrackList(tracks, selectedTarget, sceneHint);
+  renderVisionTrackList(tracks, selectedTarget, sceneHint, bridgeDecision);
 }
 
-function renderVisionTrackList(tracks, selectedTarget, sceneHint) {
+function renderVisionTrackList(tracks, selectedTarget, sceneHint, bridgeDecision = {}) {
   if (!visionTrackList) return;
   visionTrackList.innerHTML = "";
 
   const summary = document.createElement("div");
   summary.className = "vision-track-empty";
   const trackCount = tracks?.length || 0;
-  summary.textContent = `tracks ${trackCount} · scene_hint ${sceneHint?.name || "-"} · ${sceneHint?.reason || "-"}`;
+  const selectedReason = selectedTarget?.reason || bridgeDecision?.selectedReason || "-";
+  summary.textContent =
+    `tracks ${trackCount} · scene_hint ${sceneHint?.name || "-"} · ` +
+    `selected ${selectedTarget?.track_id || "-"} · ${selectedReason}`;
   visionTrackList.appendChild(summary);
 
   if (!tracks || tracks.length === 0) {
@@ -401,6 +425,12 @@ function renderVisionTrackList(tracks, selectedTarget, sceneHint) {
           <span>score ${score}</span>
         </div>
       `;
+      if (selectedTarget && track.track_id === selectedTarget.track_id && selectedTarget.reason) {
+        const reason = document.createElement("div");
+        reason.className = "vision-track-reason";
+        reason.textContent = selectedTarget.reason;
+        card.appendChild(reason);
+      }
 
       const actions = document.createElement("div");
       actions.className = "vision-track-actions";
@@ -495,11 +525,12 @@ function renderSceneGrid() {
       renderDirectorSummary();
       triggerSceneBurst(scene.id);
       try {
-        const payload = { cueMode: readCueMode() };
+        const payload = { cueMode: readCueMode(), allowUnavailable: true };
         if (scene.id === "farewell") {
           payload.context = { departureDirection: farewellDirectionInput.value };
         }
-        await fetchJson(`/api/run/${encodeURIComponent(scene.id)}`, {
+        const runPath = scene.motionScript?.apiRunPath || `/api/run/${encodeURIComponent(scene.id)}`;
+        await fetchJson(runPath, {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -1165,9 +1196,24 @@ async function refreshVisionState() {
 }
 
 async function refreshScenes() {
-  const data = await fetchJson("/api/scenes");
-  const sceneMap = new Map((data.items || []).map((item) => [item.id, item]));
-  scenes = DIRECTOR_SCENE_IDS.map((sceneId) => sceneMap.get(sceneId)).filter(Boolean);
+  const [sceneData, motionScriptData] = await Promise.all([
+    fetchJson("/api/scenes"),
+    fetchJson("/api/motion-scripts").catch(() => ({ items: [] })),
+  ]);
+  const sceneMap = new Map((sceneData.items || []).map((item) => [item.id, item]));
+  const motionScriptMap = new Map(
+    (motionScriptData.items || [])
+      .filter((item) => item.ok !== false && item.sceneId)
+      .map((item) => [item.sceneId, item]),
+  );
+  scenes = DIRECTOR_SCENE_IDS.map((sceneId) => {
+    const scene = sceneMap.get(sceneId);
+    if (!scene) return null;
+    return {
+      ...scene,
+      motionScript: motionScriptMap.get(sceneId) || null,
+    };
+  }).filter(Boolean);
   if (!selectedSceneId && scenes.length > 0) {
     selectedSceneId = scenes[0].id;
   }
