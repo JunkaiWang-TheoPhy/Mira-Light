@@ -33,7 +33,8 @@
 3. [Delivery, Audit, and Acceptance Progress](./11-delivery-audit-and-acceptance-progress.md)
 4. [Local Audio and TTS Progress](./12-local-audio-and-tts-progress.md)
 5. [Local Configuration and Model Preservation Progress](./14-local-configuration-and-model-preservation-progress.md)
-6. [Control Safety and OpenClaw Rollback Progress](./17-control-safety-and-openclaw-rollback-progress.md)
+6. [Cloud Brain Latency and Local Hot-Hub Deployment Recommendation](./18-cloud-brain-latency-and-local-hot-hub-deployment-recommendation.md)
+7. [Full Local Deployment and Data-Locality Security Recommendation](./19-full-local-deployment-and-data-locality-security-recommendation.md)
 
 ## Reading Guide
 
@@ -64,5 +65,7 @@
 - 设备交付、实现审计、验收标准
 - 本机音频与 TTS 扩展
 - 正式 speak tool、短句语音出口与本机模型保留规则
+- 云端大脑延迟评估与本地热枢纽部署建议
+- 完整本地部署、数据不出本地与高安全边界建议
 - 本机语音转文本与 Claw 语音入口
 - 控制安全护栏、clamp / reject 行为与 OpenClaw 回滚闭环

@@ -102,6 +102,14 @@ ESP32
 - `部分软件链路` 已经落地
 - `实灯长期在线部署` 仍然需要继续完善
 
+如果你希望继续看“云端当大脑是否合适、延迟大概会是多少、为什么仍然建议保留本地热枢纽”，可以继续看：
+
+- [./18-cloud-brain-latency-and-local-hot-hub-deployment-recommendation.md](./18-cloud-brain-latency-and-local-hot-hub-deployment-recommendation.md)
+
+如果你希望看与之相对的判断，也就是“在什么条件下应优先选择完整本地部署，以实现数据不出本地和最强本地安全边界”，可以继续看：
+
+- [./19-full-local-deployment-and-data-locality-security-recommendation.md](./19-full-local-deployment-and-data-locality-security-recommendation.md)
+
 ## Why This Matters
 
 这部分进展让项目不再停留在“灯和模型怎么大概连一下”，而是已经能够回答：

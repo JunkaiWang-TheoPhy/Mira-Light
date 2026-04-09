@@ -41,6 +41,7 @@ from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
 DEFAULT_TIMEOUT_SECONDS = 3.0
 DEFAULT_SCENE_BUNDLE_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "release_scene_bundles.json"
 DEFAULT_AUDIO_CUE_ROOT = Path(__file__).resolve().parent.parent / "assets" / "audio"
+TRACKING_FOCUS = {"r": 232, "g": 242, "b": 255}
 
 
 class SceneStopped(RuntimeError):
@@ -372,6 +373,11 @@ class MiraLightRuntime:
         self._last_command: str | None = None
         self._device_online: bool | None = None
         self._last_status_at: str | None = None
+        self._tracking_active = False
+        self._tracking_last_update_at: str | None = None
+        self._tracking_target: dict[str, Any] = {"active": False}
+        self._tracking_servo_state: dict[str, int] = {}
+        self._tracking_led_state: dict[str, Any] | None = None
 
         if self._scene_bundle_config_error:
             self.log(f"[config-warning] {self._scene_bundle_config_error}")
@@ -380,6 +386,46 @@ class MiraLightRuntime:
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
         self.embodied_memory_client = client
+
+    def _servo_neutral(self, servo_name: str, fallback: int) -> int:
+        calibration = SERVO_CALIBRATION.get(servo_name, {})
+        value = calibration.get("neutral", fallback)
+        return int(value) if isinstance(value, (int, float)) else fallback
+
+    def _servo_rehearsal_range(self, servo_name: str, fallback: tuple[int, int]) -> tuple[int, int]:
+        calibration = SERVO_CALIBRATION.get(servo_name, {})
+        values = calibration.get("rehearsal_range", fallback)
+        if (
+            isinstance(values, list)
+            and len(values) == 2
+            and all(isinstance(item, (int, float)) for item in values)
+        ):
+            return int(values[0]), int(values[1])
+        return fallback
+
+    def _clear_tracking_state(self, *, reason: str, set_command: bool = True, log_message: bool = True) -> None:
+        with self._state_lock:
+            self._tracking_active = False
+            self._tracking_last_update_at = self._now()
+            self._tracking_target = {"reason": reason, "active": False}
+            if set_command:
+                self._last_command = f"tracking-clear:{reason}"
+            if self._current_step_type == "tracking":
+                self._current_step_index = None
+                self._current_step_total = None
+                self._current_step_label = None
+                self._current_step_type = None
+        self._tracking_led_state = None
+        if log_message:
+            self.log(f"[tracking] cleared reason={reason}")
+
+    def _smooth_servo_target(self, servo_name: str, target: int, alpha: float = 0.42) -> int:
+        current = int(self._tracking_servo_state.get(servo_name, self._servo_neutral(servo_name, 90)))
+        next_value = round(current + (target - current) * alpha)
+        if abs(next_value - current) <= 1:
+            next_value = current if abs(target - current) <= 2 else target
+        self._tracking_servo_state[servo_name] = int(next_value)
+        return int(next_value)
 
     def _now(self) -> str:
         return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
@@ -490,6 +536,9 @@ class MiraLightRuntime:
                 "sceneBundleAvailable": sorted(self._scene_bundles),
                 "audioCueRoot": str(self._audio_cue_root),
                 "estimatedServoState": self._safety.snapshot(),
+                "trackingActive": self._tracking_active,
+                "trackingLastUpdateAt": self._tracking_last_update_at,
+                "trackingTarget": self._tracking_target,
             }
 
     def get_status(self) -> Any:
@@ -605,12 +654,104 @@ class MiraLightRuntime:
         except Exception as exc:  # noqa: BLE001
             self.log(f"[memory-warning] record_scene_outcome failed: {exc}")
 
+    def apply_tracking_event(self, event: dict[str, Any], *, source: str = "vision") -> dict[str, Any]:
+        if not isinstance(event, dict):
+            raise RuntimeError("tracking event must be a JSON object")
+
+        with self._state_lock:
+            running_scene = self._running_scene
+        if running_scene and running_scene != "track_target":
+            raise RuntimeError(f"Cannot update live tracking while another scene is running: {running_scene}")
+
+        tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+        control_hint = event.get("control_hint", {}) if isinstance(event.get("control_hint"), dict) else {}
+        target_present = bool(tracking.get("target_present"))
+        if not target_present:
+            self._clear_tracking_state(reason="target_missing")
+            return self.get_runtime_state()
+
+        yaw_error = float(control_hint.get("yaw_error_norm", 0.0) or 0.0)
+        pitch_error = float(control_hint.get("pitch_error_norm", 0.0) or 0.0)
+        lift_intent = float(control_hint.get("lift_intent", 0.5) or 0.5)
+        reach_intent = float(control_hint.get("reach_intent", 0.35) or 0.35)
+
+        servo1_neutral = self._servo_neutral("servo1", 90)
+        servo2_neutral = self._servo_neutral("servo2", 96)
+        servo3_neutral = self._servo_neutral("servo3", 98)
+        servo4_neutral = self._servo_neutral("servo4", 90)
+
+        servo1_low, servo1_high = self._servo_rehearsal_range("servo1", (72, 110))
+        servo2_low, servo2_high = self._servo_rehearsal_range("servo2", (78, 112))
+        servo3_low, servo3_high = self._servo_rehearsal_range("servo3", (80, 120))
+        servo4_low, servo4_high = self._servo_rehearsal_range("servo4", (80, 104))
+
+        desired_servo1 = max(servo1_low, min(servo1_high, round(servo1_neutral + yaw_error * 18)))
+        desired_servo2 = max(servo2_low, min(servo2_high, round(servo2_neutral + (lift_intent - 0.5) * 16)))
+        desired_servo3 = max(servo3_low, min(servo3_high, round(servo3_neutral + (reach_intent - 0.3) * 22)))
+        desired_servo4 = max(servo4_low, min(servo4_high, round(servo4_neutral - pitch_error * 10)))
+
+        payload = {
+            "mode": "absolute",
+            "servo1": self._smooth_servo_target("servo1", desired_servo1),
+            "servo2": self._smooth_servo_target("servo2", desired_servo2),
+            "servo3": self._smooth_servo_target("servo3", desired_servo3),
+            "servo4": self._smooth_servo_target("servo4", desired_servo4),
+        }
+        control_result = self.control_lamp(payload, source=f"tracking:{source}", update_last_command=False)
+        normalized_payload = dict(control_result["safety"]["sanitizedPayload"])
+
+        led_payload = {
+            "mode": "solid",
+            "brightness": 166 if tracking.get("distance_band") == "near" else 150,
+            "color": TRACKING_FOCUS,
+        }
+
+        self.log(
+            "[tracking] "
+            f"{source} yaw={yaw_error:.2f} pitch={pitch_error:.2f} "
+            f"distance={tracking.get('distance_band')} zone={tracking.get('horizontal_zone')} "
+            f"-> {json.dumps(normalized_payload, ensure_ascii=False)}"
+        )
+
+        if led_payload != self._tracking_led_state:
+            self.get_client().set_led(led_payload)
+            self._tracking_led_state = dict(led_payload)
+
+        with self._state_lock:
+            self._tracking_active = True
+            self._tracking_last_update_at = self._now()
+            self._tracking_target = {
+                "active": True,
+                "source": source,
+                "eventType": event.get("event_type"),
+                "horizontalZone": tracking.get("horizontal_zone"),
+                "verticalZone": tracking.get("vertical_zone"),
+                "distanceBand": tracking.get("distance_band"),
+                "approachState": tracking.get("approach_state"),
+                "targetClass": tracking.get("target_class"),
+                "confidence": tracking.get("confidence"),
+                "controlHint": {
+                    "yawErrorNorm": yaw_error,
+                    "pitchErrorNorm": pitch_error,
+                    "liftIntent": lift_intent,
+                    "reachIntent": reach_intent,
+                },
+                "servoCommand": dict(normalized_payload),
+            }
+            self._last_command = f"tracking:{tracking.get('horizontal_zone') or 'unknown'}"
+            self._current_step_label = f"tracking:{tracking.get('horizontal_zone') or 'unknown'}"
+            self._current_step_type = "tracking"
+            self._current_step_index = None
+            self._current_step_total = None
+        return self.get_runtime_state()
+
     def reset_lamp(self) -> Any:
         self.log("[runtime] reset lamp")
         with self._state_lock:
             self._last_command = "reset"
         result = self.get_client().reset()
         self._safety.mark_unknown()
+        self._clear_tracking_state(reason="reset", set_command=False, log_message=False)
         return result
 
     def apply_pose_with_safety(
@@ -647,6 +788,8 @@ class MiraLightRuntime:
         self._stop_event.set()
         with self._state_lock:
             self._last_command = "stop"
+            self._tracking_active = False
+            self._tracking_target = {"reason": "manual-stop", "active": False}
         try:
             self.get_client().stop_action()
         except Exception as exc:  # noqa: BLE001 - we want the runtime to survive booth errors
@@ -667,6 +810,7 @@ class MiraLightRuntime:
                 running_scene = self._running_scene
             raise RuntimeError(f"Another scene is already running: {running_scene}")
 
+        self._clear_tracking_state(reason=f"scene:{scene_name}", set_command=False, log_message=False)
         with self._state_lock:
             self._stop_event.clear()
             self._running_scene = scene_name

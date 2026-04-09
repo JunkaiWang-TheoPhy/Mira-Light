@@ -1,0 +1,23 @@
+{
+  "savedAt": "2026-04-09T12:08:06.568473",
+  "args": {
+    "mode": "continuous",
+    "device": "DJI MIC MINI",
+    "sampleRate": 48000,
+    "channels": 1,
+    "profile": "small",
+    "bridgeUrl": "http://127.0.0.1:9783",
+    "triggerDisabled": false,
+    "historyTurns": 4
+  },
+  "session": {
+    "mode": "chat",
+    "lastIntent": "none",
+    "lastScene": null,
+    "lastUserText": "",
+    "lastReplyText": "",
+    "startedAt": "2026-04-09T12:07:40.219410",
+    "lastActiveAt": "2026-04-09T12:07:40.219413",
+    "history": []
+  }
+}

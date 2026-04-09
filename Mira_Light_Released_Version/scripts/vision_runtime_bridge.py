@@ -38,6 +38,10 @@ class BridgeState:
     target_missing_since_monotonic: float | None = None
     last_scene_started: str | None = None
     last_scene_started_at_monotonic: float | None = None
+    last_tracking_applied_at_monotonic: float | None = None
+    last_seen_horizontal_zone: str | None = None
+    last_seen_distance_band: str | None = None
+    last_departure_direction: str | None = None
     scene_counts: dict[str, int] = field(default_factory=dict)
 
 
@@ -108,6 +112,12 @@ def parse_args() -> argparse.Namespace:
         help="How long target absence must persist before sleep is triggered.",
     )
     parser.add_argument(
+        "--tracking-update-ms",
+        type=int,
+        default=220,
+        help="Minimum interval between live tracking control updates.",
+    )
+    parser.add_argument(
         "--log-json",
         action="store_true",
         help="Print bridge decisions as JSON instead of plain text lines.",
@@ -149,6 +159,10 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "lastTargetPresent": bridge.last_target_present,
             "targetMissingSinceMonotonic": bridge.target_missing_since_monotonic,
             "lastSceneStarted": bridge.last_scene_started,
+            "lastTrackingAppliedAtMonotonic": bridge.last_tracking_applied_at_monotonic,
+            "lastSeenHorizontalZone": bridge.last_seen_horizontal_zone,
+            "lastSeenDistanceBand": bridge.last_seen_distance_band,
+            "lastDepartureDirection": bridge.last_departure_direction,
             "sceneCounts": bridge.scene_counts,
         },
         "lastVisionEvent": last_event,
@@ -193,22 +207,36 @@ def should_start_scene(
 
 def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> tuple[str, str]:
     tracking = event.get("tracking", {})
+    control_hint = event.get("control_hint", {}) if isinstance(event.get("control_hint"), dict) else {}
     target_present = bool(tracking.get("target_present"))
     scene_hint = (event.get("scene_hint") or {}).get("name", "none")
     event_type = event.get("event_type", "no_target")
+    horizontal_zone = tracking.get("horizontal_zone")
+    approach_state = tracking.get("approach_state")
+    yaw_error = abs(_hint_float(control_hint, "yaw_error_norm"))
+    pitch_error = abs(_hint_float(control_hint, "pitch_error_norm"))
 
     if target_present:
         bridge_state.target_missing_since_monotonic = None
+        bridge_state.last_departure_direction = None
         if event_type == "target_seen":
             return "wake_up", "target_seen transition"
+        if bridge_state.last_scene_started == "track_target" and event_type in {"target_updated", "target_moved"}:
+            return "track_target", "continue live tracking"
         if scene_hint in {"curious_observe", "track_target"}:
             return scene_hint, f"scene_hint={scene_hint}"
         if scene_hint == "wake_up":
             return "wake_up", "scene_hint=wake_up"
+        if horizontal_zone in {"left", "right"} or approach_state in {"approaching", "receding"}:
+            return "track_target", "tracking heuristics from target movement"
+        if yaw_error >= 0.18 or pitch_error >= 0.22:
+            return "track_target", "tracking heuristics from control_hint"
         return "curious_observe", "target present fallback"
 
     if bridge_state.last_target_present and bridge_state.target_missing_since_monotonic is None:
         bridge_state.target_missing_since_monotonic = now_mono
+        if bridge_state.last_departure_direction:
+            return "none", f"target just disappeared toward {bridge_state.last_departure_direction}, waiting grace period"
         return "none", "target just disappeared, waiting grace period"
 
     if bridge_state.target_missing_since_monotonic is not None:
@@ -228,10 +256,72 @@ def apply_scene(scene_name: str, runtime: MiraLightRuntime, bridge_state: Bridge
     log(args, "scene started", scene=scene_name, dry_run=runtime.dry_run)
 
 
+def _hint_float(payload: dict[str, Any], key: str, default: float = 0.0) -> float:
+    try:
+        return float(payload.get(key, default) or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def observe_tracking(event: dict[str, Any], bridge_state: BridgeState) -> None:
+    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    target_present = bool(tracking.get("target_present"))
+    horizontal_zone = tracking.get("horizontal_zone")
+    distance_band = tracking.get("distance_band")
+
+    if target_present:
+        if horizontal_zone in {"left", "center", "right"}:
+            bridge_state.last_seen_horizontal_zone = horizontal_zone
+        if isinstance(distance_band, str) and distance_band:
+            bridge_state.last_seen_distance_band = distance_band
+        bridge_state.last_departure_direction = None
+        return
+
+    approach_state = tracking.get("approach_state")
+    if approach_state != "receding" and event.get("event_type") != "target_lost":
+        return
+
+    if horizontal_zone in {"left", "right", "center"}:
+        bridge_state.last_departure_direction = horizontal_zone
+        return
+
+    if bridge_state.last_seen_horizontal_zone in {"left", "right", "center"}:
+        bridge_state.last_departure_direction = bridge_state.last_seen_horizontal_zone
+
+
+def should_apply_tracking(
+    *,
+    runtime_state: dict[str, Any],
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+) -> tuple[bool, str]:
+    if runtime_state.get("running") and runtime_state.get("runningScene") not in {None, "track_target"}:
+        return False, f"runtime already running {runtime_state.get('runningScene')}"
+
+    last_applied = bridge_state.last_tracking_applied_at_monotonic
+    if last_applied is not None:
+        age_ms = (now_mono - last_applied) * 1000.0
+        if age_ms < args.tracking_update_ms:
+            return False, f"tracking update interval active ({age_ms:.0f}ms)"
+
+    return True, "ok"
+
+
+def apply_tracking(runtime: MiraLightRuntime, bridge_state: BridgeState, event: dict[str, Any], now_mono: float, args: argparse.Namespace) -> None:
+    runtime.apply_tracking_event(event, source="vision")
+    bridge_state.last_scene_started = "track_target"
+    bridge_state.last_scene_started_at_monotonic = now_mono
+    bridge_state.last_tracking_applied_at_monotonic = now_mono
+    bridge_state.scene_counts["track_target"] = bridge_state.scene_counts.get("track_target", 0) + 1
+    log(args, "tracking updated", dry_run=runtime.dry_run)
+
+
 def handle_event(event: dict[str, Any], runtime: MiraLightRuntime, bridge_state: BridgeState, args: argparse.Namespace) -> None:
     now_mono = time.monotonic()
     tracking = event.get("tracking", {})
     target_present = bool(tracking.get("target_present"))
+    observe_tracking(event, bridge_state)
 
     candidate_scene, candidate_reason = resolve_candidate_scene(event, bridge_state, now_mono, args)
     runtime_state = runtime.get_runtime_state()
@@ -255,9 +345,30 @@ def handle_event(event: dict[str, Any], runtime: MiraLightRuntime, bridge_state:
         target_present=target_present,
         distance_band=tracking.get("distance_band"),
         horizontal_zone=tracking.get("horizontal_zone"),
+        departure_direction=bridge_state.last_departure_direction or "unknown",
     )
 
-    if allowed:
+    if not target_present and runtime_state.get("trackingActive") and hasattr(runtime, "apply_tracking_event"):
+        runtime.apply_tracking_event(event, source="vision-clear")
+
+    if candidate_scene == "track_target" and target_present and hasattr(runtime, "apply_tracking_event"):
+        allowed, allowed_reason = should_apply_tracking(
+            runtime_state=runtime_state,
+            bridge_state=bridge_state,
+            now_mono=now_mono,
+            args=args,
+        )
+        log(
+            args,
+            "tracking candidate evaluated",
+            allowed=allowed,
+            allowed_reason=allowed_reason,
+            horizontal_zone=tracking.get("horizontal_zone"),
+            distance_band=tracking.get("distance_band"),
+        )
+        if allowed:
+            apply_tracking(runtime, bridge_state, event, now_mono, args)
+    elif allowed:
         apply_scene(candidate_scene, runtime, bridge_state, now_mono, args)
 
     bridge_state.last_target_present = target_present
@@ -279,6 +390,7 @@ def main() -> int:
         base_url=runtime.base_url,
         dry_run=runtime.dry_run,
         show_experimental=runtime.show_experimental,
+        tracking_update_ms=args.tracking_update_ms,
     )
 
     while True:
