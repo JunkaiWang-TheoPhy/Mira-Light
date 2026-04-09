@@ -1,0 +1,58 @@
+{
+  "savedAt": "2026-04-09T15:02:02.305245",
+  "args": {
+    "mode": "continuous",
+    "device": "DJI MIC MINI",
+    "sampleRate": 48000,
+    "channels": 1,
+    "profile": "small",
+    "bridgeUrl": "http://127.0.0.1:9783",
+    "triggerDisabled": true,
+    "historyTurns": 4,
+    "replyAgent": "mira-voice-spark",
+    "replyThinking": "off"
+  },
+  "session": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "谢谢 现在结束。",
+    "lastReplyText": "不客气，和你聊天很开心。慢慢来，今天就先到这边，回头见。",
+    "startedAt": "2026-04-09T14:59:11.821368",
+    "lastActiveAt": "2026-04-09T15:01:29.330485",
+    "history": [
+      {
+        "role": "user",
+        "content": "你能做什么事情?"
+      },
+      {
+        "role": "assistant",
+        "content": "我可以陪你聊天、听你发泄、给你一些轻松的小建议。也可以在你累了的时候先陪着你，慢慢放松下来。"
+      },
+      {
+        "role": "user",
+        "content": "Mira 和台灯的关系。"
+      },
+      {
+        "role": "assistant",
+        "content": "Mira 是展位里的灯光和动作表演角色，我和台灯是一起合作的搭档。 台灯会随我的状态变化，让交流更有氛围，也让你更容易放松。"
+      },
+      {
+        "role": "user",
+        "content": "你现在的运行环境..."
+      },
+      {
+        "role": "assistant",
+        "content": "我现在在展位的现场控制系统里运行，和台灯、灯效和动作联动一起回应你。你想先了解我能做些什么吗？"
+      },
+      {
+        "role": "user",
+        "content": "谢谢 现在结束。"
+      },
+      {
+        "role": "assistant",
+        "content": "不客气，和你聊天很开心。慢慢来，今天就先到这边，回头见。"
+      }
+    ]
+  }
+}

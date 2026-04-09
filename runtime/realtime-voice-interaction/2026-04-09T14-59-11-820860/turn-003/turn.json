@@ -1,0 +1,26 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T14-59-11-820860/turn-003/input.wav",
+  "inputMeta": {
+    "inputDevice": {
+      "index": 3,
+      "name": "DJI MIC MINI",
+      "inputs": 2,
+      "defaultSamplerate": 48000.0
+    },
+    "captureMode": "continuous",
+    "vad": {
+      "startMs": 150,
+      "endMs": 650,
+      "minUtteranceMs": 400,
+      "maxUtteranceSeconds": 6.0,
+      "chunkMs": 50
+    }
+  },
+  "audioMetrics": {
+    "durationMs": 586.667,
+    "rms": 0.004322,
+    "peak": 0.018868
+  },
+  "skipped": true,
+  "skipReason": "low-energy-utterance"
+}

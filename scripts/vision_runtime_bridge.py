@@ -45,11 +45,16 @@ class BridgeState:
     target_missing_since_monotonic: float | None = None
     scene_gate_streak: int = 0
     tracking_gate_streak: int = 0
+    touch_gate_streak: int = 0
     last_scene_started: str | None = None
     last_scene_started_at_monotonic: float | None = None
     last_tracking_applied_at_monotonic: float | None = None
+    last_touch_triggered_at_monotonic: float | None = None
+    last_hand_avoid_triggered_at_monotonic: float | None = None
     last_horizontal_zone: str = "unknown"
     last_departure_direction: str | None = None
+    last_touch_direction: str | None = None
+    last_hand_avoid_direction: str | None = None
     scene_counts: dict[str, int] = field(default_factory=dict)
 
 
@@ -150,6 +155,78 @@ def parse_args() -> argparse.Namespace:
         help="Minimum confidence required before live tracking updates are allowed.",
     )
     parser.add_argument(
+        "--touch-persistence-frames",
+        type=int,
+        default=3,
+        help="Consecutive qualified frames required before hand-near can trigger touch_affection.",
+    )
+    parser.add_argument(
+        "--touch-cooldown-ms",
+        type=int,
+        default=9000,
+        help="Cooldown before a new hand-near touch_affection can trigger again.",
+    )
+    parser.add_argument(
+        "--touch-min-confidence",
+        type=float,
+        default=0.72,
+        help="Minimum detector confidence required before hand-near can trigger.",
+    )
+    parser.add_argument(
+        "--touch-min-size-norm",
+        type=float,
+        default=0.085,
+        help="Minimum selected target size_norm required before hand-near can trigger.",
+    )
+    parser.add_argument(
+        "--touch-max-center-offset",
+        type=float,
+        default=0.32,
+        help="Maximum normalized x-offset from screen center for hand-near triggering.",
+    )
+    parser.add_argument(
+        "--touch-hand-arm-min-confidence",
+        type=float,
+        default=0.68,
+        help="Minimum explicit hand/arm cue confidence required before touch_affection can trigger.",
+    )
+    parser.add_argument(
+        "--hand-avoid-cooldown-ms",
+        type=int,
+        default=7000,
+        help="Cooldown before a new explicit hand-avoid reaction can trigger again.",
+    )
+    parser.add_argument(
+        "--hand-avoid-min-confidence",
+        type=float,
+        default=0.78,
+        help="Minimum explicit hand/arm cue confidence required before the lamp backs away.",
+    )
+    parser.add_argument(
+        "--hand-avoid-max-center-y",
+        type=float,
+        default=0.74,
+        help="Only hand cues above this normalized y trigger avoidance; deeper/lower cues can remain touch-like.",
+    )
+    parser.add_argument(
+        "--hand-avoid-extended-max-center-y",
+        type=float,
+        default=0.86,
+        help="Allow deeper side-entry cues up to this y when they are strongly lateral and highly confident.",
+    )
+    parser.add_argument(
+        "--hand-avoid-extended-min-confidence",
+        type=float,
+        default=0.90,
+        help="Minimum confidence required before deeper side-entry cues can still trigger avoidance.",
+    )
+    parser.add_argument(
+        "--hand-avoid-min-lateral-offset",
+        type=float,
+        default=0.18,
+        help="Minimum |x-0.5| needed before a lower hand cue is treated as a lateral intrusion.",
+    )
+    parser.add_argument(
         "--scene-allowed-detectors",
         default="haar_face,hog_person",
         help="Comma-separated detector allowlist for scene starts.",
@@ -158,6 +235,16 @@ def parse_args() -> argparse.Namespace:
         "--tracking-allowed-detectors",
         default="haar_face,hog_person,background_motion",
         help="Comma-separated detector allowlist for live tracking updates.",
+    )
+    parser.add_argument(
+        "--touch-allowed-detectors",
+        default="haar_face,hog_person",
+        help="Comma-separated detector allowlist for hand-near triggering.",
+    )
+    parser.add_argument(
+        "--touch-allow-person-fallback",
+        action="store_true",
+        help="Allow the older near-person heuristic to trigger touch_affection when no explicit hand/arm cue is present.",
     )
     parser.add_argument(
         "--log-json",
@@ -253,10 +340,15 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "targetMissingSinceMonotonic": bridge.target_missing_since_monotonic,
             "sceneGateStreak": bridge.scene_gate_streak,
             "trackingGateStreak": bridge.tracking_gate_streak,
+            "touchGateStreak": bridge.touch_gate_streak,
             "lastSceneStarted": bridge.last_scene_started,
             "lastTrackingAppliedAtMonotonic": bridge.last_tracking_applied_at_monotonic,
+            "lastTouchTriggeredAtMonotonic": bridge.last_touch_triggered_at_monotonic,
+            "lastHandAvoidTriggeredAtMonotonic": bridge.last_hand_avoid_triggered_at_monotonic,
             "lastHorizontalZone": bridge.last_horizontal_zone,
             "lastDepartureDirection": bridge.last_departure_direction,
+            "lastTouchDirection": bridge.last_touch_direction,
+            "lastHandAvoidDirection": bridge.last_hand_avoid_direction,
             "sceneCounts": bridge.scene_counts,
         },
         "lastVisionEvent": last_event,
@@ -385,6 +477,214 @@ def extract_multi_person_payload(event: dict[str, Any]) -> dict[str, Any]:
         "cueMode": "scene",
         "source": "vision-bridge",
     }
+
+
+def resolve_touch_side(tracking: dict[str, Any], selected: dict[str, Any] | None) -> str:
+    effective = selected if selected is not None else tracking
+    return normalize_direction(
+        effective.get("horizontal_zone") if isinstance(effective, dict) else None,
+        default="center",
+    )
+
+
+def extract_interaction_hint(event: dict[str, Any]) -> dict[str, Any] | None:
+    hint = event.get("interaction_hint")
+    return hint if isinstance(hint, dict) else None
+
+
+def evaluate_hand_avoid_candidate(
+    *,
+    event: dict[str, Any],
+    runtime_state: dict[str, Any],
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+) -> tuple[bool, str, dict[str, Any]]:
+    if runtime_state.get("running"):
+        return False, f"runtime already running {runtime_state.get('runningScene')}", {}
+
+    interaction_hint = extract_interaction_hint(event)
+    if not interaction_hint or not interaction_hint.get("hand_arm_present"):
+        return False, "no explicit hand/arm cue", {}
+
+    confidence = float(interaction_hint.get("confidence") or 0.0)
+    if confidence < args.hand_avoid_min_confidence:
+        return False, f"hand/arm cue confidence {confidence:.2f} below {args.hand_avoid_min_confidence:.2f}", {}
+
+    center = interaction_hint.get("center_norm") if isinstance(interaction_hint.get("center_norm"), dict) else {}
+    try:
+        center_x = float(center.get("x"))
+    except (TypeError, ValueError):
+        center_x = 0.5
+    try:
+        center_y = float(center.get("y"))
+    except (TypeError, ValueError):
+        center_y = 1.0
+
+    side = normalize_direction(interaction_hint.get("horizontal_zone"), default="center")
+    if side == "center":
+        return False, "centered hand cue looks more like a touch than a threat", {}
+
+    lateral_offset = abs(center_x - 0.5)
+    if center_y > args.hand_avoid_max_center_y:
+        deeper_side_intrusion = (
+            center_y <= args.hand_avoid_extended_max_center_y
+            and lateral_offset >= args.hand_avoid_min_lateral_offset
+            and confidence >= args.hand_avoid_extended_min_confidence
+        )
+        if not deeper_side_intrusion:
+            return False, f"hand cue is low/deep enough to stay non-threatening (center_y={center_y:.2f})", {}
+
+    last_trigger = bridge_state.last_hand_avoid_triggered_at_monotonic
+    if last_trigger is not None:
+        age_ms = (now_mono - last_trigger) * 1000.0
+        if age_ms < args.hand_avoid_cooldown_ms:
+            return False, f"hand-avoid cooldown active ({age_ms:.0f}ms)", {}
+
+    payload = {
+        "side": side,
+        "horizontalZone": side,
+        "cueMode": "scene",
+        "source": "vision-bridge",
+        "reason": (
+            "explicit side hand approach"
+            if center_y <= args.hand_avoid_max_center_y
+            else "explicit side hand intrusion"
+        ),
+        "detector": interaction_hint.get("detector"),
+        "confidence": round(confidence, 4),
+        "interaction": {
+            "bboxNorm": interaction_hint.get("bbox_norm"),
+            "centerNorm": interaction_hint.get("center_norm"),
+            "motionRatio": interaction_hint.get("motion_ratio"),
+            "lateralOffset": round(lateral_offset, 4),
+        },
+    }
+    return True, "hand-avoid heuristic passed", payload
+
+
+def evaluate_touch_candidate(
+    *,
+    event: dict[str, Any],
+    tracking: dict[str, Any],
+    selected: dict[str, Any] | None,
+    runtime_state: dict[str, Any],
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+) -> tuple[bool, str, dict[str, Any]]:
+    if runtime_state.get("running"):
+        bridge_state.touch_gate_streak = 0
+        return False, f"runtime already running {runtime_state.get('runningScene')}", {}
+
+    interaction_hint = extract_interaction_hint(event)
+    explicit_hand_present = bool((interaction_hint or {}).get("hand_arm_present"))
+    if explicit_hand_present:
+        hand_confidence = float((interaction_hint or {}).get("confidence") or 0.0)
+        if hand_confidence < args.touch_hand_arm_min_confidence:
+            bridge_state.touch_gate_streak = 0
+            return False, (
+                f"hand/arm cue confidence {hand_confidence:.2f} below "
+                f"{args.touch_hand_arm_min_confidence:.2f}"
+            ), {}
+    elif not args.touch_allow_person_fallback:
+        bridge_state.touch_gate_streak = 0
+        return False, "no explicit hand/arm cue", {}
+
+    target_present = bool(tracking.get("target_present"))
+    scene_hint = str((event.get("scene_hint") or {}).get("name") or "none")
+    if scene_hint not in {"curious_observe", "track_target"} and not explicit_hand_present:
+        bridge_state.touch_gate_streak = 0
+        return False, f"scene_hint {scene_hint} is not touch-oriented", {}
+
+    detector = str(tracking.get("detector") or "none")
+    confidence = float(tracking.get("confidence") or 0.0)
+    distance_band = str(tracking.get("distance_band") or "unknown")
+    side = resolve_touch_side(tracking, selected)
+
+    if explicit_hand_present:
+        interaction_hint = interaction_hint or {}
+        side = normalize_direction(interaction_hint.get("horizontal_zone"), default=side)
+        detector = str(interaction_hint.get("detector") or "skin_motion_hand")
+        confidence = float(interaction_hint.get("confidence") or 0.0)
+        distance_band = str(tracking.get("distance_band") or "near")
+    else:
+        if not target_present:
+            bridge_state.touch_gate_streak = 0
+            return False, "target absent", {}
+
+        detector = str(tracking.get("detector") or "none")
+        if detector not in parse_allowlist(args.touch_allowed_detectors):
+            bridge_state.touch_gate_streak = 0
+            return False, f"detector {detector} not touch-allowed", {}
+
+        confidence = float(tracking.get("confidence") or 0.0)
+        if confidence < args.touch_min_confidence:
+            bridge_state.touch_gate_streak = 0
+            return False, f"confidence {confidence:.2f} below {args.touch_min_confidence:.2f}", {}
+
+        target_count = int(tracking.get("target_count") or 0)
+        selected_lock_state = None if selected is None else str(selected.get("lock_state") or "candidate")
+        if target_count >= 2 and selected_lock_state not in {"locked", "held", "operator_locked"}:
+            bridge_state.touch_gate_streak = 0
+            return False, "multiple targets without an explicit lock", {}
+
+        size_norm = tracking.get("size_norm")
+        try:
+            size_value = 0.0 if size_norm is None else float(size_norm)
+        except (TypeError, ValueError):
+            size_value = 0.0
+        if distance_band != "near" and size_value < args.touch_min_size_norm:
+            bridge_state.touch_gate_streak = 0
+            return False, f"target not near enough (distance={distance_band}, size_norm={size_value:.3f})", {}
+
+        center_norm = tracking.get("center_norm") if isinstance(tracking.get("center_norm"), dict) else {}
+        center_x = center_norm.get("x")
+        try:
+            center_offset = abs(float(center_x) - 0.5)
+        except (TypeError, ValueError):
+            center_offset = 1.0
+        if center_offset > args.touch_max_center_offset:
+            bridge_state.touch_gate_streak = 0
+            return False, f"target too close to edge (center_offset={center_offset:.2f})", {}
+
+        approach_state = str(tracking.get("approach_state") or "unknown")
+        if approach_state == "receding":
+            bridge_state.touch_gate_streak = 0
+            return False, "target is moving away", {}
+
+    last_touch = bridge_state.last_touch_triggered_at_monotonic
+    if last_touch is not None:
+        age_ms = (now_mono - last_touch) * 1000.0
+        if age_ms < args.touch_cooldown_ms:
+            bridge_state.touch_gate_streak = 0
+            return False, f"touch cooldown active ({age_ms:.0f}ms)", {}
+
+    bridge_state.touch_gate_streak += 1
+    if bridge_state.touch_gate_streak < args.touch_persistence_frames:
+        return False, (
+            "touch gate warming up: "
+            f"{bridge_state.touch_gate_streak}/{args.touch_persistence_frames}"
+        ), {}
+
+    payload = {
+        "side": side,
+        "horizontalZone": side,
+        "cueMode": "scene",
+        "source": "vision-bridge",
+        "reason": "explicit hand/arm cue" if explicit_hand_present else "near-person interaction heuristic",
+        "detector": detector,
+        "confidence": round(confidence, 4),
+        "distanceBand": distance_band,
+        "trackId": tracking.get("track_id"),
+    }
+    if explicit_hand_present and interaction_hint is not None:
+        payload["interaction"] = {
+            "bboxNorm": interaction_hint.get("bbox_norm"),
+            "centerNorm": interaction_hint.get("center_norm"),
+            "motionRatio": interaction_hint.get("motion_ratio"),
+        }
+    return True, "touch heuristic passed", payload
 
 
 def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> tuple[str, str]:
@@ -606,6 +906,116 @@ def handle_event(
         selected_lock_state=None if selected_target is None else selected_target.get("lock_state"),
         departure_direction=resolve_departure_direction(event, bridge_state),
     )
+
+    touch_allowed, touch_reason, touch_payload = evaluate_touch_candidate(
+        event=runtime_event,
+        tracking=tracking,
+        selected=selected_target,
+        runtime_state=runtime_state,
+        bridge_state=bridge_state,
+        now_mono=now_mono,
+        args=args,
+    )
+    log(
+        args,
+        "touch candidate evaluated",
+        allowed=touch_allowed,
+        reason=touch_reason,
+        touch_gate_streak=bridge_state.touch_gate_streak,
+        side=touch_payload.get("side") if touch_payload else None,
+    )
+
+    hand_avoid_allowed, hand_avoid_reason, hand_avoid_payload = evaluate_hand_avoid_candidate(
+        event=runtime_event,
+        runtime_state=runtime_state,
+        bridge_state=bridge_state,
+        now_mono=now_mono,
+        args=args,
+    )
+    log(
+        args,
+        "hand avoid evaluated",
+        allowed=hand_avoid_allowed,
+        reason=hand_avoid_reason,
+        side=hand_avoid_payload.get("side") if hand_avoid_payload else None,
+    )
+
+    if hand_avoid_allowed:
+        hand_avoid_scene_allowed, hand_avoid_scene_reason = should_start_scene(
+            "hand_avoid",
+            runtime_state=runtime_state,
+            bridge_state=bridge_state,
+            now_mono=now_mono,
+            args=args,
+        )
+        log(
+            args,
+            "hand avoid scene evaluated",
+            allowed=hand_avoid_scene_allowed,
+            reason=hand_avoid_scene_reason,
+        )
+        if hand_avoid_scene_allowed:
+            apply_trigger_event(
+                runtime,
+                bridge_state,
+                event_name="hand_avoid_detected",
+                payload=hand_avoid_payload,
+                scene_name="hand_avoid",
+                now_mono=now_mono,
+                args=args,
+            )
+            bridge_state.last_hand_avoid_triggered_at_monotonic = now_mono
+            bridge_state.last_hand_avoid_direction = str(hand_avoid_payload.get("side") or "center")
+            bridge_state.last_target_present = target_present
+            record_tracking_session_state(
+                memory_client,
+                event=event,
+                candidate_scene="hand_avoid",
+                candidate_reason=hand_avoid_reason,
+                allowed=True,
+                allowed_reason=hand_avoid_scene_reason,
+                args=args,
+            )
+            return
+
+    if touch_allowed:
+        touch_scene_allowed, touch_scene_reason = should_start_scene(
+            "touch_affection",
+            runtime_state=runtime_state,
+            bridge_state=bridge_state,
+            now_mono=now_mono,
+            args=args,
+        )
+        log(
+            args,
+            "touch scene evaluated",
+            allowed=touch_scene_allowed,
+            reason=touch_scene_reason,
+        )
+        if touch_scene_allowed:
+            apply_trigger_event(
+                runtime,
+                bridge_state,
+                event_name="hand_near",
+                payload=touch_payload,
+                scene_name="touch_affection",
+                now_mono=now_mono,
+                args=args,
+            )
+            bridge_state.last_touch_triggered_at_monotonic = now_mono
+            bridge_state.last_touch_direction = str(touch_payload.get("side") or "center")
+            bridge_state.touch_gate_streak = 0
+            bridge_state.last_target_present = target_present
+            record_tracking_session_state(
+                memory_client,
+                event=event,
+                candidate_scene="touch_affection",
+                candidate_reason=touch_reason,
+                allowed=True,
+                allowed_reason=touch_scene_reason,
+                args=args,
+            )
+            return
 
     if not target_present and runtime_state.get("trackingActive"):
         runtime.apply_tracking_event(runtime_event, source="vision-clear")

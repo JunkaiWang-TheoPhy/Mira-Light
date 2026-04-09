@@ -161,6 +161,36 @@ def parse_args() -> argparse.Namespace:
         action="store_false",
         help="Disable HOG person detector fallback when face detection misses.",
     )
+    parser.add_argument(
+        "--hand-cue-min-area-ratio",
+        type=float,
+        default=0.0015,
+        help="Minimum area ratio for a skin+motion hand/arm cue contour.",
+    )
+    parser.add_argument(
+        "--hand-cue-max-area-ratio",
+        type=float,
+        default=0.06,
+        help="Maximum area ratio for a skin+motion hand/arm cue contour.",
+    )
+    parser.add_argument(
+        "--hand-cue-min-center-y",
+        type=float,
+        default=0.34,
+        help="Ignore hand/arm cues whose center is above this normalized y bound.",
+    )
+    parser.add_argument(
+        "--hand-cue-min-motion-ratio",
+        type=float,
+        default=0.12,
+        help="Minimum foreground-motion occupancy inside the cue bbox.",
+    )
+    parser.add_argument(
+        "--hand-cue-min-confidence",
+        type=float,
+        default=0.55,
+        help="Minimum normalized confidence emitted for a hand/arm cue.",
+    )
     return parser.parse_args()
 
 
@@ -496,16 +526,26 @@ def detect_faces(gray: np.ndarray, cascade: cv2.CascadeClassifier) -> list[tuple
     return [tuple(int(value) for value in box) for box in faces]
 
 
-def detect_motion(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor, *, min_area_ratio: float, warmup_count: int, warmup_frames: int) -> tuple[tuple[int, int, int, int] | None, int]:
+def compute_foreground_mask(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor) -> np.ndarray:
     fg = subtractor.apply(frame)
     kernel = np.ones((5, 5), np.uint8)
     fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, kernel)
     fg = cv2.morphologyEx(fg, cv2.MORPH_CLOSE, kernel)
+    return fg
+
+
+def detect_motion_from_mask(
+    frame: np.ndarray,
+    fg: np.ndarray,
+    *,
+    min_area_ratio: float,
+    warmup_count: int,
+    warmup_frames: int,
+) -> tuple[tuple[int, int, int, int] | None, int]:
     contours, _ = cv2.findContours(fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     h, w = frame.shape[:2]
     min_area_px = min_area_ratio * w * h
-    warmup_count += 1
 
     if warmup_count <= warmup_frames:
         return None, warmup_count
@@ -524,6 +564,167 @@ def detect_motion(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor, *, mi
     return best, warmup_count
 
 
+def detect_motion(
+    frame: np.ndarray,
+    subtractor: cv2.BackgroundSubtractor,
+    *,
+    min_area_ratio: float,
+    warmup_count: int,
+    warmup_frames: int,
+) -> tuple[tuple[int, int, int, int] | None, int]:
+    fg = compute_foreground_mask(frame, subtractor)
+    return detect_motion_from_mask(
+        frame,
+        fg,
+        min_area_ratio=min_area_ratio,
+        warmup_count=warmup_count,
+        warmup_frames=warmup_frames,
+    )
+
+
+def denormalize_bbox(bbox_norm: dict[str, Any] | None, *, frame_width: int, frame_height: int) -> tuple[int, int, int, int] | None:
+    if not isinstance(bbox_norm, dict):
+        return None
+    try:
+        return (
+            int(round(float(bbox_norm["x"]) * frame_width)),
+            int(round(float(bbox_norm["y"]) * frame_height)),
+            int(round(float(bbox_norm["w"]) * frame_width)),
+            int(round(float(bbox_norm["h"]) * frame_height)),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def overlap_ratio(a: tuple[int, int, int, int], b: tuple[int, int, int, int] | None) -> float:
+    if b is None:
+        return 0.0
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    left = max(ax, bx)
+    top = max(ay, by)
+    right = min(ax + aw, bx + bw)
+    bottom = min(ay + ah, by + bh)
+    if right <= left or bottom <= top:
+        return 0.0
+    intersection = float((right - left) * (bottom - top))
+    a_area = float(max(1, aw * ah))
+    return intersection / a_area
+
+
+def detect_hand_arm_cue(
+    frame: np.ndarray,
+    fg_mask: np.ndarray,
+    *,
+    selected_target: dict[str, Any] | None,
+    warmup_count: int,
+    warmup_frames: int,
+    args: argparse.Namespace,
+) -> dict[str, Any] | None:
+    if warmup_count <= warmup_frames:
+        return None
+
+    h, w = frame.shape[:2]
+    ycrcb = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
+    skin = cv2.inRange(
+        ycrcb,
+        np.array((0, 133, 77), dtype=np.uint8),
+        np.array((255, 178, 127), dtype=np.uint8),
+    )
+    motion = cv2.threshold(fg_mask, 127, 255, cv2.THRESH_BINARY)[1]
+
+    kernel = np.ones((5, 5), np.uint8)
+    combined = cv2.bitwise_and(skin, motion)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
+    contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    selected_bbox = denormalize_bbox(
+        selected_target.get("bbox_norm") if isinstance(selected_target, dict) else None,
+        frame_width=w,
+        frame_height=h,
+    )
+    selected_center = None
+    if isinstance(selected_target, dict) and isinstance(selected_target.get("center_norm"), dict):
+        selected_center = selected_target["center_norm"]
+
+    best: dict[str, Any] | None = None
+    best_score = 0.0
+    frame_area = float(w * h)
+
+    for contour in contours:
+        area = float(cv2.contourArea(contour))
+        area_ratio = area / frame_area
+        if area_ratio < args.hand_cue_min_area_ratio or area_ratio > args.hand_cue_max_area_ratio:
+            continue
+
+        x, y, bw, bh = cv2.boundingRect(contour)
+        bbox_area = float(max(1, bw * bh))
+        center_x = (x + (bw / 2.0)) / w
+        center_y = (y + (bh / 2.0)) / h
+        if center_y < args.hand_cue_min_center_y:
+            continue
+
+        fill_ratio = area / bbox_area
+        if fill_ratio < 0.12:
+            continue
+
+        motion_ratio = float(cv2.countNonZero(motion[y : y + bh, x : x + bw])) / bbox_area
+        if motion_ratio < args.hand_cue_min_motion_ratio:
+            continue
+
+        if selected_center is not None:
+            try:
+                selected_center_x = float(selected_center.get("x", 0.5))
+                selected_center_y = float(selected_center.get("y", 0.5))
+            except (TypeError, ValueError):
+                selected_center_x = 0.5
+                selected_center_y = 0.5
+            if center_y <= selected_center_y + 0.02:
+                continue
+            if abs(center_x - selected_center_x) > 0.38:
+                continue
+        else:
+            # Without a stable tracked person, only trust cues that come from the
+            # lower booth interaction zone instead of the upper-right face region.
+            if center_y < 0.60:
+                continue
+            if center_x < 0.38 or center_x > 0.78:
+                continue
+
+        if overlap_ratio((x, y, bw, bh), selected_bbox) > 0.35:
+            continue
+
+        size_score = min(area_ratio / max(args.hand_cue_min_area_ratio * 6.0, 1e-6), 1.0)
+        motion_score = min(motion_ratio / max(args.hand_cue_min_motion_ratio * 2.0, 1e-6), 1.0)
+        confidence = round(min(0.98, 0.35 + (size_score * 0.25) + (motion_score * 0.25) + (fill_ratio * 0.2)), 4)
+        if confidence < args.hand_cue_min_confidence:
+            continue
+
+        candidate = {
+            "hand_arm_present": True,
+            "detector": "skin_motion_hand",
+            "confidence": confidence,
+            "bbox_norm": {
+                "x": round(x / w, 4),
+                "y": round(y / h, 4),
+                "w": round(bw / w, 4),
+                "h": round(bh / h, 4),
+            },
+            "center_norm": {"x": round(center_x, 4), "y": round(center_y, 4)},
+            "horizontal_zone": classify_horizontal_zone(center_x),
+            "vertical_zone": classify_vertical_zone(center_y),
+            "area_ratio": round(area_ratio, 6),
+            "motion_ratio": round(motion_ratio, 4),
+            "reason": "skin+motion cue in lower interaction region",
+        }
+        if confidence > best_score:
+            best_score = confidence
+            best = candidate
+
+    return best
+
+
 def build_event(
     *,
     path: Path,
@@ -538,6 +739,7 @@ def build_event(
     tracks: list[dict[str, Any]] | None = None,
     selected_target: dict[str, Any] | None = None,
     multi_target_payload: dict[str, Any] | None = None,
+    interaction_hint: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     h, w = frame.shape[:2]
     size_norm = None
@@ -678,6 +880,8 @@ def build_event(
         }
     if multi_target_payload:
         event["payload"] = multi_target_payload
+    if interaction_hint is not None:
+        event["interaction_hint"] = interaction_hint
     return event
 
 
@@ -704,6 +908,8 @@ def process_frame(
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     operator_state = load_operator_state(args.operator_state_file)
+    fg_mask = compute_foreground_mask(frame, subtractor)
+    state.bg_warmup_count += 1
 
     faces = detect_faces(gray, cascade)
     candidates: list[dict[str, Any]] = []
@@ -738,9 +944,9 @@ def process_frame(
                 )
             )
     else:
-        motion_bbox, warmup_count = detect_motion(
+        motion_bbox, warmup_count = detect_motion_from_mask(
             frame,
-            subtractor,
+            fg_mask,
             min_area_ratio=args.min_motion_area_ratio,
             warmup_count=state.bg_warmup_count,
             warmup_frames=args.warmup_frames,
@@ -761,9 +967,9 @@ def process_frame(
             )
 
     if not candidates and args.enable_hog_person:
-        motion_bbox, warmup_count = detect_motion(
+        motion_bbox, warmup_count = detect_motion_from_mask(
             frame,
-            subtractor,
+            fg_mask,
             min_area_ratio=args.min_motion_area_ratio,
             warmup_count=state.bg_warmup_count,
             warmup_frames=args.warmup_frames,
@@ -837,6 +1043,15 @@ def process_frame(
             "secondaryDirection": secondary["horizontal_zone"],
         }
 
+    interaction_hint = detect_hand_arm_cue(
+        frame,
+        fg_mask,
+        selected_target=selected_target,
+        warmup_count=state.bg_warmup_count,
+        warmup_frames=args.warmup_frames,
+        args=args,
+    )
+
     event = build_event(
         path=path,
         frame=frame,
@@ -850,6 +1065,7 @@ def process_frame(
         tracks=tracks,
         selected_target=selected_target,
         multi_target_payload=multi_target_payload,
+        interaction_hint=interaction_hint,
     )
 
     state.last_frame_path = path

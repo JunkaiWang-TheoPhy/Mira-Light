@@ -35,7 +35,7 @@ from openclaw_voice_to_claw import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RUNTIME_DIR = ROOT / "runtime" / "realtime-claw-chat"
-DEFAULT_VOICE = "openclaw"
+DEFAULT_VOICE = "tts"
 DEFAULT_TIMEOUT = 45
 DEFAULT_AGENT = "main"
 DEFAULT_REPLY_AGENT = "mira-voice-spark"

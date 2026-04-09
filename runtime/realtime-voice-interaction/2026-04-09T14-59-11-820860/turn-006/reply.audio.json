@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "我是米拉，一个在这里陪你聊天、陪你放松的温柔小伙伴。你想先聊点什么？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我是 Mira，一个在这里陪你聊天、陪你放松的温柔小伙伴。你想先聊点什么？",
+  "spokenText": "我是米拉，一个在这里陪你聊天、陪你放松的温柔小伙伴。你想先聊点什么？"
+}

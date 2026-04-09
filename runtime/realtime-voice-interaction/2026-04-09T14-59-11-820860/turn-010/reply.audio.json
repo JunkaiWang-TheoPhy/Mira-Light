@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "不客气，和你聊天很开心。慢慢来，今天就先到这边，回头见。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "不客气，和你聊天很开心。慢慢来，今天就先到这边，回头见。",
+  "spokenText": "不客气，和你聊天很开心。慢慢来，今天就先到这边，回头见。"
+}

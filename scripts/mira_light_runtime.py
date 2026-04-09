@@ -839,6 +839,32 @@ class MiraLightRuntime:
         scene["notes"] = [f"当前按 {direction} 侧来手做前探与蹭蹭。", *scene.get("notes", [])]
         return scene
 
+    def _build_dynamic_hand_avoid_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        direction = self._direction_from_context(scene_context, default="right")
+        retreat_direction = {"left": "right", "center": "left", "right": "left"}[direction]
+        retreat_yaw = {"left": 82, "center": 84, "right": 102}[retreat_direction]
+        glance_yaw = {"left": 78, "center": 88, "right": 106}[retreat_direction]
+
+        scene = deepcopy(SCENES["hand_avoid"])
+        scene["notes"] = [f"当前检测到 {direction} 侧有手靠近，Mira 会朝 {retreat_direction} 侧后缩。", *scene.get("notes", [])]
+        scene["steps"] = [
+            pose("neutral"),
+            led("solid", brightness=118, color={"r": 255, "g": 226, "b": 188}),
+            comment("先快速后缩一点，像给突然靠近的手留出空间。"),
+            absolute(servo1=retreat_yaw, servo2=88, servo3=84, servo4=84),
+            delay(140),
+            comment("再往安全方向多偏一点，偷偷确认对方没有继续逼近。"),
+            absolute(servo1=glance_yaw, servo2=90, servo3=88, servo4=90),
+            led("solid", brightness=132, color={"r": 255, "g": 236, "b": 212}),
+            delay(220),
+            comment("停半拍，再慢慢恢复。"),
+            led("breathing", brightness=104, color=SOFT_WARM),
+            delay(360),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
+        ]
+        return scene
+
     def _build_dynamic_multi_person_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
         primary = self._normalize_direction(scene_context.get("primaryDirection"), default="left")
         secondary = self._normalize_direction(scene_context.get("secondaryDirection"), default="right")
@@ -870,6 +896,8 @@ class MiraLightRuntime:
             scene = self._build_dynamic_farewell_scene(resolved_context)
         elif scene_name == "touch_affection":
             scene = self._build_dynamic_touch_scene(resolved_context)
+        elif scene_name == "hand_avoid":
+            scene = self._build_dynamic_hand_avoid_scene(resolved_context)
         elif scene_name == "multi_person_demo":
             scene = self._build_dynamic_multi_person_scene(resolved_context)
         else:
@@ -1272,6 +1300,9 @@ class MiraLightRuntime:
 
         if event_key in {"touch", "touch_detected", "hand_near"}:
             scene_name = "touch_affection"
+            scene_context = {"touchSide": event_payload.get("side") or event_payload.get("horizontalZone")}
+        elif event_key in {"hand_avoid", "hand_avoid_detected", "hand_approach_detected", "avoid_hand"}:
+            scene_name = "hand_avoid"
             scene_context = {"touchSide": event_payload.get("side") or event_payload.get("horizontalZone")}
         elif event_key in {"sigh", "sigh_detected"}:
             scene_name = "sigh_demo"

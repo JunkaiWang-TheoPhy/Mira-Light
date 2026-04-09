@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "米拉是展位里的灯光和动作表演角色，我和台灯是一起合作的搭档。 台灯会随我的状态变化，让交流更有氛围，也让你更容易放松。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "Mira 是展位里的灯光和动作表演角色，我和台灯是一起合作的搭档。 台灯会随我的状态变化，让交流更有氛围，也让你更容易放松。",
+  "spokenText": "米拉是展位里的灯光和动作表演角色，我和台灯是一起合作的搭档。 台灯会随我的状态变化，让交流更有氛围，也让你更容易放松。"
+}

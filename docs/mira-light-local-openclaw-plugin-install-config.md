@@ -8,6 +8,10 @@
 
 它是 [`mira-light-local-openclaw-step-by-step.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-local-openclaw-step-by-step.md) 的插件专项补充。
 
+如果你想看当前工具名、动态场景参数和推荐调用顺序，再继续读：
+
+- [`mira-light-openclaw-plugin-tool-reference.md`](/Users/huhulitong/Documents/GitHub/Mira-Light/docs/mira-light-openclaw-plugin-tool-reference.md)
+
 ## 当前本机 OpenClaw 已确认信息
 
 本机已确认：
@@ -64,6 +68,11 @@ mira-light-bridge
 - `mira_light_runtime_status`
 - `mira_light_status`
 - `mira_light_run_scene`
+- `mira_light_trigger_event`
+- `mira_light_apply_pose`
+- `mira_light_speak`
+- `mira_light_stop_to_neutral`
+- `mira_light_stop_to_sleep`
 - `mira_light_stop`
 - `mira_light_reset`
 - `mira_light_set_led`
@@ -304,4 +313,3 @@ OpenClaw 更适合：
 -> 重启 OpenClaw
 -> 验证工具可用
 ```
-

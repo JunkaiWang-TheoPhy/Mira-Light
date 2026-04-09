@@ -8,6 +8,10 @@
 
 这里不再停留在架构层，而是给出一步一步的操作顺序。
 
+如果你已经装好了插件，想直接看当前工具与动态 scene 参数，请继续读：
+
+- [`mira-light-openclaw-plugin-tool-reference.md`](/Users/huhulitong/Documents/GitHub/Mira-Light/docs/mira-light-openclaw-plugin-tool-reference.md)
+
 ## 先说当前已确认事实
 
 本机当前已经确认：
@@ -233,6 +237,10 @@ cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak.mira-light
 - `mira_light_runtime_status`
 - `mira_light_status`
 - `mira_light_run_scene`
+- `mira_light_trigger_event`
+- `mira_light_apply_pose`
+- `mira_light_stop_to_neutral`
+- `mira_light_stop_to_sleep`
 - `mira_light_stop`
 - `mira_light_reset`
 - `mira_light_set_led`
@@ -291,4 +299,3 @@ OpenClaw -> 本机 bridge -> ESP32
 ```
 
 先跑通真实灯，再跑通 bridge，再让 OpenClaw 接插件，这才是最稳的本机接法。
-

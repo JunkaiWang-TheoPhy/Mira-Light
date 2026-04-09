@@ -1,0 +1,38 @@
+{
+  "text": "Mira 和台灯的关系。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 2.0,
+      "text": "Mira 和台灯的关系。",
+      "tokens": [
+        50364,
+        44,
+        4271,
+        220,
+        12565,
+        15433,
+        13290,
+        107,
+        1546,
+        28053,
+        25368,
+        1543,
+        50464
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.5567734922681536,
+      "compression_ratio": 0.7428571428571429,
+      "no_speech_prob": 0.7799156904220581
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "Mira 和台灯的关系。",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

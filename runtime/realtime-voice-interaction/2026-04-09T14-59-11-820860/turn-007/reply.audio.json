@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "我可以陪你聊天、听你发泄、给你一些轻松的小建议。也可以在你累了的时候先陪着你，慢慢放松下来。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我可以陪你聊天、听你发泄、给你一些轻松的小建议。也可以在你累了的时候先陪着你，慢慢放松下来。",
+  "spokenText": "我可以陪你聊天、听你发泄、给你一些轻松的小建议。也可以在你累了的时候先陪着你，慢慢放松下来。"
+}

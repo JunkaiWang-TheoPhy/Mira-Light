@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "嗯，听起来有点怀念，又有点感慨。想和我聊聊那段往事给你的感觉吗？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "嗯，听起来有点怀念，又有点感慨。想和我聊聊那段往事给你的感觉吗？",
+  "spokenText": "嗯，听起来有点怀念，又有点感慨。想和我聊聊那段往事给你的感觉吗？"
+}

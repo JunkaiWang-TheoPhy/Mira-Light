@@ -1,0 +1,33 @@
+{
+  "text": "你能做什么事情?",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 1.0,
+      "text": "你能做什么事情?",
+      "tokens": [
+        50364,
+        2166,
+        8225,
+        10907,
+        10440,
+        24675,
+        30,
+        50414
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.56277068456014,
+      "compression_ratio": 0.7096774193548387,
+      "no_speech_prob": 0.3225317895412445
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "你能做什么事情?",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

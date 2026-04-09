@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "我现在在展位的现场控制系统里运行，和台灯、灯效和动作联动一起回应你。你想先了解我能做些什么吗？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我现在在展位的现场控制系统里运行，和台灯、灯效和动作联动一起回应你。你想先了解我能做些什么吗？",
+  "spokenText": "我现在在展位的现场控制系统里运行，和台灯、灯效和动作联动一起回应你。你想先了解我能做些什么吗？"
+}

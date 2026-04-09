@@ -148,6 +148,71 @@ cd /Users/huhulitong/Documents/GitHub/Mira-Light
 - `motion-mid-area-ratio = 0.05`
 - `min-motion-area-ratio = 0.012`
 - `warmup-frames = 8`
+- `touch-persistence-frames = 3`
+- `touch-cooldown-ms = 9000`
+- `touch-hand-arm-min-confidence = 0.68`
+- `hand-avoid-cooldown-ms = 7000`
+- `hand-avoid-min-confidence = 0.78`
+- `hand-avoid-max-center-y = 0.74`
+- `hand-avoid-extended-max-center-y = 0.86`
+- `hand-avoid-extended-min-confidence = 0.90`
+- `hand-avoid-min-lateral-offset = 0.18`
+- `hand-cue-min-area-ratio = 0.0015`
+- `hand-cue-max-area-ratio = 0.06`
+- `hand-cue-min-center-y = 0.34`
+- `hand-cue-min-motion-ratio = 0.12`
+- `hand-cue-min-confidence = 0.55`
+- 默认关闭 `touch-allow-person-fallback`
+
+### 4.1 `touch_affection` 的当前推荐策略
+
+`touch_affection` 现在默认不再仅靠“近距人体”自动触发，而是优先依赖 extractor 产出的显式 `hand / arm cue`：
+
+- `track_target_event_extractor.py` 会输出 `interaction_hint`
+- `vision_runtime_bridge.py` 只在 `interaction_hint` 满足连续帧和冷却条件时才触发 `hand_near`
+- 如果你确实要回退到旧的“人靠近就算 touch 候选”逻辑，可以显式加：
+
+```bash
+--touch-allow-person-fallback
+```
+
+### 4.2 `hand_avoid` 的当前推荐策略
+
+`hand_avoid` 现在和 `touch_affection` 共用同一份显式 `hand / arm cue`，但判定更保守：
+
+- 只有显式 `interaction_hint.hand_arm_present = true` 才会考虑躲避
+- cue 需要在画面左侧或右侧，`center` 默认更像亲近而不是威胁
+- cue 需要相对更高一些，低位、靠近灯前方的手更容易被当成 `touch_affection`
+- 但如果 cue 明显从侧边侵入，而且 lateral offset 足够大、置信度也很高，那么即使更低一些也能触发轻躲避
+- `hand_avoid` 会先于 `touch_affection` 评估，所以“侧边突然伸来的手”会优先触发轻轻躲开
+
+如果你想让它更不容易躲，可以收紧：
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --hand-avoid-min-confidence 0.84 \
+  --hand-avoid-max-center-y 0.68
+```
+
+如果你想让它更敏感一点，可以逐步放宽：
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --hand-avoid-min-confidence 0.74 \
+  --hand-avoid-cooldown-ms 5000
+```
+
+### 4.3 这台机器当前真实摄像头的调参结果
+
+按 `2026-04-09` 这台 Mac 当前的 `8000 + captures` 实况画面做过一轮负样本调参后：
+
+- 最近 `120` 帧里仍然会出现少量 `interaction_hint`
+- 这些 cue 主要来自画面下方交互区，而不是右侧人脸边缘
+- 同一段回放里，最终 `hand_near_trigger_count = 0`
+
+也就是说，当前默认值已经更偏“保守不乱动”，适合先在嘈杂会场里压低误触发。
 
 如果你想边跑边调，可以直接在启动脚本上覆写。
 
@@ -169,6 +234,26 @@ bash scripts/run_mira_light_live_follow_demo.sh \
   --base-url http://172.20.10.3 \
   --tracking-update-ms 240 \
   --warmup-frames 10
+```
+
+如果 `touch_affection` 还是太容易触发，就继续收紧 hand cue：
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --hand-cue-min-center-y 0.60 \
+  --touch-persistence-frames 4 \
+  --touch-hand-arm-min-confidence 0.74
+```
+
+如果 `touch_affection` 太难触发，再逐步放宽：
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh \
+  --attach-existing-receiver \
+  --hand-cue-min-motion-ratio 0.10 \
+  --touch-persistence-frames 2 \
+  --touch-hand-arm-min-confidence 0.64
 ```
 
 ## 5. 现场判断有没有跑通

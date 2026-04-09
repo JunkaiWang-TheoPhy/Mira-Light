@@ -27,6 +27,9 @@ SYSTEM_FALLBACK_ASSETS: dict[str, list[Path]] = {
         Path("/System/Library/Sounds/Glass.aiff"),
     ]
 }
+DEFAULT_MIRA_TTS_VOICE = "zh-CN-XiaoyiNeural"
+DEFAULT_MIRA_TTS_LANG = "zh-CN"
+DEFAULT_MIRA_TTS_RATE = "+8%"
 
 
 def _truthy(value: str | None, *, default: bool = False) -> bool:
@@ -173,7 +176,23 @@ class AudioCuePlayer:
                 return [command, text]
 
         if requested in {"tts", "default", "narration", "host"}:
-            for name in ("speaker-hp-tts-play", "speaker-hp-openclaw-tts-play", "speaker-hp-say", "say"):
+            preferred_tts = self._find_command("speaker-hp-tts-play")
+            if preferred_tts:
+                configured_voice = os.environ.get("MIRA_LIGHT_TTS_VOICE", DEFAULT_MIRA_TTS_VOICE).strip() or DEFAULT_MIRA_TTS_VOICE
+                configured_lang = os.environ.get("MIRA_LIGHT_TTS_LANG", DEFAULT_MIRA_TTS_LANG).strip() or DEFAULT_MIRA_TTS_LANG
+                configured_rate = os.environ.get("MIRA_LIGHT_TTS_RATE", DEFAULT_MIRA_TTS_RATE).strip() or DEFAULT_MIRA_TTS_RATE
+                return [
+                    preferred_tts,
+                    "--voice",
+                    configured_voice,
+                    "--lang",
+                    configured_lang,
+                    "--rate",
+                    configured_rate,
+                    text,
+                ]
+
+            for name in ("speaker-hp-openclaw-tts-play", "speaker-hp-say", "say"):
                 command = self._find_command(name)
                 if command:
                     return [command, text]

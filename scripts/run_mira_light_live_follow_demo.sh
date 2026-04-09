@@ -26,6 +26,19 @@ REPLAY_SOURCE="${REPO_ROOT}/runtime/vision-demo-captures"
 REPLAY_FPS="3.0"
 POLL_INTERVAL="0.2"
 TRACKING_UPDATE_MS="180"
+TOUCH_PERSISTENCE_FRAMES="3"
+TOUCH_COOLDOWN_MS="9000"
+TOUCH_MIN_CONFIDENCE="0.72"
+TOUCH_MIN_SIZE_NORM="0.085"
+TOUCH_MAX_CENTER_OFFSET="0.32"
+TOUCH_HAND_ARM_MIN_CONFIDENCE="0.68"
+TOUCH_ALLOW_PERSON_FALLBACK="0"
+HAND_AVOID_COOLDOWN_MS="7000"
+HAND_AVOID_MIN_CONFIDENCE="0.78"
+HAND_AVOID_MAX_CENTER_Y="0.74"
+HAND_AVOID_EXTENDED_MAX_CENTER_Y="0.86"
+HAND_AVOID_EXTENDED_MIN_CONFIDENCE="0.90"
+HAND_AVOID_MIN_LATERAL_OFFSET="0.18"
 LOG_LEVEL="INFO"
 ALLOW_EXPERIMENTAL="1"
 FACE_NEAR_AREA_RATIO="0.08"
@@ -34,6 +47,11 @@ MOTION_NEAR_AREA_RATIO="0.16"
 MOTION_MID_AREA_RATIO="0.05"
 MIN_MOTION_AREA_RATIO="0.012"
 WARMUP_FRAMES="8"
+HAND_CUE_MIN_AREA_RATIO="0.0015"
+HAND_CUE_MAX_AREA_RATIO="0.06"
+HAND_CUE_MIN_CENTER_Y="0.34"
+HAND_CUE_MIN_MOTION_RATIO="0.12"
+HAND_CUE_MIN_CONFIDENCE="0.55"
 WARMUP_FRAMES_EXPLICIT="0"
 
 usage() {
@@ -56,6 +74,19 @@ Options:
   --replay-loop                  Loop sample replay until interrupted
   --poll-interval SEC            Extractor/bridge polling interval. Default: 0.2
   --tracking-update-ms MS        Live tracking update interval. Default: 180
+  --touch-persistence-frames N   Near-interaction frames before touch_affection. Default: 3
+  --touch-cooldown-ms MS         Cooldown between auto hand-near triggers. Default: 9000
+  --touch-min-confidence VALUE   Default: 0.72
+  --touch-min-size-norm VALUE    Default: 0.085
+  --touch-max-center-offset V    Default: 0.32
+  --touch-hand-arm-min-confidence VALUE Default: 0.68
+  --touch-allow-person-fallback  Re-enable older near-person touch heuristic
+  --hand-avoid-cooldown-ms MS    Default: 7000
+  --hand-avoid-min-confidence V  Default: 0.78
+  --hand-avoid-max-center-y V    Default: 0.74
+  --hand-avoid-extended-max-center-y V Default: 0.86
+  --hand-avoid-extended-min-confidence V Default: 0.90
+  --hand-avoid-min-lateral-offset V Default: 0.18
   --log-level LEVEL              INFO, DEBUG, WARNING, ERROR. Default: INFO
   --face-near-area-ratio VALUE   Default: 0.08
   --face-mid-area-ratio VALUE    Default: 0.025
@@ -63,6 +94,11 @@ Options:
   --motion-mid-area-ratio VALUE  Default: 0.05
   --min-motion-area-ratio VALUE  Default: 0.012
   --warmup-frames COUNT          Default: 8
+  --hand-cue-min-area-ratio V    Default: 0.0015
+  --hand-cue-max-area-ratio V    Default: 0.06
+  --hand-cue-min-center-y V      Default: 0.34
+  --hand-cue-min-motion-ratio V  Default: 0.12
+  --hand-cue-min-confidence V    Default: 0.55
   --no-experimental              Disable prototype scenes in runtime
   --help                         Show this help
 EOF
@@ -131,6 +167,58 @@ while [[ $# -gt 0 ]]; do
       TRACKING_UPDATE_MS="$2"
       shift 2
       ;;
+    --touch-persistence-frames)
+      TOUCH_PERSISTENCE_FRAMES="$2"
+      shift 2
+      ;;
+    --touch-cooldown-ms)
+      TOUCH_COOLDOWN_MS="$2"
+      shift 2
+      ;;
+    --touch-min-confidence)
+      TOUCH_MIN_CONFIDENCE="$2"
+      shift 2
+      ;;
+    --touch-min-size-norm)
+      TOUCH_MIN_SIZE_NORM="$2"
+      shift 2
+      ;;
+    --touch-max-center-offset)
+      TOUCH_MAX_CENTER_OFFSET="$2"
+      shift 2
+      ;;
+    --touch-hand-arm-min-confidence)
+      TOUCH_HAND_ARM_MIN_CONFIDENCE="$2"
+      shift 2
+      ;;
+    --touch-allow-person-fallback)
+      TOUCH_ALLOW_PERSON_FALLBACK="1"
+      shift
+      ;;
+    --hand-avoid-cooldown-ms)
+      HAND_AVOID_COOLDOWN_MS="$2"
+      shift 2
+      ;;
+    --hand-avoid-min-confidence)
+      HAND_AVOID_MIN_CONFIDENCE="$2"
+      shift 2
+      ;;
+    --hand-avoid-max-center-y)
+      HAND_AVOID_MAX_CENTER_Y="$2"
+      shift 2
+      ;;
+    --hand-avoid-extended-max-center-y)
+      HAND_AVOID_EXTENDED_MAX_CENTER_Y="$2"
+      shift 2
+      ;;
+    --hand-avoid-extended-min-confidence)
+      HAND_AVOID_EXTENDED_MIN_CONFIDENCE="$2"
+      shift 2
+      ;;
+    --hand-avoid-min-lateral-offset)
+      HAND_AVOID_MIN_LATERAL_OFFSET="$2"
+      shift 2
+      ;;
     --log-level)
       LOG_LEVEL="$2"
       shift 2
@@ -158,6 +246,26 @@ while [[ $# -gt 0 ]]; do
     --warmup-frames)
       WARMUP_FRAMES="$2"
       WARMUP_FRAMES_EXPLICIT="1"
+      shift 2
+      ;;
+    --hand-cue-min-area-ratio)
+      HAND_CUE_MIN_AREA_RATIO="$2"
+      shift 2
+      ;;
+    --hand-cue-max-area-ratio)
+      HAND_CUE_MAX_AREA_RATIO="$2"
+      shift 2
+      ;;
+    --hand-cue-min-center-y)
+      HAND_CUE_MIN_CENTER_Y="$2"
+      shift 2
+      ;;
+    --hand-cue-min-motion-ratio)
+      HAND_CUE_MIN_MOTION_RATIO="$2"
+      shift 2
+      ;;
+    --hand-cue-min-confidence)
+      HAND_CUE_MIN_CONFIDENCE="$2"
       shift 2
       ;;
     --no-experimental)
@@ -238,6 +346,19 @@ export MIRA_LIGHT_VISION_PORT="${RECEIVER_PORT}"
 export MIRA_LIGHT_BASE_URL="${BASE_URL}"
 export MIRA_LIGHT_VISION_POLL_INTERVAL="${POLL_INTERVAL}"
 export MIRA_LIGHT_TRACKING_UPDATE_MS="${TRACKING_UPDATE_MS}"
+export MIRA_LIGHT_TOUCH_PERSISTENCE_FRAMES="${TOUCH_PERSISTENCE_FRAMES}"
+export MIRA_LIGHT_TOUCH_COOLDOWN_MS="${TOUCH_COOLDOWN_MS}"
+export MIRA_LIGHT_TOUCH_MIN_CONFIDENCE="${TOUCH_MIN_CONFIDENCE}"
+export MIRA_LIGHT_TOUCH_MIN_SIZE_NORM="${TOUCH_MIN_SIZE_NORM}"
+export MIRA_LIGHT_TOUCH_MAX_CENTER_OFFSET="${TOUCH_MAX_CENTER_OFFSET}"
+export MIRA_LIGHT_TOUCH_HAND_ARM_MIN_CONFIDENCE="${TOUCH_HAND_ARM_MIN_CONFIDENCE}"
+export MIRA_LIGHT_TOUCH_ALLOW_PERSON_FALLBACK="${TOUCH_ALLOW_PERSON_FALLBACK}"
+export MIRA_LIGHT_HAND_AVOID_COOLDOWN_MS="${HAND_AVOID_COOLDOWN_MS}"
+export MIRA_LIGHT_HAND_AVOID_MIN_CONFIDENCE="${HAND_AVOID_MIN_CONFIDENCE}"
+export MIRA_LIGHT_HAND_AVOID_MAX_CENTER_Y="${HAND_AVOID_MAX_CENTER_Y}"
+export MIRA_LIGHT_HAND_AVOID_EXTENDED_MAX_CENTER_Y="${HAND_AVOID_EXTENDED_MAX_CENTER_Y}"
+export MIRA_LIGHT_HAND_AVOID_EXTENDED_MIN_CONFIDENCE="${HAND_AVOID_EXTENDED_MIN_CONFIDENCE}"
+export MIRA_LIGHT_HAND_AVOID_MIN_LATERAL_OFFSET="${HAND_AVOID_MIN_LATERAL_OFFSET}"
 export MIRA_LIGHT_VISION_LOG_LEVEL="${LOG_LEVEL}"
 export MIRA_LIGHT_FACE_NEAR_AREA_RATIO="${FACE_NEAR_AREA_RATIO}"
 export MIRA_LIGHT_FACE_MID_AREA_RATIO="${FACE_MID_AREA_RATIO}"
@@ -245,6 +366,11 @@ export MIRA_LIGHT_MOTION_NEAR_AREA_RATIO="${MOTION_NEAR_AREA_RATIO}"
 export MIRA_LIGHT_MOTION_MID_AREA_RATIO="${MOTION_MID_AREA_RATIO}"
 export MIRA_LIGHT_MIN_MOTION_AREA_RATIO="${MIN_MOTION_AREA_RATIO}"
 export MIRA_LIGHT_WARMUP_FRAMES="${WARMUP_FRAMES}"
+export MIRA_LIGHT_HAND_CUE_MIN_AREA_RATIO="${HAND_CUE_MIN_AREA_RATIO}"
+export MIRA_LIGHT_HAND_CUE_MAX_AREA_RATIO="${HAND_CUE_MAX_AREA_RATIO}"
+export MIRA_LIGHT_HAND_CUE_MIN_CENTER_Y="${HAND_CUE_MIN_CENTER_Y}"
+export MIRA_LIGHT_HAND_CUE_MIN_MOTION_RATIO="${HAND_CUE_MIN_MOTION_RATIO}"
+export MIRA_LIGHT_HAND_CUE_MIN_CONFIDENCE="${HAND_CUE_MIN_CONFIDENCE}"
 export MIRA_LIGHT_ALLOW_EXPERIMENTAL="${ALLOW_EXPERIMENTAL}"
 export MIRA_LIGHT_VISION_DRY_RUN="${DRY_RUN}"
 export MIRA_LIGHT_SKIP_RECEIVER="${ATTACH_EXISTING_RECEIVER}"

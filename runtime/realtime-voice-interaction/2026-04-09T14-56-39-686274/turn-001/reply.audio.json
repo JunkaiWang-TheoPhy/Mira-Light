@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "你好呀，见到你真好。想和我聊聊今天的心情吗？"
+  ],
+  "description": "speech:tts",
+  "requestedText": "你好呀，见到你真好。想和我聊聊今天的心情吗？",
+  "spokenText": "你好呀，见到你真好。想和我聊聊今天的心情吗？"
+}

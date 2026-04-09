@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "你好呀，我在这呢，今天想聊点什么？"
+  ],
+  "description": "speech:tts",
+  "requestedText": "你好呀，我在这呢，今天想聊点什么？",
+  "spokenText": "你好呀，我在这呢，今天想聊点什么？"
+}

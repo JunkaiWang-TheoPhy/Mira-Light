@@ -6,6 +6,9 @@ import unittest
 import sys
 from pathlib import Path
 
+import cv2
+import numpy as np
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = ROOT / "scripts"
@@ -13,7 +16,13 @@ SCRIPTS_DIR = ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from track_target_event_extractor import ExtractorState, build_event, choose_selected_target, hold_selected_target
+from track_target_event_extractor import (
+    ExtractorState,
+    build_event,
+    choose_selected_target,
+    detect_hand_arm_cue,
+    hold_selected_target,
+)
 
 
 class DummyFrame:
@@ -28,6 +37,11 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
             motion_near_area_ratio=0.18,
             motion_mid_area_ratio=0.06,
             hold_missing_frames=3,
+            hand_cue_min_area_ratio=0.0015,
+            hand_cue_max_area_ratio=0.06,
+            hand_cue_min_center_y=0.34,
+            hand_cue_min_motion_ratio=0.12,
+            hand_cue_min_confidence=0.55,
         )
 
     def test_multi_target_payload_promotes_to_multi_person_scene(self) -> None:
@@ -110,6 +124,59 @@ class TrackTargetEventExtractorTest(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertEqual(selected["track_id"], 8)
         self.assertEqual(selected["lock_state"], "operator_locked")
+
+    def test_detect_hand_arm_cue_finds_moving_skin_blob_in_lower_region(self) -> None:
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+        frame[60:96, 126:166] = (80, 120, 180)
+        fg_mask = np.zeros((120, 200), dtype=np.uint8)
+        fg_mask[58:100, 122:170] = 255
+
+        cue = detect_hand_arm_cue(
+            frame,
+            fg_mask,
+            selected_target=None,
+            warmup_count=10,
+            warmup_frames=3,
+            args=self.make_args(),
+        )
+
+        self.assertIsNotNone(cue)
+        self.assertTrue(cue["hand_arm_present"])
+        self.assertEqual(cue["detector"], "skin_motion_hand")
+        self.assertEqual(cue["horizontal_zone"], "right")
+
+    def test_detect_hand_arm_cue_rejects_static_skin_blob_without_motion(self) -> None:
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+        frame[60:96, 126:166] = (80, 120, 180)
+        fg_mask = np.zeros((120, 200), dtype=np.uint8)
+
+        cue = detect_hand_arm_cue(
+            frame,
+            fg_mask,
+            selected_target=None,
+            warmup_count=10,
+            warmup_frames=3,
+            args=self.make_args(),
+        )
+
+        self.assertIsNone(cue)
+
+    def test_detect_hand_arm_cue_rejects_upper_right_skin_blob_when_no_target(self) -> None:
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+        frame[36:72, 164:194] = (80, 120, 180)
+        fg_mask = np.zeros((120, 200), dtype=np.uint8)
+        fg_mask[34:76, 160:198] = 255
+
+        cue = detect_hand_arm_cue(
+            frame,
+            fg_mask,
+            selected_target=None,
+            warmup_count=10,
+            warmup_frames=3,
+            args=self.make_args(),
+        )
+
+        self.assertIsNone(cue)
 
 
 if __name__ == "__main__":

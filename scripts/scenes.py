@@ -206,6 +206,17 @@ SCENE_META: Dict[str, Dict[str, Any]] = {
         "fallbackHint": "直接前探并执行小幅 rub_motion",
         "operatorCue": "邀请评委伸手时再触发，避免空蹭。",
     },
+    "hand_avoid": {
+        "emotionTags": ["躲避", "警觉"],
+        "readiness": "tuning",
+        "durationMs": 1680,
+        "accent": "alert",
+        "priority": "P0",
+        "requirements": ["手部接近检测", "后缩姿态已校准"],
+        "requirementIds": ["touch_ready", "base_calibrated"],
+        "fallbackHint": "快速后缩并朝反方向偏头，随后回 neutral",
+        "operatorCue": "适合在评委手突然逼近时展示‘它会保护自己的边界’。",
+    },
     "cute_probe": {
         "emotionTags": ["卖萌", "胆小"],
         "readiness": "ready",
@@ -690,6 +701,34 @@ SCENES: Dict[str, Dict[str, Any]] = {
             led("solid", brightness=138, color={"r": 255, "g": 210, "b": 170}),
             delay(220),
             pose("neutral"),
+        ],
+    },
+    "hand_avoid": {
+        "title": "手靠近时轻轻躲开",
+        "host_line": "如果有手突然逼近，它不会硬顶上去，而会像小动物一样先缩一下，再偷偷看一眼你是不是安全。",
+        "notes": [
+            "当前版本建议由显式 hand / arm cue 触发，避免把普通路人移动误判成需要躲避。",
+            "理想体验是‘有边界感，但不过度惊吓’，所以动作幅度要克制。"
+        ],
+        "tuning_notes": [
+            "第一拍是后缩，第二拍是偏头回看，第三拍才是慢慢恢复。",
+            "不要做成剧烈闪躲，更像礼貌地把自己的空间让出来一点。"
+        ],
+        "steps": [
+            pose("neutral"),
+            led("solid", brightness=118, color={"r": 255, "g": 226, "b": 188}),
+            comment("先快速后缩一点，像手突然靠近时本能缩开。"),
+            absolute(servo1=82, servo2=88, servo3=84, servo4=84),
+            delay(140),
+            comment("往反方向偏头，确认手有没有继续靠近。"),
+            absolute(servo1=78, servo2=90, servo3=88, servo4=90),
+            led("solid", brightness=132, color={"r": 255, "g": 236, "b": 212}),
+            delay(220),
+            comment("停半拍，再慢慢恢复。"),
+            led("breathing", brightness=104, color=SOFT_WARM),
+            delay(360),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
         ],
     },
     "cute_probe": {
