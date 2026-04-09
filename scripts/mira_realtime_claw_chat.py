@@ -35,7 +35,7 @@ from openclaw_voice_to_claw import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RUNTIME_DIR = ROOT / "runtime" / "realtime-claw-chat"
-DEFAULT_VOICE = "say"
+DEFAULT_VOICE = "openclaw"
 DEFAULT_TIMEOUT = 45
 DEFAULT_AGENT = "main"
 DEFAULT_CAPTURE_SAMPLE_RATE = 48000

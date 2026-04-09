@@ -1,0 +1,96 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-002/input.wav",
+  "transcript": "请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请",
+  "rawTranscript": "请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请",
+  "normalizationApplied": false,
+  "inputMeta": {
+    "inputDevice": {
+      "index": 3,
+      "name": "DJI MIC MINI",
+      "inputs": 2,
+      "defaultSamplerate": 48000.0
+    },
+    "captureMode": "continuous",
+    "vad": {
+      "startMs": 150,
+      "endMs": 650,
+      "minUtteranceMs": 400,
+      "maxUtteranceSeconds": 6.0,
+      "chunkMs": 50
+    }
+  },
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "intent": "chat",
+  "sessionMode": "chat",
+  "triggerResult": {
+    "ok": true,
+    "skipped": true,
+    "reason": "no-mapped-action"
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "你是 Mira。你是一个温柔、简短、自然的中文陪伴角色。你正在展位现场通过灯光和动作陪伴用户。请优先延续最近几轮上下文。如果用户表达疲惫、难受或低落，优先给出温和安慰。如果用户在告别，请自然收尾。请用简体中文自然回复。尽量只用 1 到 2 句。不要使用 emoji 或表情符号。不要长篇解释。\n当前会话模式是普通陪伴聊天。\n最近一次识别到的意图是 chat。最近一次触发的场景是 none。"
+    },
+    {
+      "role": "user",
+      "content": "你好。"
+    },
+    {
+      "role": "assistant",
+      "content": "我听见你了，我们继续。"
+    },
+    {
+      "role": "user",
+      "content": "请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请"
+    }
+  ],
+  "replyBackend": "fallback",
+  "replyText": "我听见你了，我们继续。",
+  "rawReplyText": "我听见你了，我们继续。",
+  "emojiStripped": false,
+  "apiMeta": {
+    "provider": "fallback",
+    "error": "Missing API key for cloud reply backend: expected env var 'VOLCANO_ENGINE_API_KEY'"
+  },
+  "audioResult": {
+    "ok": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-say",
+      "我听见你了，我们继续。"
+    ],
+    "description": "speech:say",
+    "stdout": "",
+    "stderr": "",
+    "requestedText": "我听见你了，我们继续。",
+    "spokenText": "我听见你了，我们继续。"
+  },
+  "sessionState": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请",
+    "lastReplyText": "我听见你了，我们继续。",
+    "startedAt": "2026-04-09T13:06:20.940994",
+    "lastActiveAt": "2026-04-09T13:08:17.696483",
+    "history": [
+      {
+        "role": "user",
+        "content": "你好。"
+      },
+      {
+        "role": "assistant",
+        "content": "我听见你了，我们继续。"
+      },
+      {
+        "role": "user",
+        "content": "请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请请"
+      },
+      {
+        "role": "assistant",
+        "content": "我听见你了，我们继续。"
+      }
+    ]
+  }
+}

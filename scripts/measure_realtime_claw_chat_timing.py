@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--agent", default="main", help="OpenClaw agent id.")
     parser.add_argument("--thinking", default="off", help="Thinking level.")
     parser.add_argument("--timeout", type=int, default=45, help="OpenClaw timeout in seconds.")
-    parser.add_argument("--voice", default="say", help="Audio voice mode.")
+    parser.add_argument("--voice", default="openclaw", help="Audio voice mode.")
     parser.add_argument("--dry-run-audio", action="store_true", help="Skip actual playback.")
     return parser.parse_args()
 

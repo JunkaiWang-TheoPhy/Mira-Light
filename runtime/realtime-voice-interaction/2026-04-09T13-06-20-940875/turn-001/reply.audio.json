@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "我听见你了，我们继续。"
+  ],
+  "description": "speech:say",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我听见你了，我们继续。",
+  "spokenText": "我听见你了，我们继续。"
+}
