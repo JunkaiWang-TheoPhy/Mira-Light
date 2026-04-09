@@ -373,6 +373,7 @@ MIRA_LINGZHU_PROMPT_PACK_ADDITIONAL_USER_IDS=mira-light-bridge
   - `record_tracking_session_state(...)`
 - `MiraLightRuntime` 在 scene `started / completed / stopped / failed` 时会写 `mira-light-runtime` session note
 - `vision_runtime_bridge.py` 在处理 vision event 时会写 `mira-light-vision` session note
+- `wake_up / celebrate / track_target / farewell` 已开始使用 scene-specific session note profile，不再完全共用通用文案
 
 当前相关实现文件：
 

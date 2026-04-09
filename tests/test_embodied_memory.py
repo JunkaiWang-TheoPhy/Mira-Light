@@ -211,6 +211,60 @@ class EmbodiedMemoryTest(unittest.TestCase):
             self.assertIsNotNone(current["note"])
             self.assertEqual(current["note"]["sessionId"], "mira-light-runtime")
             self.assertIn("track_target", current["note"]["currentState"])
+            self.assertIn("closed-loop tracker", current["note"]["taskSpec"].lower())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
+    def test_scene_specific_session_notes_have_meaningful_differences(self) -> None:
+        server = MemoryWriteCaptureServer(("127.0.0.1", 0))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            client = EmbodiedMemoryClient(
+                base_url=f"http://127.0.0.1:{server.server_address[1]}",
+                enabled=True,
+                user_id="mira-light-bridge",
+            )
+
+            wake = client.record_scene_session_state(
+                scene_name="wake_up",
+                phase="started",
+                runtime_state={"running": True, "runningScene": "wake_up"},
+                session_id="runtime-wake",
+            )
+            celebrate = client.record_scene_session_state(
+                scene_name="celebrate",
+                phase="failed",
+                runtime_state={"running": False, "lastError": "music cue missing"},
+                error="music cue missing",
+                session_id="runtime-celebrate",
+            )
+            farewell = client.record_scene_session_state(
+                scene_name="farewell",
+                phase="completed",
+                runtime_state={"running": False, "lastFinishedScene": "farewell"},
+                session_id="runtime-farewell",
+            )
+
+            self.assertTrue(wake["ok"])
+            self.assertTrue(celebrate["ok"])
+            self.assertTrue(farewell["ok"])
+
+            wake_note = client.get_current_session_note(session_id="runtime-wake")["note"]
+            celebrate_note = client.get_current_session_note(session_id="runtime-celebrate")["note"]
+            farewell_note = client.get_current_session_note(session_id="runtime-farewell")["note"]
+
+            self.assertIn("wake-up", wake_note["currentState"].lower())
+            self.assertIn("Figs/motions/01_wake_up/README.md", wake_note["relevantFiles"])
+
+            self.assertIn("celebration", celebrate_note["currentState"].lower())
+            self.assertIn("web/08_celebrate/index.html", celebrate_note["relevantFiles"])
+            self.assertIn("music cue missing", " ".join(celebrate_note["errors"]))
+
+            self.assertIn("send-off", farewell_note["currentState"].lower())
+            self.assertIn("Figs/motions/09_farewell/README.md", farewell_note["relevantFiles"])
         finally:
             server.shutdown()
             server.server_close()

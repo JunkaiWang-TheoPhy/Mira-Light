@@ -45,6 +45,125 @@ def _prepend_unique(existing: list[str], new_items: list[str], *, max_items: int
     return merged
 
 
+def _scene_note_profile(scene_name: str, phase: str) -> dict[str, Any]:
+    scene_id = _trim_text(scene_name, 80) or "unknown-scene"
+    phase_label = _trim_text(phase, 40) or "unknown"
+
+    default_profile = {
+        "title": f"Mira Light runtime · {scene_id}",
+        "currentState": f"Mira Light scene '{scene_id}' changed phase to '{phase_label}'.",
+        "nextStep": "Continue monitoring the scene runtime and check whether operator follow-up is needed.",
+        "taskSpec": f"Run and monitor Mira Light scene '{scene_id}' within the embodied booth runtime.",
+        "relevantFiles": [
+            "scripts/scenes.py",
+            "scripts/mira_light_runtime.py",
+            "docs/mira-light-scene-implementation-index.md",
+        ],
+    }
+
+    by_scene = {
+        "wake_up": {
+            "title": "Mira Light runtime · wake_up",
+            "currentStateByPhase": {
+                "started": "wake_up is running: the lamp is transitioning from sleep posture into greeting posture with staged warm light and wake-up shiver.",
+                "completed": "wake_up completed: the lamp reached its neutral greeting state after light ramp-up, stretch, and shiver.",
+                "stopped": "wake_up was interrupted before fully settling into its neutral greeting state.",
+                "failed": "wake_up failed during the wake / stretch / shiver sequence.",
+            },
+            "nextStepByPhase": {
+                "started": "Watch whether the lamp completes wake, stretch, and shiver cleanly, then decide if the next human-facing scene should start.",
+                "completed": "If a person is still present, the next likely scene is curious_observe or touch_affection.",
+                "stopped": "Re-check neutral / wake_half / wake_high poses before re-running wake_up.",
+                "failed": "Inspect wake poses and shiver amplitudes, especially servo1 and servo4 ranges, before retrying wake_up.",
+            },
+            "taskSpec": "Execute the booth wake-up choreography and confirm the lamp can move from sleep into a friendly greeting state.",
+            "relevantFiles": [
+                "scripts/scenes.py",
+                "Figs/motions/01_wake_up/README.md",
+                "docs/mira-light-scene-implementation-index.md",
+            ],
+        },
+        "celebrate": {
+            "title": "Mira Light runtime · celebrate",
+            "currentStateByPhase": {
+                "started": "celebrate is running: the lamp is executing the offer celebration choreography with upper/lower sways, color changes, and dance-phase transitions.",
+                "completed": "celebrate completed: the lamp returned to neutral after dance, slowdown, and recovery light.",
+                "stopped": "celebrate was stopped before the celebration finished and returned to neutral.",
+                "failed": "celebrate failed during the celebration choreography, likely around light sequencing, motion extremes, or dance timing.",
+            },
+            "nextStepByPhase": {
+                "started": "Verify that the offer trigger, audio cue, color transitions, and slowdown all stay coherent from a booth-operator perspective.",
+                "completed": "If the celebration was part of a live demo, the next likely scene is farewell or sleep.",
+                "stopped": "Check whether the stop happened during upper/lower sway or rainbow phase, then decide whether to replay celebrate.",
+                "failed": "Inspect celebration motion amplitudes, color timing, and audio placeholder behavior before retrying celebrate.",
+            },
+            "taskSpec": "Run the offer-celebration choreography and verify that lighting, motion, and demo staging feel like a coherent emotional peak.",
+            "relevantFiles": [
+                "scripts/scenes.py",
+                "web/08_celebrate/index.html",
+                "Figs/motions/08_celebrate/README.md",
+                "docs/mira-light-scene-implementation-index.md",
+            ],
+        },
+        "track_target": {
+            "title": "Mira Light runtime · track_target",
+            "currentStateByPhase": {
+                "started": "track_target is running: the runtime is executing the current surrogate left-to-right tracking choreography rather than a true closed-loop visual tracker.",
+                "completed": "track_target completed: the surrogate tracking choreography returned the lamp to its neutral work pose.",
+                "stopped": "track_target stopped before finishing its current tracking pass.",
+                "failed": "track_target failed while trying to simulate or execute tracking behavior.",
+            },
+            "nextStepByPhase": {
+                "started": "Continue monitoring target movement quality and check whether the current event stream is still only driving surrogate choreography.",
+                "completed": "The next engineering step is still to replace this surrogate choreography with a true visual closed-loop tracker.",
+                "stopped": "Check whether the stop was due to target loss, cooldown gating, or scene overlap before retrying track_target.",
+                "failed": "Inspect the vision event source, track_target event extraction, and scene mapping before retrying.",
+            },
+            "taskSpec": "Translate structured vision events into stable target-following behavior, and eventually replace the current surrogate choreography with a true closed-loop tracker.",
+            "relevantFiles": [
+                "scripts/scenes.py",
+                "scripts/track_target_event_extractor.py",
+                "scripts/vision_runtime_bridge.py",
+                "Figs/motions/07_track_target/README.md",
+                "config/mira_light_vision_event.schema.json",
+            ],
+        },
+        "farewell": {
+            "title": "Mira Light runtime · farewell",
+            "currentStateByPhase": {
+                "started": "farewell is running: the lamp is entering the send-off sequence of look, nod-like waving, and lowered head posture.",
+                "completed": "farewell completed: the lamp finished its send-off sequence and settled back toward neutral.",
+                "stopped": "farewell was stopped before the send-off sequence fully resolved.",
+                "failed": "farewell failed during the look / slow nod-wave / lowered-head sequence.",
+            },
+            "nextStepByPhase": {
+                "started": "Watch whether the fixed-angle farewell still reads clearly as look-first, wave-second, lower-head-last.",
+                "completed": "If the booth loop is ending, the next likely scene is sleep.",
+                "stopped": "Check whether farewell was interrupted before the second nod-wave or the final lowered-head pose.",
+                "failed": "Inspect the farewell angle choice and nod timing; if the booth needs dynamic departure following, that feature is still pending.",
+            },
+            "taskSpec": "Run the current farewell choreography and validate that the send-off reads clearly even before dynamic departure-direction following is implemented.",
+            "relevantFiles": [
+                "scripts/scenes.py",
+                "Figs/motions/09_farewell/README.md",
+                "docs/mira-light-scene-implementation-index.md",
+            ],
+        },
+    }
+
+    profile = by_scene.get(scene_id)
+    if not profile:
+        return default_profile
+
+    return {
+        "title": profile["title"],
+        "currentState": profile["currentStateByPhase"].get(phase_label, default_profile["currentState"]),
+        "nextStep": profile["nextStepByPhase"].get(phase_label, default_profile["nextStep"]),
+        "taskSpec": profile["taskSpec"],
+        "relevantFiles": profile["relevantFiles"],
+    }
+
+
 class EmbodiedMemoryClient:
     """Write selected scene/device outcomes into Mira's typed memory-context."""
 
@@ -194,20 +313,7 @@ class EmbodiedMemoryClient:
         phase_label = _trim_text(phase, 40) or "unknown"
         scene_label = _trim_text(scene_name, 80) or "unknown-scene"
         observed_at = _now_iso()
-
-        current_state_map = {
-            "started": f"Mira Light scene '{scene_label}' is now running.",
-            "completed": f"Mira Light scene '{scene_label}' completed successfully.",
-            "stopped": f"Mira Light scene '{scene_label}' was stopped before natural completion.",
-            "failed": f"Mira Light scene '{scene_label}' failed during execution.",
-        }
-        next_step_map = {
-            "started": "Wait for scene completion, operator intervention, or the next important device update.",
-            "completed": "Either trigger the next booth scene or keep the lamp in its current neutral/idle state.",
-            "stopped": "Confirm the fallback pose and decide whether to retry the scene or move to the next one.",
-            "failed": "Inspect bridge, device, and runtime state before retrying this scene.",
-        }
-        task_spec = f"Run and monitor Mira Light scene '{scene_label}' within the embodied booth runtime."
+        profile = _scene_note_profile(scene_name, phase_label)
 
         try:
             existing = self.get_current_session_note(session_id=session_id).get("note")
@@ -217,14 +323,13 @@ class EmbodiedMemoryClient:
 
         note = self._merged_session_note(
             existing_note=existing,
-            title=f"Mira Light runtime · {scene_label}",
-            current_state=current_state_map.get(phase_label, f"Mira Light scene '{scene_label}' changed phase."),
-            next_step=next_step_map.get(phase_label, "Continue monitoring the scene runtime."),
-            task_spec=task_spec,
+            title=profile["title"],
+            current_state=profile["currentState"],
+            next_step=profile["nextStep"],
+            task_spec=profile["taskSpec"],
             relevant_files=[
-                "scripts/scenes.py",
+                *profile["relevantFiles"],
                 "scripts/mira_light_runtime.py",
-                "docs/mira-light-scene-implementation-index.md",
             ],
             errors=[error] if error else [],
             key_results=[f"{observed_at} scene={scene_name} phase={phase_label}"],
