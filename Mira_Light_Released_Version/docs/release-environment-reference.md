@@ -24,6 +24,30 @@
 - 归属：bridge runtime
 - 用途：是否让 runtime 只打印动作而不真正打灯
 
+### `MIRA_LIGHT_SCENE_BUNDLE`
+
+- 默认值：`minimal`
+- 归属：bridge runtime
+- 用途：按 bundle 决定当前 release 对外开放哪些场景
+
+### `MIRA_LIGHT_SCENE_BUNDLES_PATH`
+
+- 默认值：`config/release_scene_bundles.json`
+- 归属：bridge runtime
+- 用途：覆盖默认的 scene bundle 配置文件
+
+### `MIRA_LIGHT_AUDIO_ASSET_ROOT`
+
+- 默认值：`assets/audio`
+- 归属：bridge runtime
+- 用途：runtime 解析 `audio(...)` cue 时去哪里找本地音频素材
+
+### `MIRA_LIGHT_AUDIO_PLAYER`
+
+- 默认值：自动探测
+- 归属：bridge runtime
+- 用途：显式指定本机播放音频 cue 的命令，例如 `afplay`
+
 ## Director Console
 
 ### `MIRA_LIGHT_CONSOLE_HOST`
@@ -134,6 +158,13 @@ bash scripts/start_local_stack.sh
 
 ```bash
 export MIRA_LIGHT_DRY_RUN=1
+bash scripts/start_local_stack.sh
+```
+
+### 主秀 bundle 启动
+
+```bash
+export MIRA_LIGHT_SCENE_BUNDLE=booth_core
 bash scripts/start_local_stack.sh
 ```
 

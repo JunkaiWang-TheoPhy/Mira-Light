@@ -8,6 +8,9 @@
     "doctor:online": "bash scripts/doctor_release.sh --online",
     "start": "bash scripts/start_local_stack.sh",
     "start:stack": "bash scripts/start_local_stack.sh",
+    "start:booth-core": "MIRA_LIGHT_SCENE_BUNDLE=booth_core bash scripts/start_local_stack.sh",
+    "start:booth-extended": "MIRA_LIGHT_SCENE_BUNDLE=booth_extended bash scripts/start_local_stack.sh",
+    "start:sensor-demos": "MIRA_LIGHT_SCENE_BUNDLE=sensor_demos bash scripts/start_local_stack.sh",
     "start:console": "bash scripts/start_director_console.sh",
     "start:bridge": "bash tools/mira_light_bridge/start_bridge.sh",
     "start:receiver": "bash scripts/start_simple_lamp_receiver.sh",
@@ -16,6 +19,7 @@
     "smoke:http": "bash scripts/smoke_local_stack.sh",
     "install:openclaw": "bash scripts/install_openclaw_plugin.sh",
     "remove:openclaw": "bash scripts/remove_openclaw_plugin.sh",
+    "audio:check": "python3 scripts/audio_cue_player.py dance.mp3 --dry-run",
     "verify:openclaw": "bash scripts/run_verify_openclaw.sh",
     "test": "bash scripts/run_release_tests.sh"
   }

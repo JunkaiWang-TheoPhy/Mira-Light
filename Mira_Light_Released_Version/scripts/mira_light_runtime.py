@@ -26,21 +26,51 @@ from collections import deque
 from datetime import datetime, timezone
 import json
 import os
+from pathlib import Path
 import threading
 import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict
 
+from audio_cue_player import AudioCuePlayer
 from mira_light_safety import MiraLightSafetyController, SafetyDecision, SafetyViolation
 from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
 
 
 DEFAULT_TIMEOUT_SECONDS = 3.0
+DEFAULT_SCENE_BUNDLE_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "release_scene_bundles.json"
+DEFAULT_AUDIO_CUE_ROOT = Path(__file__).resolve().parent.parent / "assets" / "audio"
 
 
 class SceneStopped(RuntimeError):
     """Raised when a running scene is asked to stop early."""
+
+
+def _load_scene_bundle_config(config_path: Path) -> tuple[dict[str, dict[str, Any]], str | None, str | None]:
+    if not config_path.exists():
+        return {}, None, None
+
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, None, f"Failed to load scene bundle config {config_path}: {exc}"
+
+    bundles: dict[str, dict[str, Any]] = {}
+    for name, raw_bundle in payload.get("bundles", {}).items():
+        scenes = [scene for scene in raw_bundle.get("scenes", []) if scene in SCENES]
+        if not scenes:
+            continue
+        bundles[name] = {
+            "title": raw_bundle.get("title", name),
+            "description": raw_bundle.get("description", ""),
+            "scenes": scenes,
+        }
+
+    default_bundle = payload.get("defaultBundle")
+    if default_bundle not in bundles:
+        default_bundle = next(iter(bundles), None)
+    return bundles, default_bundle, None
 
 
 class MiraLightClient:
@@ -122,6 +152,7 @@ class BoothController:
         on_step: Callable[[dict[str, Any]], None] | None = None,
         apply_control: Callable[[dict[str, Any]], Any] | None = None,
         reset_lamp: Callable[[], Any] | None = None,
+        play_audio: Callable[[str], dict[str, Any]] | None = None,
     ):
         self.client = client
         self.emit = emit or print
@@ -129,6 +160,13 @@ class BoothController:
         self.on_step = on_step
         self.apply_control = apply_control or client.control
         self.reset_lamp = reset_lamp or client.reset
+        self.play_audio = play_audio or (
+            lambda name: {
+                "ok": False,
+                "cue": name,
+                "reason": "audio_player_not_configured",
+            }
+        )
 
     def _log(self, message: str) -> None:
         self.emit(message)
@@ -254,7 +292,9 @@ class BoothController:
             return
 
         if step_type == "audio":
-            self._log(f"[skip-audio] asset={step['name']}")
+            result = self.play_audio(step["name"])
+            label = "audio" if result.get("ok") else "audio-skip"
+            self._log(f"[{label}] {json.dumps(result, ensure_ascii=False)}")
             return
 
         if step_type == "sensor_gate":
@@ -285,6 +325,31 @@ class MiraLightRuntime:
             "yes",
             "on",
         }
+        self._scene_bundle_config_path = Path(
+            os.environ.get("MIRA_LIGHT_SCENE_BUNDLES_PATH", str(DEFAULT_SCENE_BUNDLE_CONFIG_PATH))
+        )
+        self._scene_bundles, self._default_scene_bundle, self._scene_bundle_config_error = _load_scene_bundle_config(
+            self._scene_bundle_config_path
+        )
+        self._scene_bundle_requested = os.environ.get("MIRA_LIGHT_SCENE_BUNDLE", "").strip() or None
+        self._scene_bundle_warning: str | None = None
+        self._scene_bundle_name: str | None = None
+        self._scene_bundle_source = "readiness"
+        if self._scene_bundle_requested:
+            if self._scene_bundle_requested in self._scene_bundles:
+                self._scene_bundle_name = self._scene_bundle_requested
+                self._scene_bundle_source = "env"
+            elif self._scene_bundles:
+                self._scene_bundle_warning = (
+                    f"Unknown scene bundle: {self._scene_bundle_requested}; "
+                    f"available={','.join(sorted(self._scene_bundles))}"
+                )
+        elif not self.show_experimental and self._default_scene_bundle:
+            self._scene_bundle_name = self._default_scene_bundle
+            self._scene_bundle_source = "config_default"
+        elif self.show_experimental:
+            self._scene_bundle_source = "show_experimental"
+        self._audio_cue_root = Path(os.environ.get("MIRA_LIGHT_AUDIO_ASSET_ROOT", str(DEFAULT_AUDIO_CUE_ROOT)))
 
         self._log_lock = threading.Lock()
         self._state_lock = threading.Lock()
@@ -292,6 +357,7 @@ class MiraLightRuntime:
         self._stop_event = threading.Event()
         self._logs: deque[dict[str, str]] = deque(maxlen=300)
         self._safety = MiraLightSafetyController(SERVO_CALIBRATION)
+        self._audio_player = AudioCuePlayer(cue_root=self._audio_cue_root, dry_run=self.dry_run)
 
         self._running_scene: str | None = None
         self._runner_thread: threading.Thread | None = None
@@ -306,6 +372,11 @@ class MiraLightRuntime:
         self._last_command: str | None = None
         self._device_online: bool | None = None
         self._last_status_at: str | None = None
+
+        if self._scene_bundle_config_error:
+            self.log(f"[config-warning] {self._scene_bundle_config_error}")
+        if self._scene_bundle_warning:
+            self.log(f"[config-warning] {self._scene_bundle_warning}")
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
         self.embodied_memory_client = client
@@ -346,15 +417,28 @@ class MiraLightRuntime:
                 self.base_url = base_url.rstrip("/")
             if dry_run is not None:
                 self.dry_run = bool(dry_run)
+                self._audio_player.dry_run = self.dry_run
         self.log(f"[config] base_url={self.base_url} dry_run={self.dry_run}")
         return self.get_runtime_state()
 
+    def _bundle_scene_ids(self) -> set[str] | None:
+        if not self._scene_bundle_name:
+            return None
+        bundle = self._scene_bundles.get(self._scene_bundle_name)
+        if not bundle:
+            return None
+        return set(bundle.get("scenes", []))
+
     def is_scene_available(self, scene_name: str) -> bool:
+        bundle_scene_ids = self._bundle_scene_ids()
+        if bundle_scene_ids is not None:
+            return scene_name in bundle_scene_ids
         readiness = SCENE_META.get(scene_name, {}).get("readiness", "prototype")
         return self.show_experimental or readiness == "ready"
 
     def list_scenes(self) -> list[dict[str, Any]]:
         items = []
+        bundle_scene_ids = self._bundle_scene_ids()
         for scene_id, scene in SCENES.items():
             if not self.is_scene_available(scene_id):
                 continue
@@ -364,16 +448,18 @@ class MiraLightRuntime:
                     "id": scene_id,
                     "title": scene["title"],
                     "hostLine": scene.get("host_line", ""),
-                "emotionTags": meta.get("emotionTags", []),
-                "readiness": meta.get("readiness", "prototype"),
-                "priority": meta.get("priority", "P2"),
-                "accent": meta.get("accent", "prototype"),
-                "durationMs": meta.get("durationMs", 0),
-                "requirements": meta.get("requirements", []),
-                "requirementIds": meta.get("requirementIds", []),
-                "fallbackHint": meta.get("fallbackHint", ""),
-                "operatorCue": meta.get("operatorCue", ""),
-            }
+                    "emotionTags": meta.get("emotionTags", []),
+                    "readiness": meta.get("readiness", "prototype"),
+                    "priority": meta.get("priority", "P2"),
+                    "accent": meta.get("accent", "prototype"),
+                    "durationMs": meta.get("durationMs", 0),
+                    "requirements": meta.get("requirements", []),
+                    "requirementIds": meta.get("requirementIds", []),
+                    "fallbackHint": meta.get("fallbackHint", ""),
+                    "operatorCue": meta.get("operatorCue", ""),
+                    "sceneBundle": self._scene_bundle_name,
+                    "enabledByBundle": bundle_scene_ids is not None,
+                }
             )
         return items
 
@@ -382,6 +468,7 @@ class MiraLightRuntime:
             return {
                 "baseUrl": self.base_url,
                 "dryRun": self.dry_run,
+                "showExperimental": self.show_experimental,
                 "running": self._running_scene is not None,
                 "runningScene": self._running_scene,
                 "lastError": self._last_error,
@@ -396,6 +483,12 @@ class MiraLightRuntime:
                 "deviceOnline": self._device_online,
                 "lastStatusAt": self._last_status_at,
                 "sceneCount": len(SCENES),
+                "sceneBundle": self._scene_bundle_name,
+                "sceneBundleSource": self._scene_bundle_source,
+                "sceneBundleRequested": self._scene_bundle_requested,
+                "sceneBundleConfigPath": str(self._scene_bundle_config_path),
+                "sceneBundleAvailable": sorted(self._scene_bundles),
+                "audioCueRoot": str(self._audio_cue_root),
                 "estimatedServoState": self._safety.snapshot(),
             }
 
@@ -417,6 +510,10 @@ class MiraLightRuntime:
 
     def get_actions(self) -> Any:
         return self.get_client().get_actions()
+
+    def play_audio(self, cue_name: str) -> dict[str, Any]:
+        self._audio_player.dry_run = self.dry_run
+        return self._audio_player.play(cue_name, blocking=False)
 
     def get_profile(self) -> dict[str, Any]:
         return {
@@ -617,6 +714,7 @@ class MiraLightRuntime:
                     update_last_command=False,
                 ),
                 reset_lamp=self.reset_lamp,
+                play_audio=self.play_audio,
             )
             controller.run_scene(scene_name)
         except SceneStopped as exc:

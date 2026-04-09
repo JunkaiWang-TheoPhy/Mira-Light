@@ -46,6 +46,7 @@ browser
 
 - [release-preflight-runbook.md](./release-preflight-runbook.md)
 - [release-startup-contract.md](./release-startup-contract.md)
+- [release-scene-bundles.md](./release-scene-bundles.md)
 - [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
 - [release-environment-reference.md](./release-environment-reference.md)
 - [release-local-stack-runbook.md](./release-local-stack-runbook.md)
@@ -83,6 +84,12 @@ export MIRA_LIGHT_DRY_RUN=1
 
 ```bash
 bash scripts/start_local_stack.sh
+```
+
+如果你要直接进主秀版本，也可以：
+
+```bash
+MIRA_LIGHT_SCENE_BUNDLE=booth_core bash scripts/start_local_stack.sh
 ```
 
 ### 4. 跑在线 preflight 或 HTTP 冒烟检查
@@ -158,3 +165,8 @@ bash scripts/doctor_release.sh
 ```bash
 bash scripts/doctor_release.sh --online
 ```
+
+## 当前 bundled assets
+
+- 音频 cue：`assets/audio/dance.wav`
+- offer 演示页：`assets/offer_demo/index.html`

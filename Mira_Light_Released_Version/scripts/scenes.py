@@ -823,8 +823,8 @@ SCENES: Dict[str, Dict[str, Any]] = {
         "title": "跳舞模式",
         "host_line": "当它收到一个超级开心的消息时，它会像真的高兴一样跳起来。",
         "notes": [
-            "TODO: 本地电脑配一首固定的 dance.mp3；当前控制器里只打印 audio TODO。",
-            "TODO: offer 邮件页面作为独立素材准备，不写死在脚本里。",
+            "发布版默认音频 cue 位于 assets/audio/dance.wav；运行时会兼容历史 cue 名 dance.mp3。",
+            "发布版默认 offer 演示页位于 assets/offer_demo/index.html，可直接用浏览器打开。",
             "当前动作按 PDF2 为主、参考 PDF3 的手绘页，拆成上摇、下摇、灯光变色、减速和收尾摇头。"
         ],
         "tuning_notes": [

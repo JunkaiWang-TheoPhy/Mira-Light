@@ -9,13 +9,14 @@
 1. [getting-started.md](./getting-started.md)
 2. [release-preflight-runbook.md](./release-preflight-runbook.md)
 3. [release-startup-contract.md](./release-startup-contract.md)
-4. [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
-5. [release-local-stack-runbook.md](./release-local-stack-runbook.md)
-6. [release-network-diagnostics.md](./release-network-diagnostics.md)
-7. [release-environment-reference.md](./release-environment-reference.md)
-8. [release-layout.md](./release-layout.md)
-9. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
-10. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
+4. [release-scene-bundles.md](./release-scene-bundles.md)
+5. [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
+6. [release-local-stack-runbook.md](./release-local-stack-runbook.md)
+7. [release-network-diagnostics.md](./release-network-diagnostics.md)
+8. [release-environment-reference.md](./release-environment-reference.md)
+9. [release-layout.md](./release-layout.md)
+10. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
+11. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 
 ## 当前文档分组
 
@@ -24,6 +25,7 @@
 - [getting-started.md](./getting-started.md)
 - [release-preflight-runbook.md](./release-preflight-runbook.md)
 - [release-startup-contract.md](./release-startup-contract.md)
+- [release-scene-bundles.md](./release-scene-bundles.md)
 - [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
 - [release-local-stack-runbook.md](./release-local-stack-runbook.md)
 - [release-network-diagnostics.md](./release-network-diagnostics.md)
@@ -37,6 +39,7 @@
 - [mira-light-booth-scene-table.md](./mira-light-booth-scene-table.md)
 - [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 - [mira-light-scene-to-code-spec.md](./mira-light-scene-to-code-spec.md)
+- [release-scene-bundles.md](./release-scene-bundles.md)
 
 ### OpenClaw / Bridge / Safety
 

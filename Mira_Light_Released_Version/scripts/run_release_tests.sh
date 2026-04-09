@@ -30,5 +30,8 @@ exec "${PYTHON_BIN}" -m unittest \
   tests.test_embodied_memory \
   tests.test_release_startup_contract \
   tests.test_release_preflight \
+  tests.test_scene_bundle_profiles \
+  tests.test_audio_cue_player \
+  tests.test_vision_runtime_bridge \
   tests.test_release_safety \
   tests.test_openclaw_plugin_lifecycle
