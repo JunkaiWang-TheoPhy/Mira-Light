@@ -36,7 +36,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--agent", default="main", help="OpenClaw agent id.")
     parser.add_argument("--thinking", default="off", help="Thinking level.")
     parser.add_argument("--timeout", type=int, default=45, help="OpenClaw timeout in seconds.")
-    parser.add_argument("--voice", default="openclaw", help="Audio voice mode.")
+    parser.add_argument(
+        "--voice-mode",
+        dest="voice_mode",
+        default="gentle_sister",
+        choices=["gentle_sister", "warm_gentleman", "female", "male"],
+        help="Audio voice mode.",
+    )
+    parser.add_argument("--voice", dest="voice_mode", choices=["gentle_sister", "warm_gentleman", "female", "male"], help=argparse.SUPPRESS)
     parser.add_argument("--dry-run-audio", action="store_true", help="Skip actual playback.")
     return parser.parse_args()
 
@@ -84,7 +91,7 @@ def main() -> int:
 
     reply_text = (stdout or "").strip()
     audio_player = AudioCuePlayer(dry_run=args.dry_run_audio)
-    audio_result = audio_player.speak_text(reply_text, voice=args.voice, wait=True) if reply_text else {}
+    audio_result = audio_player.speak_text(reply_text, voice=args.voice_mode, wait=True) if reply_text else {}
     t5 = time.perf_counter()
     timings.append({"step": "tts_and_playback", "seconds": t5 - t4})
 

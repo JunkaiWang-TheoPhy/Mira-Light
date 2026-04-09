@@ -39,6 +39,23 @@ Microphone
 -> openclaw agent --agent main --message "<transcript>"
 ```
 
+而在 `2026-04-09` 之后，仓库里已经进一步出现了第二条更完整的 booth 实时路径：
+
+```text
+Microphone
+-> continuous VAD
+-> local MLX Whisper transcription
+-> realtime session state
+-> Lingzhu / OpenClaw reply
+-> local TTS playback
+-> optional Mira-Light trigger
+```
+
+对应入口是：
+
+- [`../../scripts/mira_realtime_voice_interaction.py`](../../scripts/mira_realtime_voice_interaction.py)
+- [`../../scripts/mira_realtime_claw_chat.py`](../../scripts/mira_realtime_claw_chat.py)
+
 这条路径优先保证：
 
 - 本机可运行
@@ -110,6 +127,19 @@ Microphone
 1. 运行目录时间戳改成带微秒，避免同一秒内多次调用互相覆盖。
 2. 本地模型加载失败时会返回更清晰的错误信息，而不是只抛底层堆栈。
 
+## What Has Been Added Beyond The Original Ingress Script
+
+相较于最初的 `openclaw_voice_to_claw.py`，当前 realtime 版本已经额外补上：
+
+- 连续监听模式
+- VAD 起止切句
+- idle timeout 自动收尾
+- 空文本跳过而不是整场退出
+- 重复字符/重复 token 垃圾转写过滤
+- runtime artifact 中的 `audioMetrics`、`memoryPolicy`、reply metadata 记录
+
+所以这部分能力现在已经不只是“语音入口”，而是“完整 booth 对话入口”的基础层。
+
 ## What This Enables Next
 
 在不连真灯的前提下，这条能力已经足够支撑：
@@ -123,7 +153,7 @@ Microphone
 
 下一步最值得继续补的是：
 
-- 加一个持续监听模式，而不是只支持固定录音和 push-to-talk
-- 把 STT 入口接进 `Claw-Native` 模板
-- 根据真实演示词表继续扩充默认术语 prompt
-- 评估是否需要直接补一条火山云端 STT 备援链路
+- 继续降低 realtime 延迟
+- 继续压缩非必要 prompt-pack 和记忆噪声
+- 评估是否需要流式回复 / 流式 TTS
+- 把 `additionalUserIds` 从全局 writer 升级成会话级 writer

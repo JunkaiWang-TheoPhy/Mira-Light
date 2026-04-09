@@ -110,6 +110,8 @@ class MockDeviceE2ETest(unittest.TestCase):
                     status, device_status = request_json(f"{bridge_base_url}/v1/mira-light/status")
                     self.assertEqual(status, 200)
                     self.assertTrue(device_status["data"]["ok"])
+                    self.assertEqual(device_status["data"]["sensors"]["headCapacitive"], 0)
+                    self.assertEqual(len(device_status["data"]["led"]["pixelSignals"]), 40)
 
                     status, admin_state = request_json(f"{mock_base_url}/__admin/state")
                     self.assertEqual(status, 200)
@@ -118,6 +120,7 @@ class MockDeviceE2ETest(unittest.TestCase):
                     self.assertIn("/led", request_paths)
                     self.assertIn("/reset", request_paths)
                     self.assertEqual(admin_state["led"]["mode"], "off")
+                    self.assertEqual(admin_state["sensors"]["headCapacitive"], 0)
                 finally:
                     bridge_server.shutdown()
                     bridge_server.server_close()
@@ -288,6 +291,63 @@ class MockDeviceE2ETest(unittest.TestCase):
                 )
                 self.assertEqual(status, 500)
                 self.assertIn("timed out", control_error["error"])
+            finally:
+                bridge_server.shutdown()
+                bridge_server.server_close()
+                bridge_thread.join(timeout=3)
+                mock_server.shutdown()
+                mock_server.server_close()
+                mock_thread.join(timeout=3)
+
+    def test_mock_device_supports_sensor_updates_and_device_state_injection(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            mock_server = create_server("127.0.0.1", 0)
+            mock_thread = self._start_server(mock_server)
+            mock_base_url = f"http://127.0.0.1:{mock_server.server_address[1]}"
+
+            runtime = MiraLightRuntime(base_url=mock_base_url, dry_run=False, timeout_seconds=1.0)
+            runtime.audio_player.dry_run = True
+            bridge_server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=tmp_root / "ingest",
+            )
+            bridge_thread = self._start_server(bridge_server)
+            bridge_base_url = f"http://127.0.0.1:{bridge_server.server_address[1]}"
+
+            try:
+                status, sensors = request_json(
+                    f"{bridge_base_url}/v1/mira-light/sensors",
+                    method="POST",
+                    payload={"headCapacitive": 1},
+                )
+                self.assertEqual(status, 200)
+                self.assertEqual(sensors["data"]["sensors"]["headCapacitive"], 1)
+
+                status, injected = request_json(
+                    f"{mock_base_url}/__admin/device-state",
+                    method="POST",
+                    payload={
+                        "led": {
+                            "mode": "vector",
+                            "pixelSignals": [[10, 20, 30, 40] for _ in range(40)],
+                        }
+                    },
+                )
+                self.assertEqual(status, 200)
+                self.assertEqual(injected["state"]["led"]["pixelSignals"][0], [10, 20, 30, 40])
+
+                status, bridge_status = request_json(f"{bridge_base_url}/v1/mira-light/status")
+                self.assertEqual(status, 200)
+                self.assertEqual(bridge_status["data"]["sensors"]["headCapacitive"], 1)
+                self.assertEqual(bridge_status["data"]["led"]["pixelSignals"][0], [10, 20, 30, 40])
+
+                status, bridge_sensors = request_json(f"{bridge_base_url}/v1/mira-light/sensors")
+                self.assertEqual(status, 200)
+                self.assertEqual(bridge_sensors["data"]["headCapacitive"], 1)
             finally:
                 bridge_server.shutdown()
                 bridge_server.server_close()

@@ -24,6 +24,16 @@ SIGH_KEYWORDS = {
     "哎……",
 }
 
+GREETING_PHRASES = {
+    "你好",
+    "你好啊",
+    "你好呀",
+    "哈喽",
+    "嗨",
+    "hello",
+    "hi",
+}
+
 INTENT_ACTIONS: dict[str, dict[str, str]] = {
     "sigh": {"type": "trigger", "name": "sigh_detected"},
     "comfort": {"type": "trigger", "name": "voice_tired"},
@@ -56,6 +66,13 @@ def classify_intent(transcript: str) -> str:
         if any(keyword in cleaned for keyword in keywords):
             return intent
     return "chat"
+
+
+def is_brief_greeting(transcript: str) -> bool:
+    cleaned = _clean_text(transcript).rstrip("!！?？。,.，~～")
+    if not cleaned:
+        return False
+    return cleaned in GREETING_PHRASES
 
 
 def action_for_intent(intent: str) -> dict[str, str] | None:

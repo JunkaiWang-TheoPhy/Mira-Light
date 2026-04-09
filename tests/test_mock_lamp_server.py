@@ -55,6 +55,7 @@ class MockLampServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(health["ok"])
         self.assertEqual(health["snapshot"]["led"]["led_count"], 40)
+        self.assertEqual(health["snapshot"]["status"]["sensors"]["headCapacitive"], 0)
 
         status, controlled = request_json(
             f"{self.base_url}/control",
@@ -76,6 +77,20 @@ class MockLampServerTest(unittest.TestCase):
         self.assertEqual(led["mode"], "vector")
         self.assertEqual(led["brightness"], 180)
         self.assertEqual(len(led["pixels"]), 40)
+        self.assertEqual(len(led["pixelSignals"]), 40)
+        self.assertEqual(led["pixelSignals"][0], [8, 16, 24, 180])
+
+        status, sensors = request_json(
+            f"{self.base_url}/sensors",
+            method="POST",
+            payload={"headCapacitive": 1},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(sensors["headCapacitive"], 1)
+
+        status, current_sensors = request_json(f"{self.base_url}/sensors")
+        self.assertEqual(status, 200)
+        self.assertEqual(current_sensors["headCapacitive"], 1)
 
         status, action = request_json(
             f"{self.base_url}/action",
@@ -91,6 +106,16 @@ class MockLampServerTest(unittest.TestCase):
         self.assertTrue(stopped["stopped"])
         self.assertFalse(stopped["playing"])
 
+    def test_mock_server_accepts_rgba_vector_payloads(self) -> None:
+        status, led = request_json(
+            f"{self.base_url}/led",
+            method="POST",
+            payload={"mode": "vector", "pixelSignals": [[12, 24, 36, 90] for _ in range(40)]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(led["pixelSignals"][0], [12, 24, 36, 90])
+        self.assertEqual(led["pixels"][0], {"r": 12, "g": 24, "b": 36})
+
     def test_mock_server_rejects_bad_vector_payloads(self) -> None:
         status, blocked = request_json(
             f"{self.base_url}/led",
@@ -98,15 +123,23 @@ class MockLampServerTest(unittest.TestCase):
             payload={"mode": "vector", "pixels": [[255, 0, 0]] * 10},
         )
         self.assertEqual(status, 400)
-        self.assertIn("exactly 40 RGB entries", blocked["error"])
+        self.assertIn("exactly 40", blocked["error"])
 
         status, blocked = request_json(
             f"{self.base_url}/led",
             method="POST",
-            payload={"mode": "vector", "pixels": [[255, 0, 0]] * 39 + [[300, 0, 0]]},
+            payload={"mode": "vector", "pixelSignals": [[255, 0, 0, 128]] * 39 + [[300, 0, 0, 128]]},
         )
         self.assertEqual(status, 400)
         self.assertIn("between 0 and 255", blocked["error"])
+
+        status, blocked = request_json(
+            f"{self.base_url}/sensors",
+            method="POST",
+            payload={"headCapacitive": 2},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("must be 0 or 1", blocked["error"])
 
 
 if __name__ == "__main__":

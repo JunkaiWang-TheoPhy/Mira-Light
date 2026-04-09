@@ -1,0 +1,46 @@
+{
+  "servo1": {
+    "id": "000",
+    "label": "base_yaw",
+    "logicalNeutral": 90,
+    "logicalMin": 0,
+    "logicalMax": 180,
+    "neutralPwm": 1500,
+    "pwmMin": 500,
+    "pwmMax": 2500,
+    "directionSign": 1
+  },
+  "servo2": {
+    "id": "001",
+    "label": "lower_arm_lift",
+    "logicalNeutral": 96,
+    "logicalMin": 0,
+    "logicalMax": 180,
+    "neutralPwm": 1500,
+    "pwmMin": 500,
+    "pwmMax": 2500,
+    "directionSign": 1
+  },
+  "servo3": {
+    "id": "002",
+    "label": "upper_arm_pitch",
+    "logicalNeutral": 98,
+    "logicalMin": 0,
+    "logicalMax": 180,
+    "neutralPwm": 1500,
+    "pwmMin": 500,
+    "pwmMax": 2500,
+    "directionSign": 1
+  },
+  "servo4": {
+    "id": "003",
+    "label": "head_tilt",
+    "logicalNeutral": 90,
+    "logicalMin": 0,
+    "logicalMax": 180,
+    "neutralPwm": 1500,
+    "pwmMin": 500,
+    "pwmMax": 2500,
+    "directionSign": 1
+  }
+}

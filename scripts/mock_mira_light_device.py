@@ -8,9 +8,9 @@ exercised without the real lamp being online.
 It supports two categories of endpoints:
 
 - Device endpoints: ``/status``, ``/led``, ``/actions``, ``/control``,
-  ``/action``, ``/action/stop``, ``/reset``.
+  ``/action``, ``/action/stop``, ``/reset``, ``/sensors``.
 - Admin endpoints: ``/__admin/state``, ``/__admin/requests``,
-  ``/__admin/faults``, ``/__admin/reset-state``.
+  ``/__admin/faults``, ``/__admin/reset-state``, ``/__admin/device-state``.
 
 Fault rules are intentionally simple and designed for local rehearsals:
 
@@ -49,10 +49,116 @@ DEFAULT_ACTIONS = [
     {"name": "wiggle", "label": "Wiggle", "loopsSupported": True},
     {"name": "wave", "label": "Wave", "loopsSupported": False},
 ]
+DEFAULT_LED_COUNT = 40
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def coerce_int(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field_name} must be an integer")
+    if int(value) != value:
+        raise ValueError(f"{field_name} must be an integer")
+    return int(value)
+
+
+def normalize_u8(value: Any, *, field_name: str) -> int:
+    channel = coerce_int(value, field_name=field_name)
+    if not 0 <= channel <= 255:
+        raise ValueError(f"{field_name} must be between 0 and 255")
+    return channel
+
+
+def normalize_binary_signal(value: Any, *, field_name: str) -> int:
+    signal = coerce_int(value, field_name=field_name)
+    if signal not in {0, 1}:
+        raise ValueError(f"{field_name} must be 0 or 1")
+    return signal
+
+
+def normalize_rgb(value: Any, *, field_name: str) -> dict[str, int]:
+    if isinstance(value, dict):
+        allowed = {"r", "g", "b"}
+        unknown = sorted(set(value) - allowed)
+        if unknown:
+            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
+        missing = [channel for channel in ("r", "g", "b") if channel not in value]
+        if missing:
+            raise ValueError(f"{field_name} is missing channels: {', '.join(missing)}")
+        red = normalize_u8(value["r"], field_name=f"{field_name}.r")
+        green = normalize_u8(value["g"], field_name=f"{field_name}.g")
+        blue = normalize_u8(value["b"], field_name=f"{field_name}.b")
+    elif isinstance(value, (list, tuple)) and len(value) == 3:
+        red = normalize_u8(value[0], field_name=f"{field_name}[0]")
+        green = normalize_u8(value[1], field_name=f"{field_name}[1]")
+        blue = normalize_u8(value[2], field_name=f"{field_name}[2]")
+    else:
+        raise ValueError(f"{field_name} must be an RGB object or 3-value vector")
+
+    return {"r": red, "g": green, "b": blue}
+
+
+def normalize_led_pixel(
+    value: Any,
+    *,
+    field_name: str,
+    default_brightness: int | None,
+) -> dict[str, int]:
+    if isinstance(value, dict):
+        allowed = {"r", "g", "b", "brightness"}
+        unknown = sorted(set(value) - allowed)
+        if unknown:
+            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
+        channels = normalize_rgb(value, field_name=field_name)
+        brightness_raw = value.get("brightness", default_brightness)
+    elif isinstance(value, (list, tuple)) and len(value) in {3, 4}:
+        channels = normalize_rgb(value[:3], field_name=field_name)
+        brightness_raw = value[3] if len(value) == 4 else default_brightness
+    else:
+        raise ValueError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
+
+    if brightness_raw is None:
+        raise ValueError(f"{field_name}.brightness is required")
+
+    return {
+        **channels,
+        "brightness": normalize_u8(brightness_raw, field_name=f"{field_name}.brightness"),
+    }
+
+
+def make_pixel(*, red: int, green: int, blue: int, brightness: int) -> dict[str, int]:
+    return {"r": red, "g": green, "b": blue, "brightness": brightness}
+
+
+def rgb_channels(pixel: dict[str, int]) -> dict[str, int]:
+    return {"r": pixel["r"], "g": pixel["g"], "b": pixel["b"]}
+
+
+def pixel_signal(pixel: dict[str, int]) -> list[int]:
+    return [pixel["r"], pixel["g"], pixel["b"], pixel["brightness"]]
+
+
+def make_uniform_pixels(
+    *,
+    count: int,
+    color: dict[str, int],
+    brightness: int,
+) -> list[dict[str, int]]:
+    return [
+        make_pixel(
+            red=color["r"],
+            green=color["g"],
+            blue=color["b"],
+            brightness=brightness,
+        )
+        for _ in range(count)
+    ]
+
+
+def off_pixels(*, count: int) -> list[dict[str, int]]:
+    return [make_pixel(red=0, green=0, blue=0, brightness=0) for _ in range(count)]
 
 
 @dataclass
@@ -129,11 +235,21 @@ class MockDeviceState:
         self._fault_rules: list[FaultRule] = []
 
         self._default_servos = deepcopy(POSES["neutral"]["angles"])
-        self._default_led = {"mode": "off", "brightness": 0}
+        self._led_count = DEFAULT_LED_COUNT
+        self._default_sensors = {"headCapacitive": 0}
+        self._default_led = {
+            "mode": "off",
+            "brightness": 0,
+            "color": {"r": 0, "g": 0, "b": 0},
+            "ledCount": self._led_count,
+            "pixels": [rgb_channels(pixel) for pixel in off_pixels(count=self._led_count)],
+            "pixelSignals": [pixel_signal(pixel) for pixel in off_pixels(count=self._led_count)],
+        }
         self._default_actions = deepcopy(DEFAULT_ACTIONS)
 
         self._servos = deepcopy(self._default_servos)
         self._led_state = deepcopy(self._default_led)
+        self._sensor_state = deepcopy(self._default_sensors)
         self._action_state = {
             "running": False,
             "name": None,
@@ -169,6 +285,7 @@ class MockDeviceState:
                 "lastResetAt": self._last_reset_at,
                 "servos": deepcopy(self._servos),
                 "led": deepcopy(self._led_state),
+                "sensors": deepcopy(self._sensor_state),
                 "actions": {
                     "available": deepcopy(self._default_actions),
                     "active": deepcopy(self._action_state),
@@ -186,6 +303,8 @@ class MockDeviceState:
                 "bootedAt": self._booted_at,
                 "lastResetAt": self._last_reset_at,
                 "servos": deepcopy(self._servos),
+                "sensors": deepcopy(self._sensor_state),
+                "led": deepcopy(self._led_state),
                 "activeAction": deepcopy(self._action_state),
                 "requestCount": self._request_counter,
             }
@@ -193,6 +312,10 @@ class MockDeviceState:
     def led_payload(self) -> dict[str, Any]:
         with self._lock:
             return deepcopy(self._led_state)
+
+    def sensors_payload(self) -> dict[str, Any]:
+        with self._lock:
+            return deepcopy(self._sensor_state)
 
     def actions_payload(self) -> dict[str, Any]:
         with self._lock:
@@ -231,6 +354,7 @@ class MockDeviceState:
         with self._lock:
             self._servos = deepcopy(self._default_servos)
             self._led_state = deepcopy(self._default_led)
+            self._sensor_state = deepcopy(self._default_sensors)
             self._action_state = {
                 "running": False,
                 "name": None,
@@ -310,16 +434,110 @@ class MockDeviceState:
         self._persist_state()
         return response
 
+    def _normalize_led_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise ValueError("LED payload must be an object")
+
+        mode = str(payload.get("mode", self._led_state.get("mode", "off")))
+        if mode not in {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}:
+            raise ValueError("Unsupported LED mode")
+
+        brightness = self._led_state.get("brightness", 0)
+        if "brightness" in payload:
+            brightness = normalize_u8(payload["brightness"], field_name="brightness")
+
+        color = deepcopy(self._led_state.get("color", {"r": 0, "g": 0, "b": 0}))
+        if "color" in payload:
+            color = normalize_rgb(payload["color"], field_name="color")
+
+        normalized: dict[str, Any] = {
+            "mode": mode,
+            "brightness": brightness,
+            "color": color,
+            "ledCount": self._led_count,
+        }
+
+        if mode == "vector":
+            if "pixels" in payload and "pixelSignals" in payload:
+                raise ValueError("Use either pixels or pixelSignals when mode=vector")
+            raw_pixels = payload.get("pixelSignals", payload.get("pixels"))
+            if raw_pixels is None:
+                raise ValueError("pixels or pixelSignals is required when mode=vector")
+            if not isinstance(raw_pixels, list) or len(raw_pixels) != self._led_count:
+                raise ValueError(f"pixels must contain exactly {self._led_count} LED entries")
+            pixels = [
+                normalize_led_pixel(
+                    pixel,
+                    field_name=f"pixels[{index}]",
+                    default_brightness=brightness,
+                )
+                for index, pixel in enumerate(raw_pixels)
+            ]
+        elif "pixels" in payload or "pixelSignals" in payload:
+            raise ValueError("pixels and pixelSignals are only supported when mode=vector")
+        elif mode == "off":
+            pixels = off_pixels(count=self._led_count)
+        else:
+            pixels = make_uniform_pixels(count=self._led_count, color=color, brightness=brightness)
+
+        normalized["pixels"] = [rgb_channels(pixel) for pixel in pixels]
+        normalized["pixelSignals"] = [pixel_signal(pixel) for pixel in pixels]
+        return normalized
+
     def apply_led(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
-            self._led_state = deepcopy(payload)
+            self._led_state = self._normalize_led_payload(payload)
             response = {
                 "ok": True,
-                "applied": deepcopy(payload),
+                "applied": deepcopy(self._led_state),
                 "led": deepcopy(self._led_state),
             }
         self._persist_state()
         return response
+
+    def apply_sensors(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            if "headCapacitive" not in payload:
+                raise ValueError("headCapacitive is required")
+            self._sensor_state["headCapacitive"] = normalize_binary_signal(
+                payload["headCapacitive"],
+                field_name="headCapacitive",
+            )
+            response = {"ok": True, "sensors": deepcopy(self._sensor_state)}
+        self._persist_state()
+        return response
+
+    def apply_device_state(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise ValueError("device state payload must be an object")
+
+        with self._lock:
+            if "servos" in payload:
+                servos = payload["servos"]
+                if not isinstance(servos, dict):
+                    raise ValueError("servos must be an object")
+                for key, value in servos.items():
+                    if key not in self._servos:
+                        raise ValueError(f"Unsupported servo field: {key}")
+                    self._servos[key] = coerce_int(value, field_name=key)
+
+            if "led" in payload:
+                if not isinstance(payload["led"], dict):
+                    raise ValueError("led must be an object")
+                self._led_state = self._normalize_led_payload(payload["led"])
+
+            if "sensors" in payload:
+                sensors = payload["sensors"]
+                if not isinstance(sensors, dict):
+                    raise ValueError("sensors must be an object")
+                if "headCapacitive" in sensors:
+                    self._sensor_state["headCapacitive"] = normalize_binary_signal(
+                        sensors["headCapacitive"],
+                        field_name="sensors.headCapacitive",
+                    )
+
+        self._persist_state()
+        return {"ok": True, "state": self.snapshot()}
 
     def start_action(self, payload: dict[str, Any]) -> dict[str, Any]:
         action_name = str(payload.get("name", "")).strip()
@@ -507,6 +725,17 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/sensors":
+                self._send_json(200, self.server.state.sensors_payload())
+                self.server.state.record_request(
+                    method="GET",
+                    path=path,
+                    payload=None,
+                    response_status=200,
+                    outcome="ok",
+                )
+                return
+
             if path == "/actions":
                 self._send_json(200, self.server.state.actions_payload())
                 self.server.state.record_request(
@@ -593,6 +822,18 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/sensors":
+                response = self.server.state.apply_sensors(body)
+                self._send_json(200, response)
+                self.server.state.record_request(
+                    method="POST",
+                    path=path,
+                    payload=body,
+                    response_status=200,
+                    outcome="ok",
+                )
+                return
+
             if path == "/action":
                 response = self.server.state.start_action(body)
                 self._send_json(200, response)
@@ -644,6 +885,11 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
                     clear_faults=bool(body.get("clearFaults", False)),
                 )
                 self._send_json(200, {"ok": True, "state": self.server.state.snapshot()})
+                return
+
+            if path == "/__admin/device-state":
+                response = self.server.state.apply_device_state(body)
+                self._send_json(200, response)
                 return
 
             self._send_json(404, {"ok": False, "error": "Unknown endpoint"})

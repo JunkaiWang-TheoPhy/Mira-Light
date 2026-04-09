@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "我听到你了，不过这个词我没太懂。 你想先聊会儿，还是直接说你想让我帮你做的事？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我听到你了，不过这个词我没太懂。 你想先聊会儿，还是直接说你想让我帮你做的事？",
+  "spokenText": "我听到你了，不过这个词我没太懂。 你想先聊会儿，还是直接说你想让我帮你做的事？"
+}

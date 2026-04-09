@@ -1,0 +1,59 @@
+{
+  "savedAt": "2026-04-09T16:32:18.389413",
+  "args": {
+    "mode": "continuous",
+    "device": "DJI MIC MINI",
+    "sampleRate": 48000,
+    "channels": 1,
+    "profile": "small",
+    "bridgeUrl": "http://127.0.0.1:9783",
+    "triggerDisabled": false,
+    "historyTurns": 4,
+    "replyBackend": "lingzhu",
+    "replyAgent": "mira-voice-spark",
+    "replyThinking": "off"
+  },
+  "session": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "你能怎么调这个小灯吗?",
+    "lastReplyText": "可以调这个小灯的亮度、颜色和场景模式，比如“温暖舒适”“聚会闪烁”“夜灯很暗”这种。 你直接跟我说你想要的氛围（比如更亮一点、要蓝色、要呼吸灯），我就帮你改。",
+    "startedAt": "2026-04-09T16:29:28.800229",
+    "lastActiveAt": "2026-04-09T16:32:17.081811",
+    "history": [
+      {
+        "role": "user",
+        "content": "iyoriyoriyor"
+      },
+      {
+        "role": "assistant",
+        "content": "我听到你了，不过这个词我没太懂。 你想先聊会儿，还是直接说你想让我帮你做的事？"
+      },
+      {
+        "role": "user",
+        "content": "好了,拜拜。"
+      },
+      {
+        "role": "assistant",
+        "content": "好的，晚安。 你随时回来我就会在，愿你今晚睡个好觉。"
+      },
+      {
+        "role": "user",
+        "content": "Hello Hello"
+      },
+      {
+        "role": "assistant",
+        "content": "欢迎回来。 你现在想聊聊天，还是让我先帮你把小灯调一调？"
+      },
+      {
+        "role": "user",
+        "content": "你能怎么调这个小灯吗?"
+      },
+      {
+        "role": "assistant",
+        "content": "可以调这个小灯的亮度、颜色和场景模式，比如“温暖舒适”“聚会闪烁”“夜灯很暗”这种。 你直接跟我说你想要的氛围（比如更亮一点、要蓝色、要呼吸灯），我就帮你改。"
+      }
+    ]
+  }
+}

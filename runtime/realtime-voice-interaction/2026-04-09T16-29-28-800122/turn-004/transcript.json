@@ -1,0 +1,38 @@
+{
+  "text": "你能够控制一个小灯。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 2.0,
+      "text": "你能够控制一个小灯。",
+      "tokens": [
+        50364,
+        2166,
+        8225,
+        1787,
+        253,
+        48707,
+        25491,
+        20182,
+        7322,
+        13290,
+        107,
+        1543,
+        50464
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.2772133009774344,
+      "compression_ratio": 0.7317073170731707,
+      "no_speech_prob": 0.3279503881931305
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "你能够控制一个小灯。",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

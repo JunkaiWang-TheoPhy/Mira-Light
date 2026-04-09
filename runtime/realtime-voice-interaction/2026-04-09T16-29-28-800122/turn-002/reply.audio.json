@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "懂。 你想说的是想让我先确认一下你现在的想法，是想让我继续吗？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "懂。 你想说的是想让我先确认一下你现在的想法，是想让我继续吗？",
+  "spokenText": "懂。 你想说的是想让我先确认一下你现在的想法，是想让我继续吗？"
+}

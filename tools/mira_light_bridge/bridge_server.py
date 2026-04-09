@@ -247,6 +247,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"ok": True, "data": self.server.runtime.get_led()})
                 return
 
+            if path == "/v1/mira-light/sensors":
+                self._send_json(200, {"ok": True, "data": self.server.runtime.get_sensors()})
+                return
+
             if path == "/v1/mira-light/actions":
                 self._send_json(200, {"ok": True, "data": self.server.runtime.get_actions()})
                 return
@@ -370,6 +374,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if path == "/v1/mira-light/led":
                 body = self._read_json_body()
                 self._send_json(200, {"ok": True, "data": self.server.runtime.set_led_state(body)})
+                return
+
+            if path == "/v1/mira-light/sensors":
+                body = self._read_json_body()
+                self._send_json(200, {"ok": True, "data": self.server.runtime.set_sensors_state(body)})
                 return
 
             if path == "/v1/mira-light/action":

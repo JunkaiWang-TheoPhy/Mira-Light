@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "我是米拉，陪着你聊天、帮你处理事情的 AI 助手。 你可以把我当作一个随时在这儿听你说话、帮你分担的小伙伴。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我是 Mira，陪着你聊天、帮你处理事情的 AI 助手。 你可以把我当作一个随时在这儿听你说话、帮你分担的小伙伴。",
+  "spokenText": "我是米拉，陪着你聊天、帮你处理事情的 AI 助手。 你可以把我当作一个随时在这儿听你说话、帮你分担的小伙伴。"
+}

@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "可以啊，我可以帮你控制小灯。 你想让我先帮你把灯调成哪种效果？比如舒缓、明亮或聚会模式。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "可以啊，我可以帮你控制小灯。 你想让我先帮你把灯调成哪种效果？比如舒缓、明亮或聚会模式。",
+  "spokenText": "可以啊，我可以帮你控制小灯。 你想让我先帮你把灯调成哪种效果？比如舒缓、明亮或聚会模式。"
+}

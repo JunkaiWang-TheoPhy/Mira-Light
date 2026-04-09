@@ -1,0 +1,102 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T16-29-28-800122/turn-001/input.wav",
+  "inputMeta": {
+    "inputDevice": {
+      "index": 3,
+      "name": "DJI MIC MINI",
+      "inputs": 2,
+      "defaultSamplerate": 48000.0
+    },
+    "captureMode": "continuous",
+    "vad": {
+      "startMs": 150,
+      "endMs": 650,
+      "minUtteranceMs": 400,
+      "maxUtteranceSeconds": 6.0,
+      "chunkMs": 50
+    }
+  },
+  "audioMetrics": {
+    "durationMs": 821.333,
+    "rms": 0.020109,
+    "peak": 0.105829
+  },
+  "transcript": "Hello Hello.",
+  "rawTranscript": "Hello Hello.",
+  "normalizationApplied": false,
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "intent": "chat",
+  "sessionMode": "chat",
+  "memoryPolicy": {
+    "briefGreeting": false,
+    "additionalUserIdsRequested": "mira-light-bridge",
+    "additionalUserIdsUsed": "mira-light-bridge"
+  },
+  "triggerResult": {
+    "ok": true,
+    "skipped": true,
+    "reason": "no-mapped-action"
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "你是 Mira。你是一个温柔、简短、自然的中文陪伴角色。你正在展位现场通过灯光和动作陪伴用户。请优先延续最近几轮上下文。如果用户表达疲惫、难受或低落，优先给出温和安慰。如果用户在告别，请自然收尾。请用简体中文自然回复。尽量只用 1 到 2 句。不要使用 emoji 或表情符号。不要长篇解释。\n当前会话模式是普通陪伴聊天。\n最近一次识别到的意图是 chat。最近一次触发的场景是 none。"
+    },
+    {
+      "role": "user",
+      "content": "Hello Hello."
+    }
+  ],
+  "replyBackend": "lingzhu-live-adapter",
+  "replyText": "你好呀，我在这儿。今天过得怎么样？",
+  "rawReplyText": "你好呀，我在这儿。今天过得怎么样？",
+  "emojiStripped": false,
+  "apiMeta": {
+    "provider": "lingzhu-live-adapter",
+    "model": "openclaw",
+    "agent": "main",
+    "userId": "mira-light-live-20260409162928800224",
+    "sessionId": "mira-light-live-20260409162928800224",
+    "additionalUserIds": [
+      "mira-light-bridge"
+    ]
+  },
+  "audioResult": {
+    "ok": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+      "--voice",
+      "zh-CN-XiaoyiNeural",
+      "--lang",
+      "zh-CN",
+      "--rate",
+      "+8%",
+      "你好呀，我在这儿。今天过得怎么样？"
+    ],
+    "description": "speech:tts",
+    "stdout": "",
+    "stderr": "",
+    "requestedText": "你好呀，我在这儿。今天过得怎么样？",
+    "spokenText": "你好呀，我在这儿。今天过得怎么样？"
+  },
+  "sessionState": {
+    "mode": "chat",
+    "lastIntent": "chat",
+    "lastScene": null,
+    "lastUserText": "Hello Hello.",
+    "lastReplyText": "你好呀，我在这儿。今天过得怎么样？",
+    "startedAt": "2026-04-09T16:29:28.800229",
+    "lastActiveAt": "2026-04-09T16:29:32.999117",
+    "history": [
+      {
+        "role": "user",
+        "content": "Hello Hello."
+      },
+      {
+        "role": "assistant",
+        "content": "你好呀，我在这儿。今天过得怎么样？"
+      }
+    ]
+  }
+}

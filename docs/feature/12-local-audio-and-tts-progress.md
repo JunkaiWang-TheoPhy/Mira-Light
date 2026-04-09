@@ -32,6 +32,33 @@
 - `speaker-hp-openclaw-tts-play`
 - `speaker-hp-openclaw-tts-file`
 
+## New Runtime-Level Packaging
+
+这轮之后，机器级 TTS helper 已经进一步收口成实时语音链里的正式 voice mode。
+
+当前默认和新增模式是：
+
+- `gentle_sister`
+  - `zh-CN-XiaoyiNeural`
+  - `rate -12%`
+  - `pitch -20%`
+- `warm_gentleman`
+  - `zh-CN-YunxiNeural`
+  - `rate -6%`
+  - `pitch -6%`
+
+实时入口现在可以直接使用：
+
+```bash
+scripts/run_mira_realtime_voice_interaction.sh --voice-mode gentle_sister
+scripts/run_mira_realtime_voice_interaction.sh --voice-mode warm_gentleman
+```
+
+旧别名仍兼容：
+
+- `female` -> `gentle_sister`
+- `male` -> `warm_gentleman`
+
 ## Why This Matters
 
 这层能力的意义不只是“能出声音”，而是：
@@ -52,7 +79,7 @@
 
 所以更准确的表述是：
 
-仓库现在已经把本机可用的音频/TTS 扩展路径记录下来了，但它仍然是一条 machine-specific extension。
+仓库现在已经把本机可用的音频/TTS 扩展路径记录下来了，而且已经把其中最常用的 booth 人设音色正式封装成实时 voice mode。
 
 它现在也可以成为 formal speak path 的底座，但那是下一层能力，不是这篇文档的重点。
 

@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-YunxiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "-6%",
+    "--pitch",
+    "-6%",
+    "你好呀，见到你很高兴。想聊点什么？"
+  ],
+  "description": "speech:warm_gentleman",
+  "requestedText": "你好呀，见到你很高兴。想聊点什么？",
+  "spokenText": "你好呀，见到你很高兴。想聊点什么？"
+}

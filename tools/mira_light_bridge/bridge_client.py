@@ -125,6 +125,9 @@ class MiraLightBridgeClient:
     def get_led(self) -> Any:
         return self._request("GET", "/v1/mira-light/led")
 
+    def get_sensors(self) -> Any:
+        return self._request("GET", "/v1/mira-light/sensors")
+
     def get_actions(self) -> Any:
         return self._request("GET", "/v1/mira-light/actions")
 
@@ -211,7 +214,7 @@ class MiraLightBridgeClient:
         mode: str,
         brightness: int | None = None,
         color: dict[str, int] | None = None,
-        pixels: list[dict[str, int]] | None = None,
+        pixels: list[dict[str, int] | list[int]] | None = None,
     ) -> Any:
         payload = _drop_none(
             {
@@ -222,6 +225,9 @@ class MiraLightBridgeClient:
             }
         )
         return self._request("POST", "/v1/mira-light/led", payload)
+
+    def set_sensors(self, *, head_capacitive: int) -> Any:
+        return self._request("POST", "/v1/mira-light/sensors", {"headCapacitive": head_capacitive})
 
     def run_action(self, name: str, *, loops: int = 1) -> Any:
         return self._request("POST", "/v1/mira-light/action", {"name": name, "loops": loops})

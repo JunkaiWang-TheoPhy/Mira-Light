@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "没事，别急，我们慢慢来。 你刚才是想说“想控制小灯”，我在这儿，直接告诉我你要什么状态就行。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "没事，别急，我们慢慢来。 你刚才是想说“想控制小灯”，我在这儿，直接告诉我你要什么状态就行。",
+  "spokenText": "没事，别急，我们慢慢来。 你刚才是想说“想控制小灯”，我在这儿，直接告诉我你要什么状态就行。"
+}

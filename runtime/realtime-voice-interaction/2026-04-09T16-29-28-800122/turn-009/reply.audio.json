@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "欢迎回来。 你现在想聊聊天，还是让我先帮你把小灯调一调？"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "欢迎回来。 你现在想聊聊天，还是让我先帮你把小灯调一调？",
+  "spokenText": "欢迎回来。 你现在想聊聊天，还是让我先帮你把小灯调一调？"
+}

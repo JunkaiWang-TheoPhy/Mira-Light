@@ -31,6 +31,7 @@
 12. [Vision + Runtime + Scene 5-Minute Integration Checklist](./23-vision-runtime-scene-5-minute-integration-checklist.md)
 13. [Vision Validation Checklist Index](./24-vision-validation-checklist-index.md)
 14. [On-Site Troubleshooting Decision Tree](./25-on-site-troubleshooting-decision-tree.md)
+15. [Realtime Voice Dialogue, Lingzhu Memory, and Voice Mode Progress](./26-realtime-voice-dialogue-lingzhu-and-voice-mode-progress.md)
 10. [Bus Servo Protocol and Four-Joint Mapping Memo](./21-bus-servo-protocol-and-four-joint-mapping-memo.md)
 11. [Bus Servo Adapter Architecture and Scene Design](./22-bus-servo-adapter-architecture-and-scene-design.md)
 12. [OpenClaw Plugin, Bridge API, and OpenAPI Draft](./23-openclaw-plugin-bridge-api-layering-and-openapi-draft.md)
@@ -77,4 +78,5 @@
 - 云端大脑延迟评估与本地热枢纽部署建议
 - 完整本地部署、数据不出本地与高安全边界建议
 - 本机语音转文本与 Claw 语音入口
+- 完整实时语音对话、远端 Lingzhu prompt-pack 与 voice mode
 - 控制安全护栏、clamp / reject 行为与 OpenClaw 回滚闭环

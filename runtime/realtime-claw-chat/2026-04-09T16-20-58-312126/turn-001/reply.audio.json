@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "你好呀，我在这儿。有什么我可以先帮你的？"
+  ],
+  "description": "speech:tts",
+  "requestedText": "你好呀，我在这儿。有什么我可以先帮你的？",
+  "spokenText": "你好呀，我在这儿。有什么我可以先帮你的？"
+}

@@ -12,9 +12,18 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from mira_realtime_voice_interaction import low_energy_skip_reason, repetitive_transcript_details
+from mira_voice_intents import is_brief_greeting
 
 
 class RealtimeVoiceRuntimeFiltersTest(unittest.TestCase):
+    def test_brief_greeting_is_detected(self) -> None:
+        self.assertTrue(is_brief_greeting("你好。"))
+        self.assertTrue(is_brief_greeting("hello!"))
+
+    def test_non_greeting_is_not_detected_as_brief_greeting(self) -> None:
+        self.assertFalse(is_brief_greeting("你好，我今天有点累。"))
+        self.assertFalse(is_brief_greeting("你是谁"))
+
     def test_low_energy_continuous_utterance_is_skipped(self) -> None:
         reason = low_energy_skip_reason(
             {"captureMode": "continuous"},

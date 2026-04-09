@@ -22,7 +22,7 @@ import urllib.request
 from mira_lingzhu_client import send_via_lingzhu_messages
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
-from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent
+from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent, is_brief_greeting
 import numpy as np
 import sounddevice as sd
 
@@ -49,7 +49,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RUNTIME_DIR = ROOT / "runtime" / "realtime-voice-interaction"
 DEFAULT_CAPTURE_SAMPLE_RATE = 48000
 DEFAULT_CHANNELS = 1
-DEFAULT_VOICE = "tts"
+DEFAULT_VOICE_MODE = "gentle_sister"
 DEFAULT_TIMEOUT = 45
 DEFAULT_MODE = "continuous"
 DEFAULT_HISTORY_TURNS = 4
@@ -279,6 +279,7 @@ def send_reply(
     *,
     session: ConversationSession,
     args: argparse.Namespace,
+    additional_user_ids: str | list[str] | tuple[str, ...] | None,
 ) -> tuple[str, dict[str, Any], str]:
     if args.reply_backend == "lingzhu":
         text, meta = send_via_lingzhu_messages(
@@ -288,7 +289,7 @@ def send_reply(
             agent_id=args.lingzhu_agent_id,
             user_id=args.lingzhu_user_id or session.conversation_id,
             session_id=session.conversation_id,
-            additional_user_ids=args.lingzhu_additional_user_ids,
+            additional_user_ids=additional_user_ids,
             timeout_seconds=args.timeout,
         )
         return text, meta, "lingzhu-live-adapter"
@@ -714,6 +715,15 @@ def run_turn(
     update_session_mode(session, intent)
     result["intent"] = intent
     result["sessionMode"] = session.mode
+    is_greeting_turn = intent == "chat" and is_brief_greeting(transcript)
+    lingzhu_additional_user_ids: str | list[str] | tuple[str, ...] | None = args.lingzhu_additional_user_ids
+    if args.reply_backend == "lingzhu" and is_greeting_turn:
+        lingzhu_additional_user_ids = []
+    result["memoryPolicy"] = {
+        "briefGreeting": is_greeting_turn,
+        "additionalUserIdsRequested": args.lingzhu_additional_user_ids,
+        "additionalUserIdsUsed": lingzhu_additional_user_ids,
+    }
 
     try:
         trigger_result = maybe_trigger_mira_action(session, intent=intent, transcript=transcript, args=args)
@@ -725,7 +735,12 @@ def run_turn(
     result["messages"] = messages
 
     try:
-        raw_reply_text, api_meta, reply_backend = send_reply(messages, session=session, args=args)
+        raw_reply_text, api_meta, reply_backend = send_reply(
+            messages,
+            session=session,
+            args=args,
+            additional_user_ids=lingzhu_additional_user_ids,
+        )
     except Exception as exc:  # noqa: BLE001
         raw_reply_text = fallback_reply_for_intent(intent)
         api_meta = {"provider": "fallback", "error": str(exc), "payload": {"fallback": True, "intent": intent}}
@@ -742,7 +757,7 @@ def run_turn(
     result["apiMeta"] = {k: v for k, v in api_meta.items() if k != "payload"}
 
     if reply_text:
-        audio_result = audio_player.speak_text(reply_text, voice=args.voice, wait=True)
+        audio_result = audio_player.speak_text(reply_text, voice=args.voice_mode, wait=True)
         write_json(turn_dir / "reply.audio.json", audio_result)
         result["audioResult"] = audio_result
 
@@ -786,7 +801,14 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("MIRA_LIGHT_LINGZHU_ADDITIONAL_USER_IDS", "mira-light-bridge"),
         help="Comma-separated additional user ids for Lingzhu prompt-pack memory.",
     )
-    parser.add_argument("--voice", default=DEFAULT_VOICE, help="Audio voice mode for speaker playback.")
+    parser.add_argument(
+        "--voice-mode",
+        dest="voice_mode",
+        default=os.environ.get("MIRA_LIGHT_TTS_MODE", DEFAULT_VOICE_MODE),
+        choices=["gentle_sister", "warm_gentleman", "female", "male"],
+        help="Audio voice mode for speaker playback.",
+    )
+    parser.add_argument("--voice", dest="voice_mode", choices=["gentle_sister", "warm_gentleman", "female", "male"], help=argparse.SUPPRESS)
     parser.add_argument("--runtime-dir", default=str(DEFAULT_RUNTIME_DIR), help="Directory for saved session artifacts.")
     parser.add_argument("--history-turns", type=int, default=DEFAULT_HISTORY_TURNS, help="How many recent turns to keep in context.")
     parser.add_argument("--idle-timeout-seconds", type=float, default=DEFAULT_IDLE_TIMEOUT_SECONDS, help="How long continuous mode waits without speech before ending the session.")

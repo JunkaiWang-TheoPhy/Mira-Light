@@ -1,0 +1,294 @@
+{
+  "ok": true,
+  "text": "欢迎回来。  \n你现在想聊聊天，还是让我先帮你把小灯调一调？",
+  "sessionKey": "agent:main:mira-lingzhu-prod_mira-light-live-20260409162928800224",
+  "promptPack": {
+    "explicitMemories": [],
+    "embodiedMemories": [
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'celebrate' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"celebrate\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T16:21:22+08:00\",\"lastFinishedAt\":\"2026-04-09T16:21:26+08:00\",\"lastFinishedScene\":\"celebrate\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:neutral\",\"deviceOnline\":null,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T16:21:26+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:celebrate\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:celebrate:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T08:21:27.068Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "celebrate",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T16:21:22+08:00",
+            "lastFinishedAt": "2026-04-09T16:21:26+08:00",
+            "lastFinishedScene": "celebrate",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:neutral",
+            "deviceOnline": null,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T16:21:26+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:celebrate",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:celebrate:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'celebrate' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"celebrate\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:celebrate\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:celebrate:failed\"]",
+        "expires_at": "2026-04-09T17:21:26+08:00",
+        "updated_at": "2026-04-09T08:21:27.068Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "celebrate",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:celebrate",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:celebrate:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "episodic",
+        "kind": "execution_outcome",
+        "content": "Mira Light scene 'celebrate' finished with status 'failed'. Error: timed out",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"celebrate\",\"status\":\"failed\",\"error\":\"timed out\",\"runtimeState\":{\"baseUrl\":\"http://172.20.10.3\",\"dryRun\":false,\"running\":false,\"runningScene\":null,\"lastError\":\"timed out\",\"lastStartedAt\":\"2026-04-09T16:17:38+08:00\",\"lastFinishedAt\":\"2026-04-09T16:17:42+08:00\",\"lastFinishedScene\":\"celebrate\",\"currentStepIndex\":null,\"currentStepTotal\":null,\"currentStepLabel\":null,\"currentStepType\":null,\"lastCommand\":\"pose:neutral\",\"deviceOnline\":null,\"lastStatusAt\":null,\"sceneCount\":13,\"cueMode\":\"scene\",\"sceneContext\":{},\"lastSceneContext\":{},\"lastTrigger\":null,\"autoRecoverPose\":\"\",\"trackingActive\":false,\"trackingLastUpdateAt\":null,\"trackingTarget\":{}},\"observedAt\":\"2026-04-09T16:17:42+08:00\"}",
+        "confidence": 0.96,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"scene:celebrate\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:celebrate:failed\"]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T08:17:43.391Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "celebrate",
+          "status": "failed",
+          "error": "timed out",
+          "runtimeState": {
+            "baseUrl": "http://172.20.10.3",
+            "dryRun": false,
+            "running": false,
+            "runningScene": null,
+            "lastError": "timed out",
+            "lastStartedAt": "2026-04-09T16:17:38+08:00",
+            "lastFinishedAt": "2026-04-09T16:17:42+08:00",
+            "lastFinishedScene": "celebrate",
+            "currentStepIndex": null,
+            "currentStepTotal": null,
+            "currentStepLabel": null,
+            "currentStepType": null,
+            "lastCommand": "pose:neutral",
+            "deviceOnline": null,
+            "lastStatusAt": null,
+            "sceneCount": 13,
+            "cueMode": "scene",
+            "sceneContext": {},
+            "lastSceneContext": {},
+            "lastTrigger": null,
+            "autoRecoverPose": "",
+            "trackingActive": false,
+            "trackingLastUpdateAt": null,
+            "trackingTarget": {}
+          },
+          "observedAt": "2026-04-09T16:17:42+08:00"
+        },
+        "tags": [
+          "mira-light",
+          "scene:celebrate",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:celebrate:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light scene 'celebrate' most recently ended with status 'failed'. Check bridge/device state before retrying.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"sceneName\":\"celebrate\",\"status\":\"failed\",\"error\":\"timed out\"}",
+        "confidence": 1,
+        "salience": 0.95,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"working\",\"scene:celebrate\",\"status:failed\"]",
+        "evidence_refs_json": "[\"mira-light:scene:celebrate:failed\"]",
+        "expires_at": "2026-04-09T17:17:42+08:00",
+        "updated_at": "2026-04-09T08:17:43.391Z",
+        "structured_value": {
+          "system": "mira-light",
+          "sceneName": "celebrate",
+          "status": "failed",
+          "error": "timed out"
+        },
+        "tags": [
+          "mira-light",
+          "working",
+          "scene:celebrate",
+          "status:failed"
+        ],
+        "evidence_refs": [
+          "mira-light:scene:celebrate:failed"
+        ]
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light 刚刚完成了 welcome 灯光动作，当前状态稳定。",
+        "structured_value_json": null,
+        "confidence": null,
+        "salience": 0.92,
+        "sensitivity": null,
+        "tags_json": "[\"mira-light\",\"scene:welcome\"]",
+        "evidence_refs_json": "[]",
+        "expires_at": null,
+        "updated_at": "2026-04-09T07:22:24.582Z",
+        "structured_value": null,
+        "tags": [
+          "mira-light",
+          "scene:welcome"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "user_id": "mira-light-bridge",
+        "layer": "working",
+        "kind": "scene_state",
+        "content": "Mira Light device 'mira-light-local' reported status, scene=comfort, playing=False, ledMode=breathing.",
+        "structured_value_json": "{\"system\":\"mira-light\",\"reportType\":\"status\",\"deviceId\":\"mira-light-local\",\"payload\":{\"deviceId\":\"mira-light-local\",\"scene\":\"comfort\",\"playing\":false,\"ledMode\":\"breathing\"},\"stored\":{\"stored\":true,\"deviceId\":\"mira-light-local\",\"reportType\":\"status\",\"inboxPath\":\"/Users/huhulitong/Documents/Mira-Light-Runtime/inbox/2026-04-09/2026-04-09T15-41-59_mira-light-local_status.json\"}}",
+        "confidence": 0.86,
+        "salience": 0.72,
+        "sensitivity": "normal",
+        "tags_json": "[\"mira-light\",\"device-status\",\"device:mira-light-local\"]",
+        "evidence_refs_json": "[\"mira-light:device:mira-light-local:status\"]",
+        "expires_at": "2026-04-09T15:56:59+08:00",
+        "updated_at": "2026-04-09T07:41:59.991Z",
+        "structured_value": {
+          "system": "mira-light",
+          "reportType": "status",
+          "deviceId": "mira-light-local",
+          "payload": {
+            "deviceId": "mira-light-local",
+            "scene": "comfort",
+            "playing": false,
+            "ledMode": "breathing"
+          },
+          "stored": {
+            "stored": true,
+            "deviceId": "mira-light-local",
+            "reportType": "status",
+            "inboxPath": "/Users/huhulitong/Documents/Mira-Light-Runtime/inbox/2026-04-09/2026-04-09T15-41-59_mira-light-local_status.json"
+          }
+        },
+        "tags": [
+          "mira-light",
+          "device-status",
+          "device:mira-light-local"
+        ],
+        "evidence_refs": [
+          "mira-light:device:mira-light-local:status"
+        ]
+      }
+    ],
+    "sessionNotes": [
+      {
+        "user_id": "mira-light-bridge",
+        "session_id": "mira-light-runtime",
+        "note": {
+          "title": "Mira Light runtime · celebrate",
+          "currentState": "Mira Light scene 'celebrate' failed during execution.",
+          "nextStep": "Inspect bridge, device, and runtime state before retrying this scene.",
+          "taskSpec": "Run and monitor Mira Light scene 'celebrate' within the embodied booth runtime.",
+          "relevantFiles": [
+            "scripts/scenes.py",
+            "scripts/mira_light_runtime.py",
+            "docs/mira-light-scene-implementation-index.md"
+          ],
+          "errors": [
+            "timed out"
+          ],
+          "keyResults": [
+            "2026-04-09T16:21:27+08:00 scene=celebrate phase=failed",
+            "2026-04-09T16:21:22+08:00 scene=celebrate phase=started",
+            "2026-04-09T16:17:43+08:00 scene=celebrate phase=failed",
+            "2026-04-09T16:17:38+08:00 scene=celebrate phase=started"
+          ],
+          "worklog": [
+            "2026-04-09T16:21:27+08:00 scene 'celebrate' -> failed",
+            "2026-04-09T16:21:22+08:00 scene 'celebrate' -> started",
+            "2026-04-09T16:17:43+08:00 scene 'celebrate' -> failed",
+            "2026-04-09T16:17:38+08:00 scene 'celebrate' -> started"
+          ]
+        },
+        "updated_at": "2026-04-09T08:21:28.419Z"
+      }
+    ],
+    "additionalUserIds": [
+      "mira-light-bridge"
+    ]
+  },
+  "upstream": {
+    "id": "chatcmpl_86b5426d-35f3-4392-a1a9-ebfb5fabb4cc",
+    "object": "chat.completion",
+    "created": 1775723504,
+    "model": "openclaw",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "欢迎回来。  \n你现在想聊聊天，还是让我先帮你把小灯调一调？"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    }
+  }
+}

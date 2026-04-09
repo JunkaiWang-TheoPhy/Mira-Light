@@ -1,0 +1,38 @@
+{
+  "text": "你能怎么调这个小灯吗?",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 2.0,
+      "text": "你能怎么调这个小灯吗?",
+      "tokens": [
+        50364,
+        2166,
+        8225,
+        15282,
+        8897,
+        225,
+        15368,
+        7322,
+        13290,
+        107,
+        14769,
+        30,
+        50464
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.3176443236214774,
+      "compression_ratio": 0.7380952380952381,
+      "no_speech_prob": 0.3168999254703522
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "你能怎么调这个小灯吗?",
+  "normalizationApplied": false,
+  "captureMode": "continuous",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。"
+}

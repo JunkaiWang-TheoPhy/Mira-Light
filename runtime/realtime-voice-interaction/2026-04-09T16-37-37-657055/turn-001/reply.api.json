@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "text": "你好呀。很高兴见到你，今天过得怎么样？我在这里陪着你。",
+  "sessionKey": "agent:main:mira-lingzhu-prod_mira-light-live-20260409163737657398",
+  "promptPack": {
+    "explicitMemories": [],
+    "embodiedMemories": [],
+    "sessionNotes": [],
+    "additionalUserIds": []
+  },
+  "upstream": {
+    "id": "chatcmpl_c095784c-0756-4dd9-a0ae-546d40be49e8",
+    "object": "chat.completion",
+    "created": 1775723862,
+    "model": "openclaw",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "你好呀。很高兴见到你，今天过得怎么样？我在这里陪着你。"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    }
+  }
+}

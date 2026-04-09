@@ -1,0 +1,44 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T16-46-04-070202/turn-001/input.wav",
+  "transcript": "你好。",
+  "rawTranscript": "你好。",
+  "normalizationApplied": false,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sourceFile": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-voice-interaction/2026-04-09T13-06-20-940875/turn-001/input.wav",
+  "agentMessage": "请用简短自然的中文回复，不要使用 emoji 或表情符号。\n\n用户刚刚说：你好。",
+  "memoryPolicy": {
+    "briefGreeting": true,
+    "additionalUserIdsRequested": "mira-light-bridge",
+    "additionalUserIdsUsed": "mira-light-bridge"
+  },
+  "replyBackend": "openclaw-agent",
+  "replyText": "你好呀，见到你很高兴。想聊点什么？",
+  "rawReplyText": "你好呀，见到你很高兴。想聊点什么？",
+  "emojiStripped": false,
+  "apiMeta": {
+    "provider": "openai-codex",
+    "model": "gpt-5.3-codex-spark",
+    "agent": "mira-voice-spark",
+    "thinking": "off"
+  },
+  "audioResult": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+      "--voice",
+      "zh-CN-YunxiNeural",
+      "--lang",
+      "zh-CN",
+      "--rate",
+      "-6%",
+      "--pitch",
+      "-6%",
+      "你好呀，见到你很高兴。想聊点什么？"
+    ],
+    "description": "speech:warm_gentleman",
+    "requestedText": "你好呀，见到你很高兴。想聊点什么？",
+    "spokenText": "你好呀，见到你很高兴。想聊点什么？"
+  }
+}

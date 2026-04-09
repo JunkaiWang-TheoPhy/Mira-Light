@@ -153,6 +153,50 @@
 - 多工具调用或复杂推理：常见总等待约 `3s - 6s+`
 - 高频闭环或连续细控制：体感通常仍然不够自然
 
+## Current Realtime Voice Interpretation
+
+在 `2026-04-09` 这一轮集成里，实时 booth 对话链已经采用：
+
+```text
+local VAD + local Whisper
+-> local SSH tunnel
+-> remote Lingzhu live adapter
+-> remote OpenClaw / Spark
+-> local TTS playback
+```
+
+因此，用户当前实际感受到的等待时间不只来自云端模型，还来自：
+
+- 本地 VAD 等句尾静默
+- 本地 STT
+- 远端 prompt-pack / reply
+- 本地 TTS 同步播放前等待
+
+当前代码里最像“固定税”的参数是：
+
+- `vad-end-ms = 650`
+- `AudioCuePlayer.speak_text(..., wait=True)`
+
+这意味着，哪怕网络质量稳定，完整回路里仍然有两段机器级延迟会稳定叠加在体感上。
+
+## Highest-Value Low-Latency Knobs
+
+对于当前这条实时 booth 链路，最值得优先尝试的优化不是先换模型，而是先动下面几项：
+
+1. 更快切句  
+   建议先试把 `vad-end-ms` 从 `650` 降到 `350-450`
+
+2. 更轻的本地 STT profile  
+   短句场景可优先试 `--profile fast`
+
+3. 收紧上下文与 prompt-pack  
+   减少非必要的 history turn 与 stale memory
+
+4. 让回复更短  
+   booth 现场更需要先开口，而不是多说半句
+
+这类调整往往比“单纯换更大的云模型”更能直接改善体感。
+
 ## What Cloud Brain Is Good At
 
 在当前链路质量下，把云端作为以下能力的承载层是合理的：

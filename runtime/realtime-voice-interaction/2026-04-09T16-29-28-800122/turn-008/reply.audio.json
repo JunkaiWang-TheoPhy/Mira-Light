@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-tts-play",
+    "--voice",
+    "zh-CN-XiaoyiNeural",
+    "--lang",
+    "zh-CN",
+    "--rate",
+    "+8%",
+    "好的，晚安。 你随时回来我就会在，愿你今晚睡个好觉。"
+  ],
+  "description": "speech:tts",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "好的，晚安。 你随时回来我就会在，愿你今晚睡个好觉。",
+  "spokenText": "好的，晚安。 你随时回来我就会在，愿你今晚睡个好觉。"
+}

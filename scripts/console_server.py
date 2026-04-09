@@ -195,6 +195,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/led")
             return
 
+        if path == "/api/sensors":
+            self._proxy_json("GET", "/v1/mira-light/sensors")
+            return
+
         if path == "/api/actions":
             self._proxy_json("GET", "/v1/mira-light/actions")
             return
@@ -278,10 +282,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             body = self._read_json_body()
             state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
             self._send_json(200, {"ok": True, "state": state})
-        if path == "/api/vision-operator":
-            body = self._read_json_body()
-            state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
-            self._send_json(200, {"ok": True, "state": state})
+            return
+
+        if path == "/api/sensors":
+            self._proxy_json("POST", "/v1/mira-light/sensors", self._read_json_body())
             return
 
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})

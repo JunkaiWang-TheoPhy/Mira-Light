@@ -246,13 +246,17 @@ class MinimalSmokeTest(unittest.TestCase):
     def test_runtime_validates_led_vector_payload(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
         pixels = [{"r": index, "g": 255 - index, "b": 32} for index in range(40)]
+        rgba_pixels = [[index, 255 - index, 32, 180] for index in range(40)]
 
         accepted = runtime.set_led_state({"mode": "vector", "brightness": 180, "pixels": pixels})
         self.assertEqual(accepted["payload"]["mode"], "vector")
         self.assertEqual(len(accepted["payload"]["pixels"]), 40)
         self.assertEqual(accepted["payload"]["pixels"][0], {"r": 0, "g": 255, "b": 32})
 
-        with self.assertRaisesRegex(RuntimeError, "exactly 40 RGB entries"):
+        accepted = runtime.set_led_state({"mode": "vector", "pixels": rgba_pixels})
+        self.assertEqual(accepted["payload"]["pixels"][0], {"r": 0, "g": 255, "b": 32, "brightness": 180})
+
+        with self.assertRaisesRegex(RuntimeError, "exactly 40"):
             runtime.set_led_state({"mode": "vector", "pixels": pixels[:10]})
 
         with self.assertRaisesRegex(RuntimeError, "between 0 and 255"):
@@ -280,7 +284,7 @@ class MinimalSmokeTest(unittest.TestCase):
                 self.assertEqual(status, 400)
                 self.assertIn("rehearsal_range", blocked["error"])
 
-                pixels = [{"r": 12, "g": 34, "b": 56} for _ in range(40)]
+                pixels = [[12, 34, 56, 120] for _ in range(40)]
                 status, accepted = request_json(
                     f"{base_url}/v1/mira-light/led",
                     method="POST",
@@ -288,6 +292,7 @@ class MinimalSmokeTest(unittest.TestCase):
                 )
                 self.assertEqual(status, 200)
                 self.assertEqual(len(accepted["data"]["payload"]["pixels"]), 40)
+                self.assertEqual(accepted["data"]["payload"]["pixels"][0]["brightness"], 120)
             finally:
                 server.shutdown()
                 server.server_close()

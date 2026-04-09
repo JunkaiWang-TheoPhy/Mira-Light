@@ -69,7 +69,24 @@
 
 这意味着“写 memory”已经不是假设，而是现成能力。
 
-### 2. The Full Loop Is Designed, but Not Fully Closed
+### 2. The Full Loop Has Entered A First Live Closure
+
+在 `2026-04-09` 这轮集成后，`Mira-Light` 已经不只是“能写 memory”。
+
+当前验证机器上已经实际跑通：
+
+```text
+Mira-Light bridge
+-> remote memory-context
+-> prompt-pack
+-> Lingzhu live adapter
+-> remote Spark reply
+-> local realtime voice runtime
+```
+
+也就是说，`Mira-Light` 产生的 embodied memory 已经能真实影响当前回复链，而不是只停留在“未来可接入”的设计层。
+
+### 3. But Memory Relevance Still Needs Guardrails
 
 当前目标闭环已经很清楚：
 
@@ -83,10 +100,20 @@ Mira-Light scene / device / vision event
 -> Mira-Light runtime / bridge
 ```
 
+这次联调也暴露出一个非常具体的问题：
+
+- 如果把设备状态和 scene note 无差别地注入给每一轮回复
+- 模型会在很弱的用户输入下过度脑补用户状态
+
+因此当前已经补上的 guardrail 包括：
+
+- 简短问候轮禁用 embodied memory 推断
+- 允许在请求层显式清空 `additionalUserIds`
+
 但现在仍然要严谨地区分：
 
-- `已具备`：memory write、session skeleton、prompt-pack-ready writer 设计
-- `未完全闭环`：continuous context capture、timing-aware proactivity、完整 session-state 驱动 execution
+- `已具备`：memory write、session skeleton、prompt-pack live integration、greeting guardrail
+- `未完全闭环`：会话级 writer、continuous context capture、timing-aware proactivity、完整 session-state 驱动 execution
 
 ## Why This Progress Matters
 
@@ -112,8 +139,8 @@ Mira-Light scene / device / vision event
 
 所以更准确的表述是：
 
-`Mira-Light` 已经开始接入上下文、记忆与 prompt-pack 体系，但主动性本身仍然主要
-停留在“架构已定义、基础底座已开始落地”的阶段。
+`Mira-Light` 已经开始接入上下文、记忆与 prompt-pack 体系，而且第一条 live reply loop 已经打通。
+但主动性本身仍然主要停留在“基础闭环已成立、记忆相关性与时机控制仍在继续收敛”的阶段。
 
 ## Recommended External Framing
 

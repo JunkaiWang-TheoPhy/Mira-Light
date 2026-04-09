@@ -78,9 +78,16 @@ def _coerce_int(value: Any, *, field_name: str) -> int:
     return int(value)
 
 
-def _normalize_rgb_triplet(value: Any, *, field_name: str) -> dict[str, int]:
+def _normalize_rgb_triplet(
+    value: Any,
+    *,
+    field_name: str,
+    allow_brightness: bool = False,
+) -> dict[str, int]:
     if isinstance(value, dict):
         allowed = {"r", "g", "b"}
+        if allow_brightness:
+            allowed.add("brightness")
         unknown = sorted(set(value) - allowed)
         if unknown:
             raise PayloadValidationError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
@@ -90,17 +97,29 @@ def _normalize_rgb_triplet(value: Any, *, field_name: str) -> dict[str, int]:
         red = _coerce_int(value["r"], field_name=f"{field_name}.r")
         green = _coerce_int(value["g"], field_name=f"{field_name}.g")
         blue = _coerce_int(value["b"], field_name=f"{field_name}.b")
-    elif isinstance(value, (list, tuple)) and len(value) == 3:
+        brightness = None
+        if allow_brightness and "brightness" in value:
+            brightness = _coerce_int(value["brightness"], field_name=f"{field_name}.brightness")
+    elif isinstance(value, (list, tuple)) and len(value) in {3, 4 if allow_brightness else 3}:
         red = _coerce_int(value[0], field_name=f"{field_name}[0]")
         green = _coerce_int(value[1], field_name=f"{field_name}[1]")
         blue = _coerce_int(value[2], field_name=f"{field_name}[2]")
+        brightness = None
+        if allow_brightness and len(value) == 4:
+            brightness = _coerce_int(value[3], field_name=f"{field_name}[3]")
     else:
+        if allow_brightness:
+            raise PayloadValidationError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
         raise PayloadValidationError(f"{field_name} must be an RGB object or 3-value vector")
 
     normalized = {"r": red, "g": green, "b": blue}
     for channel_name, channel_value in normalized.items():
         if not 0 <= channel_value <= 255:
             raise PayloadValidationError(f"{field_name}.{channel_name} must be between 0 and 255")
+    if brightness is not None:
+        if not 0 <= brightness <= 255:
+            raise PayloadValidationError(f"{field_name}.brightness must be between 0 and 255")
+        normalized["brightness"] = brightness
     return normalized
 
 
@@ -194,11 +213,17 @@ class MiraLightClient:
     def get_led(self) -> Any:
         return self._request("GET", "/led")
 
+    def get_sensors(self) -> Any:
+        return self._request("GET", "/sensors")
+
     def get_actions(self) -> Any:
         return self._request("GET", "/actions")
 
     def set_led(self, payload: Dict[str, Any]) -> Any:
         return self._request("POST", "/led", payload)
+
+    def set_sensors(self, payload: Dict[str, Any]) -> Any:
+        return self._request("POST", "/sensors", payload)
 
     def control(self, payload: Dict[str, Any]) -> Any:
         return self._request("POST", "/control", payload)
@@ -554,9 +579,16 @@ class MiraLightRuntime:
             if not isinstance(pixels, list):
                 raise PayloadValidationError("pixels must be a list when mode=vector")
             if len(pixels) != LED_PIXEL_COUNT:
-                raise PayloadValidationError(f"pixels must contain exactly {LED_PIXEL_COUNT} RGB entries")
+                raise PayloadValidationError(
+                    f"pixels must contain exactly {LED_PIXEL_COUNT} RGB or RGBA entries"
+                )
             normalized["pixels"] = [
-                _normalize_rgb_triplet(pixel, field_name=f"pixels[{index}]") for index, pixel in enumerate(pixels)
+                _normalize_rgb_triplet(
+                    pixel,
+                    field_name=f"pixels[{index}]",
+                    allow_brightness=True,
+                )
+                for index, pixel in enumerate(pixels)
             ]
             return normalized
 
@@ -611,6 +643,23 @@ class MiraLightRuntime:
             "wait": wait,
         }
 
+    def validate_sensor_payload(self, payload: Dict[str, Any]) -> dict[str, int]:
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("Sensor payload must be a JSON object")
+
+        allowed_keys = {"headCapacitive"}
+        unknown = sorted(set(payload) - allowed_keys)
+        if unknown:
+            raise PayloadValidationError(f"Unsupported sensor fields: {', '.join(unknown)}")
+
+        if "headCapacitive" not in payload:
+            raise PayloadValidationError("headCapacitive is required")
+
+        signal = _coerce_int(payload["headCapacitive"], field_name="headCapacitive")
+        if signal not in {0, 1}:
+            raise PayloadValidationError("headCapacitive must be 0 or 1")
+        return {"headCapacitive": signal}
+
     def control_joints(self, payload: Dict[str, Any]) -> Any:
         self._ensure_manual_control_allowed("control joints")
         normalized = self.validate_control_payload(payload)
@@ -626,6 +675,14 @@ class MiraLightRuntime:
         with self._state_lock:
             self._last_command = f"led:{normalized['mode']}"
         return self.get_client().set_led(normalized)
+
+    def set_sensors_state(self, payload: Dict[str, Any]) -> Any:
+        self._ensure_manual_control_allowed("set sensors")
+        normalized = self.validate_sensor_payload(payload)
+        self.log(f"[runtime] direct sensor update {json.dumps(normalized, ensure_ascii=False)}")
+        with self._state_lock:
+            self._last_command = "sensors:update"
+        return self.get_client().set_sensors(normalized)
 
     def speak_text(self, payload: Dict[str, Any]) -> dict[str, Any]:
         self._ensure_manual_control_allowed("speak")
@@ -749,6 +806,9 @@ class MiraLightRuntime:
 
     def get_led(self) -> Any:
         return self.get_client().get_led()
+
+    def get_sensors(self) -> Any:
+        return self.get_client().get_sensors()
 
     def get_actions(self) -> Any:
         return self.get_client().get_actions()

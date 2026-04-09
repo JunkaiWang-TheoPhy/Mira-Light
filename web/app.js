@@ -47,7 +47,18 @@ const mockMode = document.getElementById("mock-mode");
 const mockModeHint = document.getElementById("mock-mode-hint");
 const mockLedMode = document.getElementById("mock-led-mode");
 const mockLedMeta = document.getElementById("mock-led-meta");
+const mockHeadCapacitiveValue = document.getElementById("mock-head-capacitive-value");
+const mockHeadCapacitiveHint = document.getElementById("mock-head-capacitive-hint");
+const mockPixelSignalSummary = document.getElementById("mock-pixel-signal-summary");
+const mockPixelSignalHint = document.getElementById("mock-pixel-signal-hint");
+const mockHeadCapacitiveToggle = document.getElementById("mock-head-capacitive-toggle");
+const mockSensorBadge = document.getElementById("mock-sensor-badge");
+const mockTouchVisual = document.getElementById("mock-touch-visual");
+const mockTouchCaption = document.getElementById("mock-touch-caption");
 const mockServoGrid = document.getElementById("mock-servo-grid");
+const mockPixelRing = document.getElementById("mock-pixel-ring");
+const mockPixelRingActive = document.getElementById("mock-pixel-ring-active");
+const mockPixelRingCaption = document.getElementById("mock-pixel-ring-caption");
 const mockPixelStrip = document.getElementById("mock-pixel-strip");
 const mockLedNote = document.getElementById("mock-led-note");
 const mockColorSwatch = document.getElementById("mock-color-swatch");
@@ -61,6 +72,14 @@ const visionTrackingActive = document.getElementById("vision-tracking-active");
 const visionDistanceBand = document.getElementById("vision-distance-band");
 const visionTracks = document.getElementById("vision-tracks");
 const visionLockFlash = document.getElementById("vision-lock-flash");
+const pageShell = document.querySelector(".page");
+const sceneDecorLeft = document.querySelector(".scene-decor-left");
+const sceneDecorRight = document.querySelector(".scene-decor-right");
+const sceneDecorLeftIcon = document.getElementById("scene-decor-left-icon");
+const sceneDecorLeftLabel = document.getElementById("scene-decor-left-label");
+const sceneDecorRightIcon = document.getElementById("scene-decor-right-icon");
+const sceneDecorRightLabel = document.getElementById("scene-decor-right-label");
+const sceneSparkLayer = document.getElementById("scene-spark-layer");
 
 let scenes = [];
 let selectedSceneId = null;
@@ -70,6 +89,8 @@ let ledState = null;
 let actionsState = null;
 let visionOperatorState = null;
 let visionState = null;
+let sensorsState = null;
+let sceneDecorFrame = 0;
 
 const DIRECTOR_SCENE_IDS = [
   "wake_up",
@@ -90,6 +111,92 @@ const SHOWCASE_PAGES = {
   celebrate: "/08_celebrate/index.html",
   farewell: "/09_farewell/index.html",
   sleep: "/10_sleep/index.html",
+};
+
+const SCENE_DECOR = {
+  wake_up: {
+    left: { icon: "☀", label: "日光" },
+    right: { icon: "✦", label: "苏醒" },
+  },
+  curious_observe: {
+    left: { icon: "◔", label: "观察" },
+    right: { icon: "✧", label: "试探" },
+  },
+  touch_affection: {
+    left: { icon: "♡", label: "贴贴" },
+    right: { icon: "✿", label: "亲近" },
+  },
+  cute_probe: {
+    left: { icon: "☺", label: "卖萌" },
+    right: { icon: "✦", label: "小心试探" },
+  },
+  daydream: {
+    left: { icon: "☁", label: "发呆" },
+    right: { icon: "✦", label: "走神" },
+  },
+  standup_reminder: {
+    left: { icon: "↗", label: "起身" },
+    right: { icon: "♪", label: "动一动" },
+  },
+  track_target: {
+    left: { icon: "◎", label: "锁定" },
+    right: { icon: "⌁", label: "跟随" },
+  },
+  celebrate: {
+    left: { icon: "✺", label: "烟花" },
+    right: { icon: "✦", label: "高光时刻" },
+  },
+  farewell: {
+    left: { icon: "〰", label: "挥手" },
+    right: { icon: "✧", label: "送别" },
+  },
+  sleep: {
+    left: { icon: "☾", label: "月亮" },
+    right: { icon: "Zz", label: "晚安" },
+  },
+};
+
+const SCENE_BURSTS = {
+  wake_up: {
+    left: ["🌞", "🌤️", "🌼", "🌱"],
+    right: ["☕", "✨", "🕊️", "🍯"],
+  },
+  curious_observe: {
+    left: ["👀", "🔎", "🫧", "🪶"],
+    right: ["🧠", "🪞", "🐾", "✨"],
+  },
+  touch_affection: {
+    left: ["🫶", "💗", "🌷", "🎀"],
+    right: ["🧸", "💌", "🌸", "🫧"],
+  },
+  cute_probe: {
+    left: ["🐥", "🎀", "🧁", "🍮"],
+    right: ["😊", "🐾", "💫", "🍓"],
+  },
+  daydream: {
+    left: ["☁️", "💭", "🫧", "🪁"],
+    right: ["🌙", "🕊️", "✨", "🫖"],
+  },
+  standup_reminder: {
+    left: ["⏰", "🌞", "👟", "🌿"],
+    right: ["🧃", "🎵", "🪴", "🪑"],
+  },
+  track_target: {
+    left: ["🎯", "👁️", "📘", "🧭"],
+    right: ["🛰️", "📡", "🔵", "🪐"],
+  },
+  celebrate: {
+    left: ["🎆", "🎉", "🏆", "🍾"],
+    right: ["🎇", "🎊", "💎", "🎈"],
+  },
+  farewell: {
+    left: ["👋", "🌆", "🍃", "🚪"],
+    right: ["🧳", "💌", "🕊️", "🌙"],
+  },
+  sleep: {
+    left: ["🌙", "🛏️", "⭐", "🕯️"],
+    right: ["💤", "☁️", "🧸", "🌌"],
+  },
 };
 
 const ATTACHMENT_DEFS = [
@@ -145,6 +252,16 @@ async function fetchJson(url, options = {}) {
 
 function sceneById(sceneId) {
   return scenes.find((item) => item.id === sceneId) || null;
+}
+
+function currentSceneForPresentation() {
+  const activeSceneId =
+    runtimeState?.runningScene ||
+    (runtimeState?.trackingActive ? "track_target" : null) ||
+    selectedSceneId ||
+    runtimeState?.lastFinishedScene ||
+    scenes[0]?.id;
+  return sceneById(activeSceneId);
 }
 
 function formatDuration(durationMs) {
@@ -374,6 +491,7 @@ function renderSceneGrid() {
       selectedSceneId = scene.id;
       renderSceneGrid();
       renderDirectorSummary();
+      triggerSceneBurst(scene.id);
       try {
         const payload = { cueMode: readCueMode() };
         if (scene.id === "farewell") {
@@ -395,13 +513,7 @@ function renderSceneGrid() {
 }
 
 function renderDirectorSummary() {
-  const activeSceneId =
-    runtimeState?.runningScene ||
-    (runtimeState?.trackingActive ? "track_target" : null) ||
-    selectedSceneId ||
-    runtimeState?.lastFinishedScene ||
-    scenes[0]?.id;
-  const scene = sceneById(activeSceneId);
+  const scene = currentSceneForPresentation();
   const readinessState = readAttachmentState();
 
   if (!scene) {
@@ -412,6 +524,7 @@ function renderDirectorSummary() {
     summaryHostCue.textContent = "-";
     summaryFallback.textContent = "-";
     summaryRequirements.innerHTML = "";
+    updateSceneAccent();
     return;
   }
 
@@ -451,6 +564,8 @@ function renderDirectorSummary() {
     const ready = requirementId ? readinessState[requirementId] === true : true;
     summaryRequirements.appendChild(buildTag(item, ready ? "need" : "warning"));
   });
+
+  updateSceneAccent();
 }
 
 function renderReadinessPanel() {
@@ -522,9 +637,89 @@ function normalizePixel(pixel) {
   return { r: 0, g: 0, b: 0 };
 }
 
+function clampByte(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.min(255, Math.round(numeric)));
+}
+
+function normalizePixelSignal(pixel, fallbackBrightness = 255) {
+  if (pixel && typeof pixel === "object" && !Array.isArray(pixel)) {
+    return {
+      r: clampByte(pixel.r),
+      g: clampByte(pixel.g),
+      b: clampByte(pixel.b),
+      brightness: clampByte(pixel.brightness ?? fallbackBrightness),
+    };
+  }
+  if (Array.isArray(pixel) && pixel.length >= 3) {
+    return {
+      r: clampByte(pixel[0]),
+      g: clampByte(pixel[1]),
+      b: clampByte(pixel[2]),
+      brightness: clampByte(pixel[3] ?? fallbackBrightness),
+    };
+  }
+  return { r: 0, g: 0, b: 0, brightness: clampByte(fallbackBrightness) };
+}
+
+function derivePixelSignals(led) {
+  if (!led) return [];
+
+  if (Array.isArray(led.pixelSignals) && led.pixelSignals.length > 0) {
+    return led.pixelSignals.map((pixel) => normalizePixelSignal(pixel, led.brightness ?? 255));
+  }
+
+  if (Array.isArray(led.pixels) && led.pixels.length > 0) {
+    return led.pixels.map((pixel) => normalizePixelSignal(pixel, led.brightness ?? 255));
+  }
+
+  const ledCount = led.led_count || led.ledCount || 40;
+  const color = normalizePixel(led.color || { r: 255, g: 255, b: 255 });
+  const brightness = clampByte(led.brightness ?? 255);
+  return Array.from({ length: ledCount }, () => ({
+    ...color,
+    brightness,
+  }));
+}
+
 function rgbToCss(pixel) {
   const { r, g, b } = normalizePixel(pixel);
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+function renderPixelRing(pixelSignals, activeCount, averageBrightness, mode) {
+  if (!mockPixelRing) return;
+
+  mockPixelRing.innerHTML = "";
+  if (!Array.isArray(pixelSignals) || pixelSignals.length === 0) {
+    if (mockPixelRingActive) mockPixelRingActive.textContent = "-";
+    if (mockPixelRingCaption) mockPixelRingCaption.textContent = "等待 LED 状态";
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  pixelSignals.forEach((pixel, index) => {
+    const node = document.createElement("div");
+    node.className = "mock-ring-pixel";
+    node.title = `#${index + 1} [${pixel.r}, ${pixel.g}, ${pixel.b}, ${pixel.brightness}]`;
+    node.style.setProperty("--angle", `${(360 / pixelSignals.length) * index}deg`);
+    node.style.setProperty("--pixel-color", rgbToCss(pixel));
+    node.style.setProperty("--pixel-brightness", `${Math.max(14, Math.round((pixel.brightness / 255) * 100))}%`);
+    node.style.setProperty("--pixel-alpha", `${0.24 + (pixel.brightness / 255) * 0.76}`);
+    if (pixel.brightness > 0) {
+      node.dataset.active = "true";
+    }
+    fragment.appendChild(node);
+  });
+  mockPixelRing.appendChild(fragment);
+
+  if (mockPixelRingActive) {
+    mockPixelRingActive.textContent = `${activeCount}/${pixelSignals.length}`;
+  }
+  if (mockPixelRingCaption) {
+    mockPixelRingCaption.textContent = `${mode || "solid"} · avg ${averageBrightness}`;
+  }
 }
 
 function inferDeviceMode() {
@@ -545,19 +740,66 @@ function renderMockOverview() {
   mockMode.textContent = deviceMode.title;
   mockModeHint.textContent = deviceMode.hint;
 
+  const headCapacitive =
+    sensorsState?.headCapacitive ??
+    sensorsState?.sensors?.headCapacitive ??
+    statusState?.sensors?.headCapacitive ??
+    null;
+  const headCapacitiveKnown = headCapacitive === 0 || headCapacitive === 1;
+  if (mockHeadCapacitiveValue) {
+    mockHeadCapacitiveValue.textContent = headCapacitiveKnown ? `${headCapacitive}` : "-";
+  }
+  if (mockHeadCapacitiveHint) {
+    mockHeadCapacitiveHint.textContent =
+      headCapacitive === 1 ? "已触发触摸 / 接近状态" : headCapacitive === 0 ? "当前为空闲 / 未触摸" : "等待传感器状态";
+  }
+  if (mockSensorBadge) {
+    mockSensorBadge.textContent = headCapacitive === 1 ? "TOUCH" : headCapacitive === 0 ? "IDLE" : "UNKNOWN";
+    mockSensorBadge.dataset.state = headCapacitive === 1 ? "active" : headCapacitive === 0 ? "idle" : "unknown";
+  }
+  if (mockHeadCapacitiveToggle && document.activeElement !== mockHeadCapacitiveToggle) {
+    mockHeadCapacitiveToggle.checked = headCapacitive === 1;
+  }
+  if (mockTouchVisual) {
+    mockTouchVisual.dataset.state = headCapacitive === 1 ? "active" : headCapacitive === 0 ? "idle" : "unknown";
+  }
+  if (mockTouchCaption) {
+    mockTouchCaption.textContent =
+      headCapacitive === 1 ? "灯头电容已触发，当前应视为触摸 / 贴近。" : headCapacitive === 0 ? "灯头电容空闲，可继续等待接触。" : "暂未拿到灯头电容状态。";
+  }
+
   if (!ledState) {
     mockLedMode.textContent = "-";
     mockLedMeta.textContent = "等待 LED 状态";
     mockLedNote.textContent = "等待 LED 状态";
+    if (mockPixelSignalSummary) mockPixelSignalSummary.textContent = "-";
+    if (mockPixelSignalHint) mockPixelSignalHint.textContent = "等待 LED signal";
     mockColorSwatch.style.background = "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(220,224,255,0.7))";
     mockServoGrid.innerHTML = "";
+    renderPixelRing([], 0, 0, "-");
     mockPixelStrip.innerHTML = "";
     return;
   }
 
   mockLedMode.textContent = ledState.mode || "-";
-  const ledCount = ledState.led_count || (Array.isArray(ledState.pixels) ? ledState.pixels.length : 0) || 0;
-  mockLedMeta.textContent = `brightness ${ledState.brightness ?? "-"} · ${ledCount} px`;
+  const pixelSignals = derivePixelSignals(ledState);
+  const ledCount = pixelSignals.length || ledState.led_count || ledState.ledCount || 0;
+  const activeCount = pixelSignals.filter((pixel) => pixel.brightness > 0).length;
+  const averageBrightness =
+    pixelSignals.length > 0
+      ? Math.round(pixelSignals.reduce((sum, pixel) => sum + pixel.brightness, 0) / pixelSignals.length)
+      : 0;
+  mockLedMeta.textContent = `brightness ${ledState.brightness ?? averageBrightness} · ${ledCount} px · active ${activeCount}`;
+  if (mockPixelSignalSummary) {
+    mockPixelSignalSummary.textContent = `${activeCount}/${ledCount} active · avg ${averageBrightness}`;
+  }
+  if (mockPixelSignalHint) {
+    mockPixelSignalHint.textContent =
+      ledState.mode === "vector"
+        ? "每格显示颜色与亮度；悬停可查看完整 signal。"
+        : "当前不是 vector 模式，面板按统一色和亮度推断信号。";
+  }
+  renderPixelRing(pixelSignals, activeCount, averageBrightness, ledState.mode || "solid");
 
   const servos = normalizeServoStatus(statusState);
   mockServoGrid.innerHTML = "";
@@ -582,27 +824,32 @@ function renderMockOverview() {
     mockServoGrid.appendChild(card);
   });
 
-  let pixels = [];
-  if (ledState.mode === "vector" && Array.isArray(ledState.pixels)) {
-    pixels = ledState.pixels.map((pixel) => normalizePixel(pixel));
-    mockLedNote.textContent = `当前为 vector 模式，预览 ${pixels.length} 个像素。`;
+  if (ledState.mode === "vector") {
+    mockLedNote.textContent = `当前为 vector 模式，预览 ${pixelSignals.length} 个 pixelSignals。`;
   } else {
-    const ledCountForFill = ledCount || 40;
-    const color = normalizePixel(ledState.color || { r: 255, g: 255, b: 255 });
-    pixels = Array.from({ length: ledCountForFill }, () => color);
-    mockLedNote.textContent = `当前为 ${ledState.mode || "solid"} 模式，整条使用统一色。`;
+    mockLedNote.textContent = `当前为 ${ledState.mode || "solid"} 模式，面板按统一色推断 40 灯 signal。`;
   }
 
-  const swatchColor = ledState.mode === "vector" ? normalizePixel(pixels[0]) : normalizePixel(ledState.color);
+  const swatchColor = pixelSignals[0] || normalizePixelSignal(ledState.color, ledState.brightness ?? 255);
   mockColorSwatch.style.background = rgbToCss(swatchColor);
 
   mockPixelStrip.innerHTML = "";
-  pixels.forEach((pixel, index) => {
-    const dot = document.createElement("span");
-    dot.className = "mock-pixel";
-    dot.style.background = rgbToCss(pixel);
-    dot.title = `${index + 1}: ${rgbToCss(pixel)}`;
-    mockPixelStrip.appendChild(dot);
+  pixelSignals.forEach((pixel, index) => {
+    const card = document.createElement("div");
+    card.className = "mock-pixel";
+    card.title = `#${index + 1} [${pixel.r}, ${pixel.g}, ${pixel.b}, ${pixel.brightness}]`;
+
+    const color = rgbToCss(pixel);
+    card.style.setProperty("--pixel-color", color);
+    card.style.setProperty("--pixel-brightness", `${Math.max(10, Math.round((pixel.brightness / 255) * 100))}%`);
+    card.style.opacity = `${0.35 + (pixel.brightness / 255) * 0.65}`;
+
+    card.innerHTML = `
+      <span class="mock-pixel-index">${String(index + 1).padStart(2, "0")}</span>
+      <span class="mock-pixel-glow"></span>
+      <span class="mock-pixel-brightness">${pixel.brightness}</span>
+    `;
+    mockPixelStrip.appendChild(card);
   });
 }
 
@@ -632,82 +879,7 @@ function renderLogs(items) {
 
 function renderVisionState(payload) {
   visionState = payload;
-  const vision = payload?.vision || {};
-  const latestEvent = payload?.latestEvent || {};
-  const lock = payload?.lock || null;
-
-  const runtime = vision.runtime || runtimeState || {};
-  const bridge = vision.bridge || {};
-  const lastEvent = vision.lastVisionEvent || latestEvent || {};
-  const tracks = Array.isArray(lastEvent.tracks) ? lastEvent.tracks : [];
-  const selected = lastEvent.selected_target || null;
-  const tracking = lastEvent.tracking || {};
-  const sceneHint = lastEvent.scene_hint || {};
-
-  visionTrackCount.textContent = String(tracks.length || tracking.target_count || 0);
-  visionTrackNote.textContent = lock?.mode === "lock" ? `已请求锁定 #${lock.track_id}` : "自动选择模式";
-  visionSelectedTrack.textContent = selected?.track_id != null ? `#${selected.track_id}` : "-";
-  visionSelectedNote.textContent =
-    selected ? `${selected.lock_state || "candidate"} · ${selected.target_class || "unknown"}` : "未锁定";
-  visionSceneHint.textContent = sceneHint.name || "-";
-  visionSceneReason.textContent = sceneHint.reason || "-";
-  visionTrackingActive.textContent = runtime.trackingActive ? "ACTIVE" : "IDLE";
-  visionDistanceBand.textContent = selected?.distance_band || tracking.distance_band || "-";
-
-  visionTracks.innerHTML = "";
-  if (tracks.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "vision-empty";
-    empty.textContent = "当前没有可见目标。";
-    visionTracks.appendChild(empty);
-    return;
-  }
-
-  tracks
-    .slice()
-    .sort((a, b) => (b.selection_score || 0) - (a.selection_score || 0))
-    .forEach((track) => {
-      const card = document.createElement("div");
-      card.className = "track-card";
-      if (selected && track.track_id === selected.track_id) {
-        card.classList.add("is-selected");
-      }
-
-      const detector = track.detector || "unknown";
-      const confidence = typeof track.confidence === "number" ? track.confidence.toFixed(2) : "-";
-      const lockLabel = selected && track.track_id === selected.track_id ? selected.lock_state || "selected" : "candidate";
-
-      card.innerHTML = `
-        <div class="track-card-head">
-          <strong>#${track.track_id}</strong>
-          <span class="track-chip">${lockLabel}</span>
-        </div>
-        <div class="track-meta">
-          <span>${track.target_class || "unknown"}</span>
-          <span>${detector}</span>
-          <span>conf ${confidence}</span>
-        </div>
-        <div class="track-meta">
-          <span>${track.horizontal_zone || "-"}</span>
-          <span>${track.vertical_zone || "-"}</span>
-          <span>${track.distance_band || "-"}</span>
-        </div>
-      `;
-
-      const actions = document.createElement("div");
-      actions.className = "track-actions";
-
-      const lockButton = document.createElement("button");
-      lockButton.type = "button";
-      lockButton.textContent = "锁定目标";
-      lockButton.addEventListener("click", async () => {
-        await setVisionLock(track.track_id);
-      });
-
-      actions.appendChild(lockButton);
-      card.appendChild(actions);
-      visionTracks.appendChild(card);
-    });
+  renderVisionSummary();
 }
 
 function appendLocalLog(message) {
@@ -782,13 +954,188 @@ function renderProfile(profile) {
 }
 
 function updateSceneAccent() {
-  const activeSceneId =
-    runtimeState?.runningScene ||
-    (runtimeState?.trackingActive ? "track_target" : null) ||
-    selectedSceneId ||
-    runtimeState?.lastFinishedScene;
-  const scene = sceneById(activeSceneId);
-  document.body.dataset.scene = scene?.accent || "default";
+  const scene = currentSceneForPresentation();
+  document.body.dataset.scene = scene?.id || "default";
+  renderSceneDecor(scene);
+}
+
+function renderSceneDecor(scene) {
+  const decor = SCENE_DECOR[scene?.id] || {
+    left: { icon: "✦", label: "Mira" },
+    right: { icon: "✧", label: "Light" },
+  };
+  if (sceneDecorLeftIcon) sceneDecorLeftIcon.textContent = decor.left.icon;
+  if (sceneDecorLeftLabel) sceneDecorLeftLabel.textContent = decor.left.label;
+  if (sceneDecorRightIcon) sceneDecorRightIcon.textContent = decor.right.icon;
+  if (sceneDecorRightLabel) sceneDecorRightLabel.textContent = decor.right.label;
+  scheduleSceneDecorPlacement();
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function scheduleSceneDecorPlacement() {
+  if (sceneDecorFrame) {
+    window.cancelAnimationFrame(sceneDecorFrame);
+  }
+  sceneDecorFrame = window.requestAnimationFrame(() => {
+    sceneDecorFrame = 0;
+    updateSceneDecorPlacement();
+  });
+}
+
+function placeSticker(element, { left = null, right = null, top = 96, mode = "gutter", rotate = 0 }) {
+  if (!element) return;
+  element.classList.toggle("is-overlay", mode === "overlay");
+  element.style.left = left == null ? "" : `${Math.round(left)}px`;
+  element.style.right = right == null ? "" : `${Math.round(right)}px`;
+  element.style.top = `${Math.round(top)}px`;
+  element.style.setProperty("--sticker-rotate", `${rotate}deg`);
+}
+
+function updateSceneDecorPlacement() {
+  if (!pageShell || !sceneDecorLeft || !sceneDecorRight) return;
+
+  const rect = pageShell.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const stickerWidth = viewportWidth < 760 ? 104 : viewportWidth < 1260 ? 118 : 136;
+  const sidePadding = viewportWidth < 760 ? 10 : 18;
+  const leftGap = Math.max(0, rect.left);
+  const rightGap = Math.max(0, viewportWidth - rect.right);
+  const leftHasGutter = leftGap >= stickerWidth + sidePadding;
+  const rightHasGutter = rightGap >= stickerWidth + sidePadding;
+
+  const upperTop = clamp(viewportHeight * 0.16, 78, Math.max(78, viewportHeight - 236));
+  const lowerTop = clamp(viewportHeight * 0.68, upperTop + 114, Math.max(upperTop + 114, viewportHeight - 132));
+
+  const leftGutterLeft = clamp((leftGap - stickerWidth) / 2, 12, Math.max(12, leftGap - stickerWidth - 8));
+  const rightGutterRight = clamp((rightGap - stickerWidth) / 2, 12, Math.max(12, rightGap - stickerWidth - 8));
+
+  const leftOverlayLeft = clamp(Math.max(12, rect.left - stickerWidth * 0.1), 12, Math.max(12, viewportWidth - stickerWidth - 12));
+  const rightOverlayRight = clamp(Math.max(12, viewportWidth - rect.right - stickerWidth * 0.1), 12, Math.max(12, viewportWidth - stickerWidth - 12));
+
+  placeSticker(sceneDecorLeft, {
+    left: leftHasGutter ? leftGutterLeft : leftOverlayLeft,
+    top: upperTop,
+    mode: leftHasGutter ? "gutter" : "overlay",
+    rotate: -8,
+  });
+  placeSticker(sceneDecorRight, {
+    right: rightHasGutter ? rightGutterRight : rightOverlayRight,
+    top: lowerTop,
+    mode: rightHasGutter ? "gutter" : "overlay",
+    rotate: 7,
+  });
+}
+
+function getSparkAnchor(element, side) {
+  const target = element?.querySelector(".scene-charm") || element;
+  if (!target) return null;
+  const rect = target.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return {
+    side,
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+}
+
+function addSparkFlare(anchor, accent) {
+  if (!sceneSparkLayer) return;
+  const flare = document.createElement("span");
+  flare.className = "scene-spark-flare";
+  flare.style.left = `${anchor.x}px`;
+  flare.style.top = `${anchor.y}px`;
+  flare.style.setProperty("--spark-color", accent);
+  flare.style.setProperty("--flare-size", `${randomBetween(54, 82).toFixed(0)}px`);
+  flare.addEventListener("animationend", () => flare.remove(), { once: true });
+  sceneSparkLayer.appendChild(flare);
+}
+
+function getBurstOrigin(leftAnchor, rightAnchor) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const fallbackY = clamp(viewportHeight * 0.38, 156, viewportHeight - 180);
+  return {
+    x: (leftAnchor?.x + rightAnchor?.x) / 2 || viewportWidth / 2,
+    y: clamp(((leftAnchor?.y || fallbackY) + (rightAnchor?.y || fallbackY)) / 2, 140, viewportHeight - 160),
+  };
+}
+
+function addBurstSticker(origin, target, icon, accent, index) {
+  if (!sceneSparkLayer) return;
+  const spark = document.createElement("span");
+  spark.className = "scene-spark";
+  spark.textContent = icon;
+  spark.style.left = `${origin.x.toFixed(1)}px`;
+  spark.style.top = `${origin.y.toFixed(1)}px`;
+  spark.style.setProperty("--spark-color", accent);
+  spark.style.setProperty("--spark-size", `${randomBetween(42, 54).toFixed(1)}px`);
+  spark.style.setProperty("--spark-emoji-size", `${randomBetween(22, 28).toFixed(1)}px`);
+  spark.style.setProperty("--spark-duration", `${randomBetween(920, 1320).toFixed(0)}ms`);
+  spark.style.setProperty("--spark-delay", `${(index * 0.035 + randomBetween(0, 0.04)).toFixed(3)}s`);
+  spark.style.setProperty("--spark-scale", randomBetween(0.92, 1.12).toFixed(2));
+  spark.style.setProperty("--spark-rotate", `${randomBetween(-18, 18).toFixed(1)}deg`);
+  spark.style.setProperty("--spark-dx", `${(target.x - origin.x).toFixed(1)}px`);
+  spark.style.setProperty("--spark-dy", `${(target.y - origin.y).toFixed(1)}px`);
+  spark.addEventListener("animationend", () => spark.remove(), { once: true });
+  sceneSparkLayer.appendChild(spark);
+}
+
+function triggerSceneBurst(sceneId) {
+  if (!sceneSparkLayer) return;
+  scheduleSceneDecorPlacement();
+  const accent = window.getComputedStyle(document.body).getPropertyValue("--scene-accent").trim() || "#ff6b9d";
+  const burst = SCENE_BURSTS[sceneId] || {
+    left: ["🌟", "🫧", "🌈", "💫"],
+    right: ["🌙", "🕊️", "✨", "🎐"],
+  };
+
+  window.requestAnimationFrame(() => {
+    const leftAnchor = getSparkAnchor(sceneDecorLeft, "left");
+    const rightAnchor = getSparkAnchor(sceneDecorRight, "right");
+    if (!leftAnchor || !rightAnchor) return;
+
+    const origin = getBurstOrigin(leftAnchor, rightAnchor);
+    addSparkFlare(origin, accent);
+
+    const leftIcons = burst.left.slice(0, Math.max(3, burst.left.length));
+    const rightIcons = burst.right.slice(0, Math.max(3, burst.right.length));
+
+    leftIcons.forEach((icon, index) => {
+      const spreadIndex = index - (leftIcons.length - 1) / 2;
+      addBurstSticker(
+        origin,
+        {
+          x: leftAnchor.x + randomBetween(-28, 20),
+          y: clamp(leftAnchor.y + spreadIndex * 52 + randomBetween(-10, 10), 92, window.innerHeight - 92),
+        },
+        icon,
+        accent,
+        index,
+      );
+    });
+
+    rightIcons.forEach((icon, index) => {
+      const spreadIndex = index - (rightIcons.length - 1) / 2;
+      addBurstSticker(
+        origin,
+        {
+          x: rightAnchor.x + randomBetween(-20, 28),
+          y: clamp(rightAnchor.y + spreadIndex * 52 + randomBetween(-10, 10), 92, window.innerHeight - 92),
+        },
+        icon,
+        accent,
+        leftIcons.length + index,
+      );
+    });
+  });
 }
 
 async function refreshRuntime() {
@@ -822,6 +1169,7 @@ async function refreshScenes() {
 async function refreshStatus() {
   const data = await fetchJson("/api/status");
   statusState = data.data;
+  sensorsState = data.data?.sensors || sensorsState;
   renderJson(statusOutput, data.data);
   renderMockOverview();
 }
@@ -830,6 +1178,20 @@ async function refreshLed() {
   const data = await fetchJson("/api/led");
   ledState = data.data;
   renderJson(ledOutput, data.data);
+  renderMockOverview();
+}
+
+async function refreshSensors(options = {}) {
+  const { silent = true } = options;
+  try {
+    const data = await fetchJson("/api/sensors");
+    sensorsState = data.data?.sensors || data.data || null;
+  } catch (error) {
+    sensorsState = statusState?.sensors || sensorsState;
+    if (!silent) {
+      throw error;
+    }
+  }
   renderMockOverview();
 }
 
@@ -963,6 +1325,23 @@ async function setVisionOperatorLock(lockSelectedTrackId, note = "") {
   }
 }
 
+async function applyHeadCapacitive() {
+  if (!mockHeadCapacitiveToggle) return;
+  const nextValue = mockHeadCapacitiveToggle.checked ? 1 : 0;
+  try {
+    const data = await fetchJson("/api/sensors", {
+      method: "POST",
+      body: JSON.stringify({ headCapacitive: nextValue }),
+    });
+    sensorsState = data.data?.sensors || data.data || { headCapacitive: nextValue };
+    renderMockOverview();
+    appendLocalLog(`headCapacitive set to ${nextValue}`);
+    await Promise.all([refreshStatus(), refreshLogs()]);
+  } catch (error) {
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
 async function stopScene() {
   try {
     await fetchJson("/api/stop", { method: "POST" });
@@ -1031,46 +1410,50 @@ async function clearVisionLock() {
   }
 }
 
-document.getElementById("save-config").addEventListener("click", saveConfig);
-document.getElementById("refresh-status").addEventListener("click", refreshStatus);
-document.getElementById("refresh-led").addEventListener("click", refreshLed);
-document.getElementById("refresh-actions").addEventListener("click", refreshActions);
-document.getElementById("refresh-vision").addEventListener("click", refreshVision);
-document.getElementById("clear-vision-lock").addEventListener("click", clearVisionLock);
-document.getElementById("apply-neutral").addEventListener("click", () => applyPose("neutral"));
-document.getElementById("apply-sleep").addEventListener("click", () => applyPose("sleep"));
-document.getElementById("stop-scene").addEventListener("click", stopScene);
-document.getElementById("stop-neutral").addEventListener("click", () => operatorAction("/api/operator/stop-to-neutral"));
-document.getElementById("stop-sleep").addEventListener("click", () => operatorAction("/api/operator/stop-to-sleep"));
-document.getElementById("reset-lamp").addEventListener("click", resetLamp);
-cueModeDirectorInput.addEventListener("change", () => {
-  writeCueMode(cueModeDirectorInput.checked ? "director" : "scene");
-});
-document.getElementById("trigger-touch").addEventListener("click", () =>
-  triggerEvent("touch_detected", { side: "center" }),
-);
-document.getElementById("trigger-sigh").addEventListener("click", () =>
-  triggerEvent("sigh_detected", { transcript: "唉" }),
-);
-document.getElementById("trigger-voice-tired").addEventListener("click", () =>
-  triggerEvent("voice_tired", { transcript: "我今天好累啊" }),
-);
-document.getElementById("trigger-multi-person").addEventListener("click", () =>
+function bindClick(id, handler) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.addEventListener("click", handler);
+}
+
+bindClick("save-config", saveConfig);
+bindClick("refresh-status", refreshStatus);
+bindClick("refresh-led", refreshLed);
+bindClick("mock-refresh-sensors", () => refreshSensors({ silent: false }));
+bindClick("mock-apply-head-capacitive", applyHeadCapacitive);
+bindClick("refresh-actions", refreshActions);
+bindClick("refresh-vision", refreshVisionState);
+bindClick("clear-vision-lock", clearVisionLock);
+bindClick("apply-neutral", () => applyPose("neutral"));
+bindClick("apply-sleep", () => applyPose("sleep"));
+bindClick("stop-scene", stopScene);
+bindClick("stop-neutral", () => operatorAction("/api/operator/stop-to-neutral"));
+bindClick("stop-sleep", () => operatorAction("/api/operator/stop-to-sleep"));
+bindClick("reset-lamp", resetLamp);
+if (cueModeDirectorInput) {
+  cueModeDirectorInput.addEventListener("change", () => {
+    writeCueMode(cueModeDirectorInput.checked ? "director" : "scene");
+  });
+}
+bindClick("trigger-touch", () => triggerEvent("touch_detected", { side: "center" }));
+bindClick("trigger-sigh", () => triggerEvent("sigh_detected", { transcript: "唉" }));
+bindClick("trigger-voice-tired", () => triggerEvent("voice_tired", { transcript: "我今天好累啊" }));
+bindClick("trigger-multi-person", () =>
   triggerEvent("multi_person_detected", { primaryDirection: "left", secondaryDirection: "right" }),
 );
-document.getElementById("trigger-farewell").addEventListener("click", () =>
-  triggerEvent("farewell_detected", { direction: farewellDirectionInput.value, cueMode: readCueMode() }),
+bindClick("trigger-farewell", () =>
+  triggerEvent("farewell_detected", { direction: farewellDirectionInput?.value || "right", cueMode: readCueMode() }),
 );
-document.getElementById("trigger-startle").addEventListener("click", () =>
+bindClick("trigger-startle", () =>
   triggerEvent("startle_detected", { transcript: "突然一声响动", cueMode: readCueMode() }),
 );
-document.getElementById("trigger-praise").addEventListener("click", () =>
+bindClick("trigger-praise", () =>
   triggerEvent("praise_detected", { transcript: "你好可爱", cueMode: readCueMode() }),
 );
-document.getElementById("trigger-criticism").addEventListener("click", () =>
+bindClick("trigger-criticism", () =>
   triggerEvent("criticism_detected", { transcript: "你今天有点不太行", cueMode: readCueMode() }),
 );
-document.getElementById("vision-lock-current").addEventListener("click", () => {
+bindClick("vision-lock-current", () => {
   const selectedTrackId = visionState?.latestEvent?.selected_target?.track_id;
   const trackId = selectedTrackId || runtimeState?.trackingTarget?.trackId;
   if (!trackId) {
@@ -1079,12 +1462,9 @@ document.getElementById("vision-lock-current").addEventListener("click", () => {
   }
   setVisionOperatorLock(trackId, "lock current target from director console");
 });
-document.getElementById("vision-unlock").addEventListener("click", () =>
-  setVisionOperatorLock(null, "operator lock cleared"),
-);
-document.getElementById("refresh-vision").addEventListener("click", refreshVisionState);
-document.getElementById("capture-pose").addEventListener("click", capturePose);
-document.getElementById("refresh-profile").addEventListener("click", refreshProfile);
+bindClick("vision-unlock", () => setVisionOperatorLock(null, "operator lock cleared"));
+bindClick("capture-pose", capturePose);
+bindClick("refresh-profile", refreshProfile);
 
 async function bootstrap() {
   try {
@@ -1095,8 +1475,8 @@ async function bootstrap() {
     await refreshScenes();
     await refreshStatus();
     await refreshLed();
+    await refreshSensors();
     await refreshActions();
-    await refreshVision();
     await refreshProfile();
     await refreshLogs();
     await refreshVisionState();
@@ -1110,6 +1490,7 @@ async function bootstrap() {
       await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed(), refreshActions()]);
       await refreshVisionState();
       await refreshVisionOperator();
+      renderMockOverview();
     } catch (error) {
       appendLocalLog(`[poll-error] ${error.message}`);
     }
@@ -1117,3 +1498,7 @@ async function bootstrap() {
 }
 
 bootstrap();
+scheduleSceneDecorPlacement();
+window.addEventListener("resize", scheduleSceneDecorPlacement);
+window.addEventListener("scroll", scheduleSceneDecorPlacement, { passive: true });
+window.visualViewport?.addEventListener("resize", scheduleSceneDecorPlacement);

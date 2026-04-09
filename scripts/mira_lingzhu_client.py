@@ -74,6 +74,7 @@ def send_via_lingzhu_messages(
     if not auth_ak.strip():
         raise RuntimeError("Lingzhu auth AK is required")
 
+    normalized_additional_user_ids = normalize_string_list(additional_user_ids)
     payload = _post_json(
         base_url,
         "/v1/chat",
@@ -82,7 +83,8 @@ def send_via_lingzhu_messages(
             "user_id": user_id,
             "session_id": session_id,
             "message_id": f"mira-light-{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
-            "additional_user_ids": normalize_string_list(additional_user_ids),
+            "additional_user_ids": normalized_additional_user_ids,
+            "disable_default_additional_user_ids": len(normalized_additional_user_ids) == 0,
             "message": _message_items(messages),
         },
         auth_ak=auth_ak,
@@ -96,6 +98,6 @@ def send_via_lingzhu_messages(
         "agent": agent_id,
         "userId": user_id,
         "sessionId": session_id,
-        "additionalUserIds": normalize_string_list(additional_user_ids),
+        "additionalUserIds": normalized_additional_user_ids,
         "payload": payload,
     }

@@ -27,9 +27,31 @@ SYSTEM_FALLBACK_ASSETS: dict[str, list[Path]] = {
         Path("/System/Library/Sounds/Glass.aiff"),
     ]
 }
-DEFAULT_MIRA_TTS_VOICE = "zh-CN-XiaoyiNeural"
+DEFAULT_MIRA_TTS_MODE = "gentle_sister"
 DEFAULT_MIRA_TTS_LANG = "zh-CN"
-DEFAULT_MIRA_TTS_RATE = "+8%"
+VOICE_PRESETS: dict[str, dict[str, str]] = {
+    "gentle_sister": {
+        "voice": "zh-CN-XiaoyiNeural",
+        "lang": DEFAULT_MIRA_TTS_LANG,
+        "rate": "-12%",
+        "pitch": "-20%",
+    },
+    "warm_gentleman": {
+        "voice": "zh-CN-YunxiNeural",
+        "lang": DEFAULT_MIRA_TTS_LANG,
+        "rate": "-6%",
+        "pitch": "-6%",
+    },
+}
+VOICE_MODE_ALIASES = {
+    "female": "gentle_sister",
+    "male": "warm_gentleman",
+    "tts": DEFAULT_MIRA_TTS_MODE,
+    "default": DEFAULT_MIRA_TTS_MODE,
+    "narration": DEFAULT_MIRA_TTS_MODE,
+    "host": DEFAULT_MIRA_TTS_MODE,
+    "": DEFAULT_MIRA_TTS_MODE,
+}
 
 
 def _truthy(value: str | None, *, default: bool = False) -> bool:
@@ -167,28 +189,56 @@ class AudioCuePlayer:
 
         raise RuntimeError("No local audio playback command found (expected speaker-hp-play or afplay)")
 
+    def _resolve_voice_mode(self, requested: str) -> str:
+        normalized = (requested or "").strip().lower()
+        if normalized in VOICE_PRESETS:
+            return normalized
+        alias = VOICE_MODE_ALIASES.get(normalized)
+        if alias:
+            return alias
+        if normalized in {"tts", "default", "narration", "host", ""}:
+            configured = os.environ.get("MIRA_LIGHT_TTS_MODE", DEFAULT_MIRA_TTS_MODE).strip().lower()
+            resolved_configured = VOICE_MODE_ALIASES.get(configured, configured)
+            if resolved_configured in VOICE_PRESETS:
+                return resolved_configured
+            return DEFAULT_MIRA_TTS_MODE
+        return normalized
+
+    def _resolve_tts_profile(self, requested: str) -> dict[str, str] | None:
+        mode = self._resolve_voice_mode(requested)
+        preset = VOICE_PRESETS.get(mode)
+        if preset is None:
+            return None
+        return {
+            "mode": mode,
+            "voice": os.environ.get("MIRA_LIGHT_TTS_VOICE", preset["voice"]).strip() or preset["voice"],
+            "lang": os.environ.get("MIRA_LIGHT_TTS_LANG", preset["lang"]).strip() or preset["lang"],
+            "rate": os.environ.get("MIRA_LIGHT_TTS_RATE", preset["rate"]).strip() or preset["rate"],
+            "pitch": os.environ.get("MIRA_LIGHT_TTS_PITCH", preset["pitch"]).strip() or preset["pitch"],
+        }
+
     def _build_speech_command(self, text: str, *, voice: str) -> list[str]:
-        requested = (voice or "tts").strip().lower()
+        requested = self._resolve_voice_mode(voice)
 
         if requested == "openclaw":
             command = self._find_command("speaker-hp-openclaw-tts-play")
             if command:
                 return [command, text]
 
-        if requested in {"tts", "default", "narration", "host"}:
+        profile = self._resolve_tts_profile(requested)
+        if profile is not None:
             preferred_tts = self._find_command("speaker-hp-tts-play")
             if preferred_tts:
-                configured_voice = os.environ.get("MIRA_LIGHT_TTS_VOICE", DEFAULT_MIRA_TTS_VOICE).strip() or DEFAULT_MIRA_TTS_VOICE
-                configured_lang = os.environ.get("MIRA_LIGHT_TTS_LANG", DEFAULT_MIRA_TTS_LANG).strip() or DEFAULT_MIRA_TTS_LANG
-                configured_rate = os.environ.get("MIRA_LIGHT_TTS_RATE", DEFAULT_MIRA_TTS_RATE).strip() or DEFAULT_MIRA_TTS_RATE
                 return [
                     preferred_tts,
                     "--voice",
-                    configured_voice,
+                    profile["voice"],
                     "--lang",
-                    configured_lang,
+                    profile["lang"],
                     "--rate",
-                    configured_rate,
+                    profile["rate"],
+                    "--pitch",
+                    profile["pitch"],
                     text,
                 ]
 
