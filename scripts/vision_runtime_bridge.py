@@ -46,6 +46,8 @@ class BridgeState:
     last_scene_started: str | None = None
     last_scene_started_at_monotonic: float | None = None
     last_tracking_applied_at_monotonic: float | None = None
+    last_horizontal_zone: str = "unknown"
+    last_departure_direction: str | None = None
     scene_counts: dict[str, int] = field(default_factory=dict)
 
 
@@ -190,6 +192,8 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "targetMissingSinceMonotonic": bridge.target_missing_since_monotonic,
             "lastSceneStarted": bridge.last_scene_started,
             "lastTrackingAppliedAtMonotonic": bridge.last_tracking_applied_at_monotonic,
+            "lastHorizontalZone": bridge.last_horizontal_zone,
+            "lastDepartureDirection": bridge.last_departure_direction,
             "sceneCounts": bridge.scene_counts,
         },
         "lastVisionEvent": last_event,
@@ -232,14 +236,67 @@ def should_start_scene(
     return True, "ok"
 
 
+def normalize_direction(raw: Any, *, default: str = "unknown") -> str:
+    value = str(raw or "").strip().lower()
+    if value in {"left", "l", "west"}:
+        return "left"
+    if value in {"center", "centre", "mid", "middle", "c"}:
+        return "center"
+    if value in {"right", "r", "east"}:
+        return "right"
+    return default
+
+
+def resolve_departure_direction(event: dict[str, Any], bridge_state: BridgeState) -> str:
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    for key in ("departureDirection", "direction", "horizontalZone"):
+        if key in payload:
+            return normalize_direction(payload.get(key))
+    if "departure_direction" in tracking:
+        return normalize_direction(tracking.get("departure_direction"))
+    if "horizontal_zone" in tracking:
+        direction = normalize_direction(tracking.get("horizontal_zone"))
+        if direction != "unknown":
+            return direction
+    return normalize_direction(bridge_state.last_horizontal_zone)
+
+
+def extract_multi_person_payload(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    primary = normalize_direction(
+        payload.get("primaryDirection") or tracking.get("primary_direction") or tracking.get("horizontal_zone"),
+        default="left",
+    )
+    secondary = normalize_direction(
+        payload.get("secondaryDirection") or tracking.get("secondary_direction"),
+        default="right" if primary != "right" else "left",
+    )
+    return {
+        "primaryDirection": primary,
+        "secondaryDirection": secondary,
+        "cueMode": "scene",
+        "source": "vision-bridge",
+    }
+
+
 def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> tuple[str, str]:
-    tracking = event.get("tracking", {})
+    tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
     target_present = bool(tracking.get("target_present"))
     scene_hint = (event.get("scene_hint") or {}).get("name", "none")
     event_type = event.get("event_type", "no_target")
+    target_count = int(tracking.get("target_count") or payload.get("targetCount") or 0)
+
+    if target_count >= 2 or event_type == "multi_target_seen" or scene_hint == "multi_person_demo":
+        return "multi_person_demo", "multi-target detection"
 
     if target_present:
         bridge_state.target_missing_since_monotonic = None
+        horizontal_zone = normalize_direction(tracking.get("horizontal_zone"))
+        if horizontal_zone != "unknown":
+            bridge_state.last_horizontal_zone = horizontal_zone
         if event_type == "target_seen":
             return "wake_up", "target_seen transition"
         if scene_hint in {"curious_observe", "track_target"}:
@@ -250,6 +307,11 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
 
     if bridge_state.last_target_present and bridge_state.target_missing_since_monotonic is None:
         bridge_state.target_missing_since_monotonic = now_mono
+        if event_type == "target_lost":
+            direction = resolve_departure_direction(event, bridge_state)
+            if direction != "unknown":
+                bridge_state.last_departure_direction = direction
+                return "farewell", f"target lost toward {direction}"
         return "none", "target just disappeared, waiting grace period"
 
     if bridge_state.target_missing_since_monotonic is not None:
@@ -295,6 +357,23 @@ def apply_tracking(runtime: MiraLightRuntime, bridge_state: BridgeState, event: 
     bridge_state.last_tracking_applied_at_monotonic = now_mono
     bridge_state.scene_counts["track_target"] = bridge_state.scene_counts.get("track_target", 0) + 1
     log(args, "tracking updated", dry_run=runtime.dry_run)
+
+
+def apply_trigger_event(
+    runtime: MiraLightRuntime,
+    bridge_state: BridgeState,
+    *,
+    event_name: str,
+    payload: dict[str, Any],
+    scene_name: str,
+    now_mono: float,
+    args: argparse.Namespace,
+) -> None:
+    runtime.trigger_event(event_name, payload)
+    bridge_state.last_scene_started = scene_name
+    bridge_state.last_scene_started_at_monotonic = now_mono
+    bridge_state.scene_counts[scene_name] = bridge_state.scene_counts.get(scene_name, 0) + 1
+    log(args, "triggered scene event", event=event_name, scene=scene_name, dry_run=runtime.dry_run)
 
 
 def record_tracking_session_state(
@@ -356,6 +435,7 @@ def handle_event(
         target_present=target_present,
         distance_band=tracking.get("distance_band"),
         horizontal_zone=tracking.get("horizontal_zone"),
+        departure_direction=resolve_departure_direction(event, bridge_state),
     )
 
     if not target_present and runtime_state.get("trackingActive"):
@@ -378,6 +458,27 @@ def handle_event(
         )
         if allowed:
             apply_tracking(runtime, bridge_state, event, now_mono, args)
+    elif candidate_scene == "farewell" and allowed:
+        direction = resolve_departure_direction(event, bridge_state)
+        apply_trigger_event(
+            runtime,
+            bridge_state,
+            event_name="farewell_detected",
+            payload={"direction": direction, "cueMode": "scene", "source": "vision-bridge"},
+            scene_name="farewell",
+            now_mono=now_mono,
+            args=args,
+        )
+    elif candidate_scene == "multi_person_demo" and allowed:
+        apply_trigger_event(
+            runtime,
+            bridge_state,
+            event_name="multi_person_detected",
+            payload=extract_multi_person_payload(event),
+            scene_name="multi_person_demo",
+            now_mono=now_mono,
+            args=args,
+        )
     elif allowed:
         apply_scene(candidate_scene, runtime, bridge_state, now_mono, args)
 

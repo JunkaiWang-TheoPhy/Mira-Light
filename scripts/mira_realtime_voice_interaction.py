@@ -21,6 +21,7 @@ import urllib.request
 
 from mira_light_audio import AudioCuePlayer
 from mira_name_aliases import normalize_transcript_aliases
+from mira_voice_intents import action_for_intent, bridge_payload_for_intent, classify_intent, comfort_like_intent
 import numpy as np
 import sounddevice as sd
 
@@ -99,17 +100,6 @@ EMOJI_PATTERN = re.compile(
     "]+",
     flags=re.UNICODE,
 )
-INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "comfort": ("好累", "累死", "很累", "今天好累", "辛苦", "难受", "不舒服", "烦", "委屈"),
-    "farewell": ("拜拜", "再见", "我走了", "先走了", "下次见", "回头见"),
-    "praise": ("好可爱", "可爱", "喜欢你", "真好看", "好漂亮", "真漂亮"),
-}
-INTENT_ACTIONS: dict[str, dict[str, str]] = {
-    "comfort": {"type": "trigger", "name": "voice_tired"},
-    "farewell": {"type": "trigger", "name": "farewell_detected"},
-    "praise": {"type": "scene", "name": "celebrate"},
-}
-
 
 @dataclass
 class UtteranceResult:
@@ -183,21 +173,8 @@ def should_exit(transcript: str) -> bool:
     lowered = " ".join(transcript.strip().lower().split())
     return lowered in EXIT_PHRASES
 
-
-def classify_intent(transcript: str) -> str:
-    cleaned = transcript.strip().lower()
-    if not cleaned:
-        return "chat"
-    for intent, keywords in INTENT_KEYWORDS.items():
-        if any(keyword in cleaned for keyword in keywords):
-            return intent
-    if cleaned in {"唉", "哎", "唉呀", "哎呀"}:
-        return "comfort"
-    return "chat"
-
-
 def update_session_mode(session: ConversationSession, intent: str) -> None:
-    if intent in {"comfort", "farewell"}:
+    if comfort_like_intent(intent) or intent == "farewell":
         session.mode = intent
     else:
         session.mode = "chat"
@@ -209,6 +186,7 @@ def build_system_prompt(session: ConversationSession, *, base_prompt: str) -> st
     mode_hint = {
         "chat": "当前会话模式是普通陪伴聊天。",
         "comfort": "当前会话模式是安慰陪伴，请优先温和接住用户情绪。",
+        "sigh": "当前会话模式是安静安慰，请像听见一声叹气那样温和接住用户。",
         "farewell": "当前会话模式是告别收尾，请自然简短结束。",
     }.get(session.mode, "当前会话模式是普通陪伴聊天。")
     state_hint = (
@@ -293,6 +271,8 @@ def send_via_cloud_messages(
 
 
 def fallback_reply_for_intent(intent: str) -> str:
+    if intent == "sigh":
+        return "我在呢，先慢一点也没关系。"
     if intent == "comfort":
         return "辛苦了，先慢一点也没关系，我陪你缓一缓。"
     if intent == "farewell":
@@ -336,7 +316,7 @@ def maybe_trigger_mira_action(
     if args.no_trigger:
         return {"ok": True, "skipped": True, "reason": "trigger-disabled"}
 
-    action = INTENT_ACTIONS.get(intent)
+    action = action_for_intent(intent)
     if not action:
         return {"ok": True, "skipped": True, "reason": "no-mapped-action"}
 
@@ -344,13 +324,7 @@ def maybe_trigger_mira_action(
     if session.last_scene == action["name"] and (now - session.last_trigger_monotonic) < args.trigger_cooldown_seconds:
         return {"ok": True, "skipped": True, "reason": "cooldown-active", "name": action["name"]}
 
-    payload = {
-        "source": "voice-realtime",
-        "transcript": transcript,
-        "cueMode": "scene",
-    }
-    if intent == "farewell":
-        payload["direction"] = "center"
+    payload = bridge_payload_for_intent(intent, transcript)
 
     if action["type"] == "trigger":
         body = {"event": action["name"], "payload": payload}

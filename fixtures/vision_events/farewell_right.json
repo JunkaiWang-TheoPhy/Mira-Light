@@ -1,0 +1,17 @@
+{
+  "event_type": "target_lost",
+  "scene_hint": {
+    "name": "none",
+    "reason": "target disappeared on the right side"
+  },
+  "tracking": {
+    "target_present": false,
+    "horizontal_zone": "right",
+    "vertical_zone": "middle",
+    "distance_band": "mid",
+    "departure_direction": "right"
+  },
+  "payload": {
+    "direction": "right"
+  }
+}

@@ -279,6 +279,7 @@ def ensure_disk_headroom(
     if remaining_bytes == 0:
         return
     probe_root = destination_dir if destination_dir.exists() else destination_dir.parent
+    probe_root.mkdir(parents=True, exist_ok=True)
     usage = shutil.disk_usage(probe_root)
     required_free_bytes = remaining_bytes + reserve_bytes
     if usage.free < required_free_bytes:

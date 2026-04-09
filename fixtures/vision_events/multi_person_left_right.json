@@ -1,0 +1,20 @@
+{
+  "event_type": "multi_target_seen",
+  "scene_hint": {
+    "name": "multi_person_demo",
+    "reason": "two stable people are visible"
+  },
+  "tracking": {
+    "target_present": true,
+    "target_count": 2,
+    "target_class": "person",
+    "horizontal_zone": "left",
+    "vertical_zone": "middle",
+    "distance_band": "mid"
+  },
+  "payload": {
+    "primaryDirection": "left",
+    "secondaryDirection": "right",
+    "targetCount": 2
+  }
+}

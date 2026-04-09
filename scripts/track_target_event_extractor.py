@@ -41,6 +41,7 @@ class ExtractorState:
     last_target_present: bool = False
     last_size_norm: float | None = None
     bg_warmup_count: int = 0
+    last_target_count: int = 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -228,16 +229,14 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def detect_face(gray: np.ndarray, cascade: cv2.CascadeClassifier) -> tuple[int, int, int, int] | None:
+def detect_faces(gray: np.ndarray, cascade: cv2.CascadeClassifier) -> list[tuple[int, int, int, int]]:
     faces = cascade.detectMultiScale(
         gray,
         scaleFactor=1.1,
         minNeighbors=5,
         minSize=(40, 40),
     )
-    if len(faces) == 0:
-        return None
-    return max(faces, key=lambda box: box[2] * box[3])
+    return [tuple(int(value) for value in box) for box in faces]
 
 
 def detect_motion(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor, *, min_area_ratio: float, warmup_count: int, warmup_frames: int) -> tuple[tuple[int, int, int, int] | None, int]:
@@ -278,6 +277,8 @@ def build_event(
     confidence: float,
     state: ExtractorState,
     args: argparse.Namespace,
+    target_count: int = 0,
+    multi_target_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     h, w = frame.shape[:2]
     size_norm = None
@@ -319,7 +320,9 @@ def build_event(
     vertical_zone = classify_vertical_zone(center_y)
     target_present = bbox is not None
 
-    if target_present and not state.last_target_present:
+    if target_count >= 2:
+        event_type = "multi_target_seen"
+    elif target_present and not state.last_target_present:
         event_type = "target_seen"
     elif target_present and state.last_target_present:
         event_type = "target_updated"
@@ -328,7 +331,10 @@ def build_event(
     else:
         event_type = "no_target"
 
-    scene_name, scene_reason = infer_scene_hint(target_present, distance_band, approach_state, horizontal_zone)
+    if target_count >= 2:
+        scene_name, scene_reason = "multi_person_demo", "同一帧检测到两个稳定目标，适合进入多人反应。"
+    else:
+        scene_name, scene_reason = infer_scene_hint(target_present, distance_band, approach_state, horizontal_zone)
 
     frame_age_ms = max(0.0, (time.time() - path.stat().st_mtime) * 1000.0)
     event = {
@@ -349,6 +355,7 @@ def build_event(
         },
         "tracking": {
             "target_present": target_present,
+            "target_count": target_count if target_count > 0 else (1 if target_present else 0),
             "target_class": target_class if target_present else "none",
             "detector": detector,
             "confidence": round(confidence if target_present else 0.0, 4),
@@ -371,6 +378,8 @@ def build_event(
             "size_delta_norm": None if size_delta_norm is None else round(size_delta_norm, 6),
         },
     }
+    if multi_target_payload:
+        event["payload"] = multi_target_payload
     return event
 
 
@@ -390,15 +399,33 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    bbox = detect_face(gray, cascade)
+    faces = detect_faces(gray, cascade)
+    bbox = max(faces, key=lambda box: box[2] * box[3]) if faces else None
     detector = "none"
     target_class = "none"
     confidence = 0.0
+    target_count = 0
+    multi_target_payload = None
 
-    if bbox is not None:
+    if len(faces) >= 2:
+        primary, secondary = sorted(faces, key=lambda box: box[2] * box[3], reverse=True)[:2]
+        bbox = primary
+        detector = "haar_face"
+        target_class = "person"
+        confidence = 0.92
+        target_count = len(faces)
+        primary_center_x = (primary[0] + (primary[2] / 2.0)) / frame.shape[1]
+        secondary_center_x = (secondary[0] + (secondary[2] / 2.0)) / frame.shape[1]
+        multi_target_payload = {
+            "targetCount": len(faces),
+            "primaryDirection": classify_horizontal_zone(primary_center_x),
+            "secondaryDirection": classify_horizontal_zone(secondary_center_x),
+        }
+    elif bbox is not None:
         detector = "haar_face"
         target_class = "person"
         confidence = 0.9
+        target_count = 1
     else:
         motion_bbox, warmup_count = detect_motion(
             frame,
@@ -413,6 +440,7 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
             detector = "background_motion"
             target_class = "motion_blob"
             confidence = 0.55
+            target_count = 1
 
     event = build_event(
         path=path,
@@ -423,11 +451,14 @@ def process_frame(path: Path, state: ExtractorState, subtractor: cv2.BackgroundS
         confidence=confidence,
         state=state,
         args=args,
+        target_count=target_count,
+        multi_target_payload=multi_target_payload,
     )
 
     state.last_frame_path = path
     state.last_target_present = event["tracking"]["target_present"]
     state.last_size_norm = event["tracking"]["size_norm"]
+    state.last_target_count = event["tracking"]["target_count"]
     return event
 
 
