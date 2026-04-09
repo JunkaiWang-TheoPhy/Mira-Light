@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LLAMA_CPP_ROOT="${MIRA_LIGHT_LLAMA_CPP_ROOT:-$HOME/.openclaw/mira-light-llama.cpp}"
+INSTALL_MODE="${MIRA_LIGHT_LLAMA_CPP_INSTALL:-auto}"
 
 print_next_steps() {
   local llama_cli_bin="$1"
@@ -55,14 +56,18 @@ ensure_homebrew_llama_cpp() {
 
 fallback_build_from_source() {
   mkdir -p "${LLAMA_CPP_ROOT}"
-  if [[ ! -d "${LLAMA_CPP_ROOT}/src/.git" ]]; then
-    git clone https://github.com/ggml-org/llama.cpp.git "${LLAMA_CPP_ROOT}/src"
-  else
-    git -C "${LLAMA_CPP_ROOT}/src" pull --ff-only
+  local src_dir="${LLAMA_CPP_ROOT}/src"
+  local archive_path="${LLAMA_CPP_ROOT}/llama.cpp-master.tar.gz"
+
+  if [[ ! -f "${src_dir}/CMakeLists.txt" ]]; then
+    mv "${src_dir}" "${src_dir}.bak-$(date +%Y%m%d-%H%M%S)" 2>/dev/null || true
+    mkdir -p "${src_dir}"
+    curl -L --fail "https://github.com/ggml-org/llama.cpp/archive/refs/heads/master.tar.gz" -o "${archive_path}" >&2
+    tar -xzf "${archive_path}" -C "${src_dir}" --strip-components=1
   fi
 
-  cmake -S "${LLAMA_CPP_ROOT}/src" -B "${LLAMA_CPP_ROOT}/build" -DGGML_METAL=ON -DLLAMA_BUILD_SERVER=ON
-  cmake --build "${LLAMA_CPP_ROOT}/build" --parallel
+  cmake -S "${src_dir}" -B "${LLAMA_CPP_ROOT}/build" -DGGML_METAL=ON -DLLAMA_BUILD_SERVER=ON >&2
+  cmake --build "${LLAMA_CPP_ROOT}/build" --parallel >&2
 
   if [[ -x "${LLAMA_CPP_ROOT}/build/bin/llama-cli" ]]; then
     printf '%s\n' "${LLAMA_CPP_ROOT}/build/bin/llama-cli"
@@ -74,11 +79,28 @@ fallback_build_from_source() {
 LLAMA_CLI_BIN=""
 if command -v llama-cli >/dev/null 2>&1; then
   LLAMA_CLI_BIN="$(command -v llama-cli)"
-elif LLAMA_CLI_BIN="$(ensure_homebrew_llama_cpp 2>/dev/null)"; then
-  :
-elif LLAMA_CLI_BIN="$(fallback_build_from_source 2>/dev/null)"; then
-  :
 else
+  case "${INSTALL_MODE}" in
+    brew)
+      LLAMA_CLI_BIN="$(ensure_homebrew_llama_cpp 2>/dev/null || true)"
+      ;;
+    source)
+      LLAMA_CLI_BIN="$(fallback_build_from_source 2>/dev/null || true)"
+      ;;
+    auto)
+      LLAMA_CLI_BIN="$(ensure_homebrew_llama_cpp 2>/dev/null || true)"
+      if [[ -z "${LLAMA_CLI_BIN}" ]]; then
+        LLAMA_CLI_BIN="$(fallback_build_from_source 2>/dev/null || true)"
+      fi
+      ;;
+    *)
+      echo "Unsupported MIRA_LIGHT_LLAMA_CPP_INSTALL=${INSTALL_MODE}. Use auto, brew, or source." >&2
+      exit 1
+      ;;
+  esac
+fi
+
+if [[ -z "${LLAMA_CLI_BIN}" ]]; then
   echo "Unable to prepare llama.cpp. Install Homebrew or ensure git/cmake are available for the source build fallback." >&2
   exit 1
 fi

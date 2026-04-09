@@ -78,6 +78,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional path to append JSONL events.",
     )
     parser.add_argument(
+        "--selection-lock-file",
+        type=Path,
+        help="Optional JSON file describing a manually selected target lock.",
+    )
+    parser.add_argument(
         "--once",
         action="store_true",
         help="Process the latest JPEG once and exit.",
@@ -433,7 +438,6 @@ def choose_selected_target(
         selected["reason"] = "highest score among multiple visible targets"
         state.selected_track_id = None
     return selected
-
 
 def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int | None:
     if not isinstance(operator_state, dict):
@@ -911,9 +915,39 @@ def process_frame(
     fg_mask = compute_foreground_mask(frame, subtractor)
     state.bg_warmup_count += 1
 
+    person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
     faces = detect_faces(gray, cascade)
     candidates: list[dict[str, Any]] = []
-    if faces:
+    if person_detections:
+        for bbox, weight in person_detections:
+            candidates.append(
+                make_track_entry(
+                    track_id=0,
+                    bbox=bbox,
+                    detector="person_hog",
+                    target_class="person",
+                    confidence=weight,
+                    frame_width=frame.shape[1],
+                    frame_height=frame.shape[0],
+                    previous_size_norm=state.last_size_norm,
+                )
+            )
+
+        # Face detections are used as confidence hints when they land inside a person box.
+        for face_bbox in faces:
+            fx, fy, fw, fh = face_bbox
+            face_cx = fx + (fw / 2.0)
+            face_cy = fy + (fh / 2.0)
+            for item in candidates:
+                bx = item["bbox_norm"]["x"] * frame.shape[1]
+                by = item["bbox_norm"]["y"] * frame.shape[0]
+                bw = item["bbox_norm"]["w"] * frame.shape[1]
+                bh = item["bbox_norm"]["h"] * frame.shape[0]
+                if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
+                    item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
+                    item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
+                    break
+    elif faces:
         confidence = 0.92 if len(faces) >= 2 else 0.90
         for bbox in faces:
             candidates.append(

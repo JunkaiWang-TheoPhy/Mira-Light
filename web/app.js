@@ -51,6 +51,16 @@ const mockServoGrid = document.getElementById("mock-servo-grid");
 const mockPixelStrip = document.getElementById("mock-pixel-strip");
 const mockLedNote = document.getElementById("mock-led-note");
 const mockColorSwatch = document.getElementById("mock-color-swatch");
+const visionTrackCount = document.getElementById("vision-track-count");
+const visionTrackNote = document.getElementById("vision-track-note");
+const visionSelectedTrack = document.getElementById("vision-selected-track");
+const visionSelectedNote = document.getElementById("vision-selected-note");
+const visionSceneHint = document.getElementById("vision-scene-hint");
+const visionSceneReason = document.getElementById("vision-scene-reason");
+const visionTrackingActive = document.getElementById("vision-tracking-active");
+const visionDistanceBand = document.getElementById("vision-distance-band");
+const visionTracks = document.getElementById("vision-tracks");
+const visionLockFlash = document.getElementById("vision-lock-flash");
 
 let scenes = [];
 let selectedSceneId = null;
@@ -477,6 +487,12 @@ function renderJson(target, data) {
   target.textContent = JSON.stringify(data, null, 2);
 }
 
+function setVisionFlash(message, tone = "default") {
+  if (!visionLockFlash) return;
+  visionLockFlash.textContent = message;
+  visionLockFlash.dataset.tone = tone;
+}
+
 function normalizeServoStatus(data) {
   if (!data || !Array.isArray(data.servos)) return [];
   return data.servos
@@ -614,6 +630,86 @@ function renderLogs(items) {
   logOutput.scrollTop = logOutput.scrollHeight;
 }
 
+function renderVisionState(payload) {
+  visionState = payload;
+  const vision = payload?.vision || {};
+  const latestEvent = payload?.latestEvent || {};
+  const lock = payload?.lock || null;
+
+  const runtime = vision.runtime || runtimeState || {};
+  const bridge = vision.bridge || {};
+  const lastEvent = vision.lastVisionEvent || latestEvent || {};
+  const tracks = Array.isArray(lastEvent.tracks) ? lastEvent.tracks : [];
+  const selected = lastEvent.selected_target || null;
+  const tracking = lastEvent.tracking || {};
+  const sceneHint = lastEvent.scene_hint || {};
+
+  visionTrackCount.textContent = String(tracks.length || tracking.target_count || 0);
+  visionTrackNote.textContent = lock?.mode === "lock" ? `已请求锁定 #${lock.track_id}` : "自动选择模式";
+  visionSelectedTrack.textContent = selected?.track_id != null ? `#${selected.track_id}` : "-";
+  visionSelectedNote.textContent =
+    selected ? `${selected.lock_state || "candidate"} · ${selected.target_class || "unknown"}` : "未锁定";
+  visionSceneHint.textContent = sceneHint.name || "-";
+  visionSceneReason.textContent = sceneHint.reason || "-";
+  visionTrackingActive.textContent = runtime.trackingActive ? "ACTIVE" : "IDLE";
+  visionDistanceBand.textContent = selected?.distance_band || tracking.distance_band || "-";
+
+  visionTracks.innerHTML = "";
+  if (tracks.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "vision-empty";
+    empty.textContent = "当前没有可见目标。";
+    visionTracks.appendChild(empty);
+    return;
+  }
+
+  tracks
+    .slice()
+    .sort((a, b) => (b.selection_score || 0) - (a.selection_score || 0))
+    .forEach((track) => {
+      const card = document.createElement("div");
+      card.className = "track-card";
+      if (selected && track.track_id === selected.track_id) {
+        card.classList.add("is-selected");
+      }
+
+      const detector = track.detector || "unknown";
+      const confidence = typeof track.confidence === "number" ? track.confidence.toFixed(2) : "-";
+      const lockLabel = selected && track.track_id === selected.track_id ? selected.lock_state || "selected" : "candidate";
+
+      card.innerHTML = `
+        <div class="track-card-head">
+          <strong>#${track.track_id}</strong>
+          <span class="track-chip">${lockLabel}</span>
+        </div>
+        <div class="track-meta">
+          <span>${track.target_class || "unknown"}</span>
+          <span>${detector}</span>
+          <span>conf ${confidence}</span>
+        </div>
+        <div class="track-meta">
+          <span>${track.horizontal_zone || "-"}</span>
+          <span>${track.vertical_zone || "-"}</span>
+          <span>${track.distance_band || "-"}</span>
+        </div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "track-actions";
+
+      const lockButton = document.createElement("button");
+      lockButton.type = "button";
+      lockButton.textContent = "锁定目标";
+      lockButton.addEventListener("click", async () => {
+        await setVisionLock(track.track_id);
+      });
+
+      actions.appendChild(lockButton);
+      card.appendChild(actions);
+      visionTracks.appendChild(card);
+    });
+}
+
 function appendLocalLog(message) {
   const row = document.createElement("div");
   row.className = "log-row is-error";
@@ -741,6 +837,11 @@ async function refreshActions() {
   const data = await fetchJson("/api/actions");
   actionsState = data.data;
   renderJson(actionsOutput, data.data);
+}
+
+async function refreshVision() {
+  const data = await fetchJson("/api/vision");
+  renderVisionState(data);
 }
 
 async function refreshProfile() {
@@ -902,10 +1003,40 @@ async function applyPose(name) {
   }
 }
 
+async function setVisionLock(trackId) {
+  try {
+    await fetchJson("/api/vision/lock", {
+      method: "POST",
+      body: JSON.stringify({ trackId }),
+    });
+    setVisionFlash(`已锁定 track #${trackId}`, "success");
+    await refreshVision();
+  } catch (error) {
+    setVisionFlash(error.message, "error");
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
+async function clearVisionLock() {
+  try {
+    await fetchJson("/api/vision/lock/clear", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    setVisionFlash("已清除目标锁定", "success");
+    await refreshVision();
+  } catch (error) {
+    setVisionFlash(error.message, "error");
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
 document.getElementById("save-config").addEventListener("click", saveConfig);
 document.getElementById("refresh-status").addEventListener("click", refreshStatus);
 document.getElementById("refresh-led").addEventListener("click", refreshLed);
 document.getElementById("refresh-actions").addEventListener("click", refreshActions);
+document.getElementById("refresh-vision").addEventListener("click", refreshVision);
+document.getElementById("clear-vision-lock").addEventListener("click", clearVisionLock);
 document.getElementById("apply-neutral").addEventListener("click", () => applyPose("neutral"));
 document.getElementById("apply-sleep").addEventListener("click", () => applyPose("sleep"));
 document.getElementById("stop-scene").addEventListener("click", stopScene);
@@ -965,6 +1096,7 @@ async function bootstrap() {
     await refreshStatus();
     await refreshLed();
     await refreshActions();
+    await refreshVision();
     await refreshProfile();
     await refreshLogs();
     await refreshVisionState();

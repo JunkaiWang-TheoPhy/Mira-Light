@@ -58,6 +58,7 @@ def build_extractor_args(args: argparse.Namespace) -> argparse.Namespace:
         motion_mid_area_ratio=0.06,
         warmup_frames=args.warmup_frames,
         min_motion_area_ratio=0.015,
+        selection_lock_file=None,
     )
 
 

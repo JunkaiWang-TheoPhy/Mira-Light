@@ -278,6 +278,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             body = self._read_json_body()
             state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
             self._send_json(200, {"ok": True, "state": state})
+        if path == "/api/vision-operator":
+            body = self._read_json_body()
+            state = self._save_vision_operator_state(body if isinstance(body, dict) else {})
+            self._send_json(200, {"ok": True, "state": state})
             return
 
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})
@@ -346,6 +350,9 @@ def main() -> int:
     print(f"[console] starting at http://{args.host}:{args.port}")
     print(f"[console] proxying bridge {args.bridge_base_url}")
     print(f"[console] bridge token env {args.bridge_token_env} present={bool(bridge_token)}")
+    print(f"[console] vision bridge state path {args.vision_bridge_state_path}")
+    print(f"[console] vision event path {args.vision_event_path}")
+    print(f"[console] vision operator state path {args.vision_operator_state_path}")
 
     server = ConsoleHTTPServer(
         (args.host, args.port),
