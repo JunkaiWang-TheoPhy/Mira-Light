@@ -300,12 +300,18 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 if not isinstance(scene_name, str) or not scene_name:
                     self._send_json(400, {"ok": False, "error": "scene is required"})
                     return
+                scene_context = body.get("sceneContext")
+                if scene_context is None:
+                    scene_context = body.get("context")
+                if scene_context is not None and not isinstance(scene_context, dict):
+                    self._send_json(400, {"ok": False, "error": "sceneContext/context must be an object"})
+                    return
 
                 async_run = bool(body.get("async", True))
                 if async_run:
-                    runtime_state = self.server.runtime.start_scene(scene_name)
+                    runtime_state = self.server.runtime.start_scene(scene_name, scene_context=scene_context)
                 else:
-                    runtime_state = self.server.runtime.run_scene_blocking(scene_name)
+                    runtime_state = self.server.runtime.run_scene_blocking(scene_name, scene_context=scene_context)
                 self._send_json(200, {"ok": True, "runtime": runtime_state})
                 return
 

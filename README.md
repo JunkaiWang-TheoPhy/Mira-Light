@@ -24,6 +24,16 @@ One-click offline rehearsal:
 bash scripts/run_mira_light_offline_rehearsal.sh --mode quick
 ```
 
+First single-camera live-follow demo:
+
+```bash
+bash scripts/run_mira_light_live_follow_demo.sh --mock-device --replay-demo --receiver-port 18000
+```
+
+Runbook:
+
+- [docs/mira-light-live-follow-demo-runbook.md](./docs/mira-light-live-follow-demo-runbook.md)
+
 ## Camera Receiver
 
 This repository includes a formalized HTTP camera receiver at
