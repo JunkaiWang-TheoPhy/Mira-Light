@@ -118,9 +118,7 @@ def build_state_block(state_payload: Any) -> str | None:
     return "当前运行时状态（仅保留供本轮判断的事实）:\n" + json.dumps(state_payload, ensure_ascii=False, indent=2)
 
 
-def build_memory_block(paths: list[str]) -> str | None:
-    if not paths:
-        return None
+def build_memory_block_from_paths(paths: list[str]) -> str | None:
     blocks: list[str] = []
     for raw_path in paths:
         path = Path(raw_path).expanduser().resolve()
@@ -128,7 +126,16 @@ def build_memory_block(paths: list[str]) -> str | None:
             raise SystemExit(f"Memory snippet file not found: {path}")
         text = path.read_text(encoding="utf-8").strip()
         blocks.append(f"[{path.name}]\n{text}")
+    if not blocks:
+        return None
     return "检索到的相关记忆 / 文档摘录：\n" + "\n\n".join(blocks)
+
+
+def build_memory_block_from_texts(blocks: list[str]) -> str | None:
+    cleaned = [block.strip() for block in blocks if str(block).strip()]
+    if not cleaned:
+        return None
+    return "检索到的相关记忆 / 文档摘录：\n" + "\n\n".join(cleaned)
 
 
 def load_history_messages(path: Path | None) -> list[dict[str, str]]:
@@ -168,16 +175,28 @@ def build_context_user_message(
         "- 保持 Mira / Mira Light 的身份一致性\n"
         "- 简体中文优先\n"
         "- 若问题涉及动作与设备，优先 scene-first 边界\n"
-        "- 若问题是工程讨论，可以结构化、准确，但不要丢失 embodied self-model"
+        "- 若问题是工程讨论，可以结构化、准确，但不要丢失 embodied self-model\n"
+        "- 如果当前状态中已经出现明确的 scene_hint、runningScene、lastFinishedScene 或 selectedTarget，不要忽略这些事实\n"
+        "- 当问题是在问“现在更像进入哪个 scene”时，优先参考当前状态里的 scene_hint，而不是凭空猜测"
     )
     return "\n\n".join(parts).strip()
 
 
 def build_payload(args: argparse.Namespace) -> dict[str, Any]:
     workspace_context = build_workspace_context(args.workspace_root)
-    state_block = build_state_block(load_json_if_exists(args.state_json))
-    memory_block = build_memory_block(args.memory_snippet)
-    history_messages = load_history_messages(args.history_json)
+    direct_state_payload = getattr(args, "state_payload", None)
+    state_payload = direct_state_payload if direct_state_payload is not None else load_json_if_exists(args.state_json)
+    state_block = build_state_block(state_payload)
+
+    direct_memory_blocks = list(getattr(args, "memory_blocks", []) or [])
+    if direct_memory_blocks:
+        memory_block = build_memory_block_from_texts(direct_memory_blocks)
+    else:
+        memory_block = build_memory_block_from_paths(args.memory_snippet)
+
+    history_messages = list(getattr(args, "history_messages", []) or [])
+    if not history_messages:
+        history_messages = load_history_messages(args.history_json)
 
     messages: list[dict[str, str]] = [{"role": "system", "content": COMPACT_IDENTITY_SYSTEM_PROMPT}]
     messages.extend(history_messages)

@@ -14,7 +14,7 @@ SCRIPTS_DIR = ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from ask_mira_local_qwen import build_request_payload, extract_assistant_text, server_models_url
+from ask_mira_local_qwen import build_request_payload, extract_assistant_text, extract_json_fragment, server_models_url
 
 
 class AskMiraLocalQwenTest(unittest.TestCase):
@@ -37,6 +37,10 @@ class AskMiraLocalQwenTest(unittest.TestCase):
         }
         self.assertEqual(extract_assistant_text(payload), "你好，我是 Mira。")
 
+    def test_extract_json_fragment_skips_prefix_noise(self) -> None:
+        noisy = "Config warnings:\n- stale plugin\n{\n  \"results\": []\n}"
+        self.assertEqual(extract_json_fragment(noisy), {"results": []})
+
     def test_build_request_payload_uses_server_model(self) -> None:
         with TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
@@ -52,6 +56,12 @@ class AskMiraLocalQwenTest(unittest.TestCase):
                 history_json = None
                 temperature = 0.2
                 max_tokens = 64
+                bridge_base_url = "http://127.0.0.1:9783"
+                bridge_timeout_seconds = 0.1
+                memory_query = None
+                memory_max_results = 2
+                no_auto_state = True
+                no_auto_memory_search = True
 
             payload = build_request_payload(Args)
             self.assertEqual(payload["model"], "qwen2.5-3b-instruct-q4_k_m.gguf")
