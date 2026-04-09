@@ -15,10 +15,13 @@ from urllib.request import Request, urlopen
 
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
+DEFAULT_LIVE_VISION_DIR = Path(__file__).resolve().parent.parent / "runtime" / "live-vision"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
 DEFAULT_OPENCLAW_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
-DEFAULT_VISION_OPERATOR_STATE_PATH = Path(__file__).resolve().parent.parent / "runtime" / "vision.operator.json"
+DEFAULT_VISION_OPERATOR_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.operator.json"
+DEFAULT_VISION_EVENT_PATH = DEFAULT_LIVE_VISION_DIR / "vision.latest.json"
+DEFAULT_VISION_BRIDGE_STATE_PATH = DEFAULT_LIVE_VISION_DIR / "vision.bridge.state.json"
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -31,6 +34,8 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         bridge_token: str,
         bridge_timeout_seconds: float,
         vision_operator_state_path: Path,
+        vision_event_path: Path,
+        vision_bridge_state_path: Path,
     ):
         super().__init__(server_address, handler_class)
         self.web_root = web_root
@@ -38,6 +43,8 @@ class ConsoleHTTPServer(ThreadingHTTPServer):
         self.bridge_token = bridge_token
         self.bridge_timeout_seconds = bridge_timeout_seconds
         self.vision_operator_state_path = vision_operator_state_path
+        self.vision_event_path = vision_event_path
+        self.vision_bridge_state_path = vision_bridge_state_path
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -99,6 +106,18 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return parsed if isinstance(parsed, dict) else {"lockSelectedTrackId": None}
         except Exception:
             return {"lockSelectedTrackId": None}
+
+    def _load_json_file(self, path: Path) -> dict | None:
+        if not path.is_file():
+            return None
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            if not raw:
+                return None
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else None
+        except Exception:
+            return None
 
     def _save_vision_operator_state(self, payload: dict) -> dict:
         path = self.server.vision_operator_state_path
@@ -190,6 +209,18 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path == "/api/vision-operator":
             self._send_json(200, {"ok": True, "state": self._load_vision_operator_state()})
+            return
+
+        if path == "/api/vision":
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "operator": self._load_vision_operator_state(),
+                    "latestEvent": self._load_json_file(self.server.vision_event_path),
+                    "bridgeState": self._load_json_file(self.server.vision_bridge_state_path),
+                },
+            )
             return
 
         self._serve_static(path)
@@ -294,6 +325,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(os.environ.get("MIRA_LIGHT_VISION_OPERATOR_STATE_PATH", DEFAULT_VISION_OPERATOR_STATE_PATH)),
         help="Local JSON file used for director-console target lock state.",
     )
+    parser.add_argument(
+        "--vision-event-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_EVENT_PATH", DEFAULT_VISION_EVENT_PATH)),
+        help="Path to the latest vision event JSON.",
+    )
+    parser.add_argument(
+        "--vision-bridge-state-path",
+        default=str(os.environ.get("MIRA_LIGHT_VISION_BRIDGE_STATE_PATH", DEFAULT_VISION_BRIDGE_STATE_PATH)),
+        help="Path to the vision bridge state JSON.",
+    )
     return parser
 
 
@@ -314,6 +355,8 @@ def main() -> int:
         bridge_token=bridge_token,
         bridge_timeout_seconds=args.bridge_timeout,
         vision_operator_state_path=Path(args.vision_operator_state_path).expanduser().resolve(),
+        vision_event_path=Path(args.vision_event_path).expanduser().resolve(),
+        vision_bridge_state_path=Path(args.vision_bridge_state_path).expanduser().resolve(),
     )
     try:
         server.serve_forever()

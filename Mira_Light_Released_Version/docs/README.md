@@ -15,12 +15,13 @@
 7. [release-network-diagnostics.md](./release-network-diagnostics.md)
 8. [release-demo-readiness-checklist.md](./release-demo-readiness-checklist.md)
 9. [release-failure-playbook.md](./release-failure-playbook.md)
-10. [release-environment-reference.md](./release-environment-reference.md)
-11. [release-final-status-matrix.md](./release-final-status-matrix.md)
-12. [release-final-hardware-blockers-checklist.md](./release-final-hardware-blockers-checklist.md)
-13. [release-layout.md](./release-layout.md)
-14. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
-15. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
+10. [release-live-execution-checklist.md](./release-live-execution-checklist.md)
+11. [release-environment-reference.md](./release-environment-reference.md)
+12. [release-final-status-matrix.md](./release-final-status-matrix.md)
+13. [release-final-hardware-blockers-checklist.md](./release-final-hardware-blockers-checklist.md)
+14. [release-layout.md](./release-layout.md)
+15. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
+16. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 
 ## 当前文档分组
 
@@ -35,6 +36,7 @@
 - [release-network-diagnostics.md](./release-network-diagnostics.md)
 - [release-demo-readiness-checklist.md](./release-demo-readiness-checklist.md)
 - [release-failure-playbook.md](./release-failure-playbook.md)
+- [release-live-execution-checklist.md](./release-live-execution-checklist.md)
 - [release-final-status-matrix.md](./release-final-status-matrix.md)
 - [release-final-hardware-blockers-checklist.md](./release-final-hardware-blockers-checklist.md)
 - [release-environment-reference.md](./release-environment-reference.md)

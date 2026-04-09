@@ -1,0 +1,75 @@
+{
+  "updatedAt": "2026-04-09T16:00:00+08:00",
+  "runtime": {
+    "trackingActive": true,
+    "running": false,
+    "runningScene": null,
+    "lastFinishedScene": "track_target"
+  },
+  "bridge": {
+    "lastSceneStarted": "track_target",
+    "sceneCounts": {"wake_up": 1, "track_target": 3},
+    "lastTrackingAppliedAtMonotonic": 123.45
+  },
+  "lastVisionEvent": {
+    "scene_hint": {"name": "track_target", "reason": "selected target moving right"},
+    "tracking": {
+      "target_present": true,
+      "target_count": 2,
+      "track_id": 4,
+      "target_class": "person",
+      "detector": "person_hog",
+      "confidence": 0.86,
+      "horizontal_zone": "right",
+      "vertical_zone": "middle",
+      "distance_band": "mid",
+      "approach_state": "approaching"
+    },
+    "tracks": [
+      {
+        "track_id": 3,
+        "target_class": "person",
+        "detector": "person_hog",
+        "confidence": 0.81,
+        "bbox_norm": {"x": 0.11, "y": 0.21, "w": 0.18, "h": 0.33},
+        "center_norm": {"x": 0.20, "y": 0.38},
+        "horizontal_zone": "left",
+        "vertical_zone": "middle",
+        "size_norm": 0.0594,
+        "distance_band": "mid",
+        "approach_state": "stable",
+        "selection_score": 0.98
+      },
+      {
+        "track_id": 4,
+        "target_class": "person",
+        "detector": "person_hog",
+        "confidence": 0.86,
+        "bbox_norm": {"x": 0.58, "y": 0.20, "w": 0.20, "h": 0.35},
+        "center_norm": {"x": 0.68, "y": 0.375},
+        "horizontal_zone": "right",
+        "vertical_zone": "middle",
+        "size_norm": 0.0700,
+        "distance_band": "mid",
+        "approach_state": "approaching",
+        "selection_score": 1.16
+      }
+    ],
+    "selected_target": {
+      "track_id": 4,
+      "lock_state": "locked",
+      "reason": "manual target lock",
+      "target_class": "person",
+      "detector": "person_hog",
+      "confidence": 0.86,
+      "bbox_norm": {"x": 0.58, "y": 0.20, "w": 0.20, "h": 0.35},
+      "center_norm": {"x": 0.68, "y": 0.375},
+      "horizontal_zone": "right",
+      "vertical_zone": "middle",
+      "size_norm": 0.0700,
+      "distance_band": "mid",
+      "approach_state": "approaching",
+      "selection_score": 1.16
+    }
+  }
+}

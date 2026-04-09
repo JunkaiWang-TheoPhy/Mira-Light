@@ -19,6 +19,7 @@ const visionConfidence = document.getElementById("vision-confidence");
 const visionLastTrigger = document.getElementById("vision-last-trigger");
 const visionOperatorLock = document.getElementById("vision-operator-lock");
 const visionOperatorNote = document.getElementById("vision-operator-note");
+const visionTrackList = document.getElementById("vision-track-list");
 
 const summarySceneTitle = document.getElementById("summary-scene-title");
 const summarySceneId = document.getElementById("summary-scene-id");
@@ -58,6 +59,7 @@ let statusState = null;
 let ledState = null;
 let actionsState = null;
 let visionOperatorState = null;
+let visionState = null;
 
 const DIRECTOR_SCENE_IDS = [
   "wake_up",
@@ -199,6 +201,90 @@ function renderVisionSummary() {
   const lockedTrackId = visionOperatorState?.lockSelectedTrackId;
   visionOperatorLock.textContent = lockedTrackId ? `track ${lockedTrackId}` : "未锁定";
   visionOperatorNote.textContent = visionOperatorState?.note || (lockedTrackId ? "导演台手动锁定中" : "跟随当前自动选择");
+
+  const latestEvent = visionState?.latestEvent || {};
+  const selectedTarget = latestEvent.selected_target || null;
+  const tracks = Array.isArray(latestEvent.tracks) ? latestEvent.tracks : [];
+  const sceneHint = latestEvent.scene_hint || {};
+
+  if (selectedTarget) {
+    visionTargetTitle.textContent = `track ${selectedTarget.track_id} · ${selectedTarget.lock_state || "selected"}`;
+    visionTargetSubtitle.textContent = `${selectedTarget.target_class || "-"} · ${sceneHint.name || "-"}`;
+    visionZone.textContent = `${selectedTarget.horizontal_zone || "-"} / ${selectedTarget.vertical_zone || "-"}`;
+    visionDistance.textContent = `${selectedTarget.distance_band || "-"} · ${selectedTarget.approach_state || "-"}`;
+    visionDetector.textContent = selectedTarget.detector || detector;
+    visionConfidence.textContent =
+      typeof selectedTarget.confidence === "number" ? selectedTarget.confidence.toFixed(2) : confidence;
+  }
+
+  renderVisionTrackList(tracks, selectedTarget, sceneHint);
+}
+
+function renderVisionTrackList(tracks, selectedTarget, sceneHint) {
+  if (!visionTrackList) return;
+  visionTrackList.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "vision-track-empty";
+  const trackCount = tracks?.length || 0;
+  summary.textContent = `tracks ${trackCount} · scene_hint ${sceneHint?.name || "-"} · ${sceneHint?.reason || "-"}`;
+  visionTrackList.appendChild(summary);
+
+  if (!tracks || tracks.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "vision-track-empty";
+    empty.textContent = "当前没有可视目标。";
+    visionTrackList.appendChild(empty);
+    return;
+  }
+
+  tracks
+    .slice()
+    .sort((a, b) => (b.selection_score || 0) - (a.selection_score || 0))
+    .forEach((track) => {
+      const card = document.createElement("div");
+      card.className = "vision-track-card";
+      if (selectedTarget && track.track_id === selectedTarget.track_id) {
+        card.classList.add("is-selected");
+      }
+
+      const confidence = typeof track.confidence === "number" ? track.confidence.toFixed(2) : "-";
+      const score = typeof track.selection_score === "number" ? track.selection_score.toFixed(2) : "-";
+      const chip =
+        selectedTarget && track.track_id === selectedTarget.track_id
+          ? selectedTarget.lock_state || "selected"
+          : "candidate";
+
+      card.innerHTML = `
+        <div class="vision-track-head">
+          <strong>#${track.track_id}</strong>
+          <span class="vision-track-chip">${chip}</span>
+        </div>
+        <div class="vision-track-meta">
+          <span>${track.target_class || "-"}</span>
+          <span>${track.detector || "-"}</span>
+          <span>conf ${confidence}</span>
+        </div>
+        <div class="vision-track-meta">
+          <span>${track.horizontal_zone || "-"}</span>
+          <span>${track.vertical_zone || "-"}</span>
+          <span>${track.distance_band || "-"}</span>
+          <span>score ${score}</span>
+        </div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "vision-track-actions";
+      const lockButton = document.createElement("button");
+      lockButton.type = "button";
+      lockButton.textContent = "锁定";
+      lockButton.addEventListener("click", () => {
+        setVisionOperatorLock(track.track_id, `lock track ${track.track_id} from director console`);
+      });
+      actions.appendChild(lockButton);
+      card.appendChild(actions);
+      visionTrackList.appendChild(card);
+    });
 }
 
 function setProfileFlash(message, tone = "default") {
@@ -620,6 +706,12 @@ async function refreshVisionOperator() {
   renderVisionSummary();
 }
 
+async function refreshVisionState() {
+  const data = await fetchJson("/api/vision");
+  visionState = data;
+  renderVisionSummary();
+}
+
 async function refreshScenes() {
   const data = await fetchJson("/api/scenes");
   const sceneMap = new Map((data.items || []).map((item) => [item.id, item]));
@@ -848,7 +940,8 @@ document.getElementById("trigger-criticism").addEventListener("click", () =>
   triggerEvent("criticism_detected", { transcript: "你今天有点不太行", cueMode: readCueMode() }),
 );
 document.getElementById("vision-lock-current").addEventListener("click", () => {
-  const trackId = runtimeState?.trackingTarget?.trackId;
+  const selectedTrackId = visionState?.latestEvent?.selected_target?.track_id;
+  const trackId = selectedTrackId || runtimeState?.trackingTarget?.trackId;
   if (!trackId) {
     appendLocalLog("[ui-error] 当前没有可锁定的 tracking target");
     return;
@@ -858,6 +951,7 @@ document.getElementById("vision-lock-current").addEventListener("click", () => {
 document.getElementById("vision-unlock").addEventListener("click", () =>
   setVisionOperatorLock(null, "operator lock cleared"),
 );
+document.getElementById("refresh-vision").addEventListener("click", refreshVisionState);
 document.getElementById("capture-pose").addEventListener("click", capturePose);
 document.getElementById("refresh-profile").addEventListener("click", refreshProfile);
 
@@ -873,6 +967,7 @@ async function bootstrap() {
     await refreshActions();
     await refreshProfile();
     await refreshLogs();
+    await refreshVisionState();
     await refreshVisionOperator();
   } catch (error) {
     appendLocalLog(`[bootstrap-error] ${error.message}`);
@@ -881,6 +976,7 @@ async function bootstrap() {
   setInterval(async () => {
     try {
       await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed(), refreshActions()]);
+      await refreshVisionState();
       await refreshVisionOperator();
     } catch (error) {
       appendLocalLog(`[poll-error] ${error.message}`);

@@ -494,6 +494,71 @@ h2 {
   align-items: center;
 }
 
+.vision-track-tools {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.vision-track-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.vision-track-empty {
+  border: 1px dashed rgba(122, 117, 198, 0.25);
+  border-radius: 16px;
+  padding: 12px 14px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.vision-track-card {
+  border: 1px solid rgba(122, 117, 198, 0.18);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.58);
+  display: grid;
+  gap: 8px;
+}
+
+.vision-track-card.is-selected {
+  border-color: rgba(255, 107, 157, 0.48);
+  box-shadow: 0 12px 28px rgba(255, 107, 157, 0.12);
+}
+
+.vision-track-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vision-track-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: rgba(115, 176, 228, 0.14);
+  color: var(--text-strong);
+}
+
+.vision-track-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.vision-track-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 label {
   color: var(--muted);
   font-size: 0.95rem;
