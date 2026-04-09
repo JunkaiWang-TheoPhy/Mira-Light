@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -59,6 +60,15 @@ class MinimalSmokeTest(unittest.TestCase):
         "sleep",
     }
 
+    def _wait_until_not_running(self, bridge_base_url: str, *, attempts: int = 20) -> None:
+        for _ in range(attempts):
+            status, runtime_state = request_json(f"{bridge_base_url}/v1/mira-light/runtime")
+            self.assertEqual(status, 200)
+            if not runtime_state["runtime"]["running"]:
+                return
+            time.sleep(0.02)
+        self.fail("runtime did not settle before the next trigger")
+
     def test_runtime_lists_ready_scenes_only_by_default(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
         scenes = runtime.list_scenes()
@@ -110,6 +120,37 @@ class MinimalSmokeTest(unittest.TestCase):
                 log_text = "\n".join(item["text"] for item in logs["items"])
                 self.assertIn("[cue-host]", log_text)
                 self.assertIn("[audio-dry-run]", log_text)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
+    def test_bridge_exposes_signal_delivery_contract_and_schema(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        with TemporaryDirectory() as tmpdir:
+            server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=Path(tmpdir),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                status, contract = request_json(f"{base_url}/v1/mira-light/signal-delivery")
+                self.assertEqual(status, 200)
+                self.assertEqual(contract["data"]["docPath"], "docs/Guide/09-Mira Light统一信号交付格式说明.md")
+                self.assertEqual(contract["data"]["schemaPath"], "config/mira_light_signal_delivery.schema.json")
+                self.assertEqual(contract["data"]["signalDomains"], ["jointControl", "led", "headCapacitive"])
+                self.assertEqual(contract["data"]["contracts"][1]["payload"]["readPixelsField"], "pixelSignals")
+
+                status, schema = request_json(f"{base_url}/v1/mira-light/signal-delivery/schema")
+                self.assertEqual(status, 200)
+                self.assertEqual(schema["data"]["$id"], "https://mira-light.local/schemas/mira_light_signal_delivery.schema.json")
+                self.assertIn("led_count", schema["data"]["$defs"]["led_state"]["required"])
+                self.assertIn("headCapacitive", schema["data"]["$defs"]["sensor_write_request"]["required"])
             finally:
                 server.shutdown()
                 server.server_close()
@@ -173,6 +214,7 @@ class MinimalSmokeTest(unittest.TestCase):
                     "voice_demo_tired",
                     {triggered["runtime"]["runningScene"], triggered["runtime"]["lastFinishedScene"]},
                 )
+                self._wait_until_not_running(base_url)
 
                 status, praise = request_json(
                     f"{base_url}/v1/mira-light/trigger",
@@ -185,6 +227,7 @@ class MinimalSmokeTest(unittest.TestCase):
                     "praise_demo",
                     {praise["runtime"]["runningScene"], praise["runtime"]["lastFinishedScene"]},
                 )
+                self._wait_until_not_running(base_url)
 
                 status, startle = request_json(
                     f"{base_url}/v1/mira-light/trigger",
@@ -349,7 +392,7 @@ class MinimalSmokeTest(unittest.TestCase):
         accepted = runtime.set_led_state({"mode": "vector", "brightness": 180, "pixels": pixels})
         self.assertEqual(accepted["payload"]["mode"], "vector")
         self.assertEqual(len(accepted["payload"]["pixels"]), 40)
-        self.assertEqual(accepted["payload"]["pixels"][0], {"r": 0, "g": 255, "b": 32})
+        self.assertEqual(accepted["payload"]["pixels"][0], {"r": 0, "g": 255, "b": 32, "brightness": 180})
 
         accepted = runtime.set_led_state({"mode": "vector", "pixels": rgba_pixels})
         self.assertEqual(accepted["payload"]["pixels"][0], {"r": 0, "g": 255, "b": 32, "brightness": 180})
@@ -358,7 +401,35 @@ class MinimalSmokeTest(unittest.TestCase):
             runtime.set_led_state({"mode": "vector", "pixels": pixels[:10]})
 
         with self.assertRaisesRegex(RuntimeError, "between 0 and 255"):
-            runtime.set_led_state({"mode": "vector", "pixels": [[0, 0, 0]] * 39 + [[256, 0, 0]]})
+            runtime.set_led_state(
+                {"mode": "vector", "brightness": 180, "pixels": [[0, 0, 0]] * 39 + [[256, 0, 0]]}
+            )
+
+        with self.assertRaisesRegex(RuntimeError, "use pixels"):
+            runtime.set_led_state({"mode": "vector", "pixelSignals": rgba_pixels})
+
+    def test_runtime_tcp_cache_exposes_unified_signal_status(self) -> None:
+        runtime = MiraLightRuntime(base_url="tcp://127.0.0.1:9527", dry_run=True)
+        pixels = [[12, 34, 56, 120] for _ in range(40)]
+
+        led_state = runtime.set_led_state({"mode": "vector", "pixels": pixels})
+        self.assertEqual(led_state["led_count"], 40)
+        self.assertEqual(led_state["pixelSignals"][0], [12, 34, 56, 120])
+        self.assertFalse(led_state["supported"])
+
+        sensors_state = runtime.set_sensors_state({"headCapacitive": 1})
+        self.assertEqual(sensors_state["headCapacitive"], 1)
+        self.assertTrue(sensors_state["simulated"])
+
+        status = runtime.get_status()
+        self.assertEqual(status["sensors"]["headCapacitive"], 1)
+        self.assertEqual(status["led"]["led_count"], 40)
+        self.assertEqual(status["led"]["pixelSignals"][0], [12, 34, 56, 120])
+        self.assertIn("pixels", status["led"])
+
+        direct_sensors = runtime.get_sensors()
+        self.assertEqual(direct_sensors["headCapacitive"], 1)
+        self.assertEqual(direct_sensors["transport"], "tcp")
 
     def test_bridge_rejects_invalid_control_and_accepts_led_vector(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)

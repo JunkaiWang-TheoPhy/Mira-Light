@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import threading
 import unittest
@@ -57,8 +55,6 @@ class MockLampServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(health["ok"])
         self.assertEqual(health["snapshot"]["led"]["led_count"], 40)
-        self.assertEqual(len(health["snapshot"]["led"]["pixelSignals"]), 40)
-        self.assertNotIn("ledCount", health["snapshot"]["led"])
         self.assertEqual(health["snapshot"]["status"]["sensors"]["headCapacitive"], 0)
 
         status, controlled = request_json(
@@ -80,8 +76,6 @@ class MockLampServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(led["mode"], "vector")
         self.assertEqual(led["brightness"], 180)
-        self.assertEqual(led["led_count"], 40)
-        self.assertNotIn("ledCount", led)
         self.assertEqual(len(led["pixels"]), 40)
         self.assertEqual(len(led["pixelSignals"]), 40)
         self.assertEqual(led["pixelSignals"][0], [8, 16, 24, 180])

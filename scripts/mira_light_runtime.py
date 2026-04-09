@@ -44,12 +44,18 @@ from bus_servo_transport import (
     TcpBusServoTransport,
 )
 from mira_light_signal_contract import (
+    DEFAULT_LED_PIN,
     DEFAULT_LED_PIXEL_COUNT,
     HEAD_CAPACITIVE_FIELD,
+    VALID_LED_MODES,
+    build_led_status_payload,
     coerce_int,
+    make_uniform_pixels,
     normalize_binary_signal,
     normalize_rgb_triplet,
     normalize_vector_pixels,
+    off_pixels,
+    rgb_channels,
 )
 from mira_light_audio import AudioCuePlayer
 from scenes import (
@@ -73,7 +79,6 @@ from scenes import (
 DEFAULT_TIMEOUT_SECONDS = 3.0
 SERVO_KEYS = ("servo1", "servo2", "servo3", "servo4")
 VALID_CONTROL_MODES = {"absolute", "relative"}
-VALID_LED_MODES = {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}
 VALID_SPEAK_VOICES = {"tts", "openclaw", "say", "default", "host", "narration"}
 MAX_RELATIVE_DELTA = 45
 LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", str(DEFAULT_LED_PIXEL_COUNT)))
@@ -170,9 +175,9 @@ class MiraLightClient:
         self.dry_run = dry_run
         self._lock = threading.Lock()
         self.transport_kind, self.transport_host, self.transport_port = self._resolve_transport_target(self.base_url)
-        self._status_cache = self._build_initial_status_cache()
         self._led_cache = self._build_initial_led_cache()
-        self._sensors_cache: dict[str, Any] = {"headCapacitive": 0}
+        self._status_cache = self._build_initial_status_cache()
+        self._sensors_cache: dict[str, Any] = {HEAD_CAPACITIVE_FIELD: 0}
         self._actions_cache = self._build_actions_cache()
         self._last_transport_result: dict[str, Any] | None = None
         self._bus_servo_adapter: BusServoAdapter | None = None
@@ -244,15 +249,61 @@ class MiraLightClient:
                 for servo_name in SERVO_KEYS
                 if servo_name in angles
             ],
-            "sensors": {"headCapacitive": 0},
+            "sensors": {HEAD_CAPACITIVE_FIELD: 0},
+            "led": self._build_initial_led_cache(),
             "lastTransportResult": None,
         }
 
     def _build_initial_led_cache(self) -> dict[str, Any]:
+        pixels = off_pixels(count=LED_PIXEL_COUNT)
         return {
-            "mode": "off",
-            "brightness": 0,
-            "color": {"r": 0, "g": 0, "b": 0},
+            **build_led_status_payload(
+                mode="off",
+                brightness=0,
+                color={"r": 0, "g": 0, "b": 0},
+                pixels=pixels,
+                led_count=LED_PIXEL_COUNT,
+                pin=DEFAULT_LED_PIN,
+            ),
+            "transport": self.transport_kind,
+            "simulated": self.transport_kind == "tcp",
+            "supported": self.transport_kind != "tcp",
+            "reason": None if self.transport_kind != "tcp" else TCP_LED_UNSUPPORTED_REASON,
+        }
+
+    def _build_led_cache_from_payload(self, payload: Dict[str, Any]) -> dict[str, Any]:
+        mode = str(payload.get("mode", self._led_cache.get("mode", "off")))
+        brightness = int(payload.get("brightness", self._led_cache.get("brightness", 0)))
+        color = deepcopy(payload.get("color", self._led_cache.get("color", {"r": 0, "g": 0, "b": 0})))
+
+        if mode == "vector":
+            raw_pixels = payload.get("pixels", [])
+            pixels = [
+                {
+                    "r": int(pixel["r"]),
+                    "g": int(pixel["g"]),
+                    "b": int(pixel["b"]),
+                    "brightness": int(pixel["brightness"]),
+                }
+                for pixel in raw_pixels
+            ]
+            if pixels:
+                color = rgb_channels(pixels[0])
+                brightness = int(pixels[0]["brightness"])
+        elif mode == "off":
+            pixels = off_pixels(count=LED_PIXEL_COUNT)
+        else:
+            pixels = make_uniform_pixels(count=LED_PIXEL_COUNT, color=color, brightness=brightness)
+
+        return {
+            **build_led_status_payload(
+                mode=mode,
+                brightness=brightness,
+                color=color,
+                pixels=pixels,
+                led_count=LED_PIXEL_COUNT,
+                pin=DEFAULT_LED_PIN,
+            ),
             "transport": self.transport_kind,
             "simulated": self.transport_kind == "tcp",
             "supported": self.transport_kind != "tcp",
@@ -306,6 +357,7 @@ class MiraLightClient:
                 "estimated": self.transport_kind == "tcp",
                 "servos": servos,
                 "sensors": deepcopy(self._sensors_cache),
+                "led": deepcopy(self._led_cache),
                 "lastTransportResult": deepcopy(transport_result),
             }
         )
@@ -360,6 +412,7 @@ class MiraLightClient:
         if self.transport_kind == "tcp":
             with self._lock:
                 self._status_cache["sensors"] = deepcopy(self._sensors_cache)
+                self._status_cache["led"] = deepcopy(self._led_cache)
                 self._status_cache["lastTransportResult"] = deepcopy(self._last_transport_result)
                 return deepcopy(self._status_cache)
         return self._request("GET", "/status")
@@ -373,7 +426,7 @@ class MiraLightClient:
     def get_sensors(self) -> Any:
         if self.transport_kind == "tcp":
             with self._lock:
-                return {"transport": "tcp", "sensors": deepcopy(self._sensors_cache), "simulated": True}
+                return {**deepcopy(self._sensors_cache), "transport": "tcp", "simulated": True}
         return self._request("GET", "/sensors")
 
     def get_actions(self) -> Any:
@@ -385,13 +438,8 @@ class MiraLightClient:
     def set_led(self, payload: Dict[str, Any]) -> Any:
         if self.transport_kind == "tcp":
             with self._lock:
-                self._led_cache = {
-                    **deepcopy(payload),
-                    "transport": "tcp",
-                    "simulated": True,
-                    "supported": False,
-                    "reason": TCP_LED_UNSUPPORTED_REASON,
-                }
+                self._led_cache = self._build_led_cache_from_payload(payload)
+                self._status_cache["led"] = deepcopy(self._led_cache)
                 return deepcopy(self._led_cache)
         return self._request("POST", "/led", payload)
 
@@ -400,7 +448,7 @@ class MiraLightClient:
             with self._lock:
                 self._sensors_cache = deepcopy(payload)
                 self._status_cache["sensors"] = deepcopy(self._sensors_cache)
-                return {"ok": True, "transport": "tcp", "sensors": deepcopy(self._sensors_cache), "simulated": True}
+                return {"ok": True, **deepcopy(self._sensors_cache), "transport": "tcp", "simulated": True}
         return self._request("POST", "/sensors", payload)
 
     def control(self, payload: Dict[str, Any], *, move_ms: int | None = None) -> Any:
@@ -434,6 +482,7 @@ class MiraLightClient:
             result = self.control(payload)
             with self._lock:
                 self._led_cache = self._build_initial_led_cache()
+                self._status_cache["led"] = deepcopy(self._led_cache)
                 return {
                     "ok": True,
                     "transport": "tcp",
@@ -773,7 +822,7 @@ class MiraLightRuntime:
         if not isinstance(payload, dict):
             raise PayloadValidationError("LED payload must be a JSON object")
 
-        allowed_keys = {"mode", "brightness", "color", "pixels"}
+        allowed_keys = {"mode", "brightness", "color", "pixels", "pixelSignals"}
         unknown = sorted(set(payload) - allowed_keys)
         if unknown:
             raise PayloadValidationError(f"Unsupported LED fields: {', '.join(unknown)}")
@@ -795,6 +844,10 @@ class MiraLightRuntime:
         if mode == "vector":
             if "color" in payload:
                 raise PayloadValidationError("color is not allowed when mode=vector; use pixels")
+            if "pixels" in payload and "pixelSignals" in payload:
+                raise PayloadValidationError("Use either pixels or pixelSignals when mode=vector")
+            if "pixelSignals" in payload:
+                raise PayloadValidationError("pixelSignals is only accepted by the mock device; use pixels")
             pixels = payload.get("pixels")
             if not isinstance(pixels, list):
                 raise PayloadValidationError("pixels must be a list when mode=vector")
@@ -808,8 +861,8 @@ class MiraLightRuntime:
             )
             return normalized
 
-        if "pixels" in payload:
-            raise PayloadValidationError("pixels is only supported when mode=vector")
+        if "pixels" in payload or "pixelSignals" in payload:
+            raise PayloadValidationError("pixels and pixelSignals are only supported when mode=vector")
 
         if mode in {"solid", "breathing"}:
             if "color" not in payload:

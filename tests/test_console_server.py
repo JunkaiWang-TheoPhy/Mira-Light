@@ -183,6 +183,89 @@ class ConsoleServerTest(unittest.TestCase):
                 console_server.server_close()
                 console_thread.join(timeout=3)
 
+    def test_console_proxies_signal_delivery_contract(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True, timeout_seconds=1.0)
+            bridge_server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=tmp_root / "ingest",
+            )
+            bridge_thread = self._start_server(bridge_server)
+            bridge_base_url = f"http://127.0.0.1:{bridge_server.server_address[1]}"
+
+            console_server = ConsoleHTTPServer(
+                ("127.0.0.1", 0),
+                ConsoleHandler,
+                web_root=ROOT / "web",
+                bridge_base_url=bridge_base_url,
+                bridge_token="",
+                bridge_timeout_seconds=1.0,
+                vision_operator_state_path=tmp_root / "vision.operator.json",
+                vision_event_path=tmp_root / "vision.latest.json",
+                vision_bridge_state_path=tmp_root / "vision.bridge.state.json",
+                capture_memory_latest_observation_path=tmp_root / "capture.latest.json",
+                capture_memory_status_path=tmp_root / "capture.status.json",
+            )
+            console_thread = self._start_server(console_server)
+            console_base_url = f"http://127.0.0.1:{console_server.server_address[1]}"
+
+            try:
+                status, contract = request_json(f"{console_base_url}/api/signal-delivery")
+                self.assertEqual(status, 200)
+                self.assertEqual(contract["data"]["docPath"], "docs/Guide/09-Mira Light统一信号交付格式说明.md")
+                self.assertEqual(contract["data"]["schemaPath"], "config/mira_light_signal_delivery.schema.json")
+                self.assertEqual(contract["data"]["contracts"][2]["payload"]["field"], "headCapacitive")
+
+                status, schema = request_json(f"{console_base_url}/api/signal-delivery/schema")
+                self.assertEqual(status, 200)
+                self.assertEqual(schema["data"]["$defs"]["led_state"]["properties"]["led_count"]["const"], 40)
+            finally:
+                console_server.shutdown()
+                console_server.server_close()
+                console_thread.join(timeout=3)
+                bridge_server.shutdown()
+                bridge_server.server_close()
+                bridge_thread.join(timeout=3)
+
+    def test_motion_script_catalog_includes_signal_delivery_contract(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            console_server = ConsoleHTTPServer(
+                ("127.0.0.1", 0),
+                ConsoleHandler,
+                web_root=ROOT / "web",
+                bridge_base_url="http://127.0.0.1:9",
+                bridge_token="",
+                bridge_timeout_seconds=1.0,
+                vision_operator_state_path=tmp_root / "vision.operator.json",
+                vision_event_path=tmp_root / "vision.latest.json",
+                vision_bridge_state_path=tmp_root / "vision.bridge.state.json",
+                capture_memory_latest_observation_path=tmp_root / "capture.latest.json",
+                capture_memory_status_path=tmp_root / "capture.status.json",
+            )
+            console_thread = self._start_server(console_server)
+            console_base_url = f"http://127.0.0.1:{console_server.server_address[1]}"
+
+            try:
+                status, payload = request_json(f"{console_base_url}/api/motion-scripts")
+                self.assertEqual(status, 200)
+                items = payload["items"]
+                curious = next(item for item in items if item.get("sceneId") == "curious_observe")
+                delivery = curious["signalDelivery"]
+                self.assertEqual(delivery["docPath"], "docs/Guide/09-Mira Light统一信号交付格式说明.md")
+                self.assertEqual(delivery["recommendedCallerPath"], "/api/run-motion-script/curious_observe")
+                self.assertEqual(delivery["signalDomains"], ["jointControl", "led"])
+                self.assertEqual(delivery["contracts"][0]["writePath"], "/v1/mira-light/control")
+                self.assertEqual(delivery["contracts"][1]["payload"]["readPixelsField"], "pixelSignals")
+            finally:
+                console_server.shutdown()
+                console_server.server_close()
+                console_thread.join(timeout=3)
+
 
 if __name__ == "__main__":
     unittest.main()

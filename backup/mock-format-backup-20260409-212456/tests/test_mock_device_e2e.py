@@ -101,7 +101,7 @@ class MockDeviceE2ETest(unittest.TestCase):
                         payload={"mode": "solid", "brightness": 144, "color": {"r": 200, "g": 160, "b": 120}},
                     )
                     self.assertEqual(status, 200)
-                    self.assertEqual(led["data"]["brightness"], 144)
+                    self.assertEqual(led["data"]["led"]["brightness"], 144)
 
                     status, reset = request_json(f"{bridge_base_url}/v1/mira-light/reset", method="POST", payload={})
                     self.assertEqual(status, 200)
@@ -109,27 +109,13 @@ class MockDeviceE2ETest(unittest.TestCase):
 
                     status, device_status = request_json(f"{bridge_base_url}/v1/mira-light/status")
                     self.assertEqual(status, 200)
+                    self.assertTrue(device_status["data"]["ok"])
                     self.assertIsInstance(device_status["data"]["servos"], list)
                     self.assertEqual(device_status["data"]["servos"][0]["name"], "servo1")
                     self.assertEqual(device_status["data"]["sensors"]["headCapacitive"], 0)
                     self.assertEqual(device_status["data"]["led"]["led_count"], 40)
                     self.assertNotIn("ledCount", device_status["data"]["led"])
                     self.assertEqual(len(device_status["data"]["led"]["pixelSignals"]), 40)
-                    self.assertEqual(set(device_status["data"].keys()), {"servos", "sensors", "led"})
-
-                    status, raw_status = request_json(f"{mock_base_url}/status")
-                    self.assertEqual(status, 200)
-                    self.assertEqual(set(raw_status.keys()), {"servos", "sensors", "led"})
-                    self.assertEqual(raw_status["sensors"]["headCapacitive"], 0)
-                    self.assertEqual(raw_status["led"]["led_count"], 40)
-
-                    status, health = request_json(f"{mock_base_url}/health")
-                    self.assertEqual(status, 200)
-                    self.assertTrue(health["ok"])
-                    self.assertEqual(health["service"], "mock-mira-light-device")
-                    self.assertIn("time", health)
-                    self.assertEqual(set(health["snapshot"].keys()), {"status", "led", "actions", "lastCommandAt"})
-                    self.assertEqual(health["snapshot"]["status"]["led"]["led_count"], 40)
 
                     status, admin_state = request_json(f"{mock_base_url}/__admin/state")
                     self.assertEqual(status, 200)
@@ -344,7 +330,6 @@ class MockDeviceE2ETest(unittest.TestCase):
                 )
                 self.assertEqual(status, 200)
                 self.assertEqual(sensors["data"]["sensors"]["headCapacitive"], 1)
-                self.assertEqual(sensors["data"]["headCapacitive"], 1)
 
                 status, injected = request_json(
                     f"{mock_base_url}/__admin/device-state",
@@ -362,13 +347,6 @@ class MockDeviceE2ETest(unittest.TestCase):
                 self.assertEqual(injected["state"]["led"]["pixels"][0], {"r": 10, "g": 20, "b": 30})
                 self.assertEqual(injected["state"]["led"]["pixelSignals"][0], [10, 20, 30, 40])
 
-                status, raw_status = request_json(f"{mock_base_url}/status")
-                self.assertEqual(status, 200)
-                self.assertEqual(set(raw_status.keys()), {"servos", "sensors", "led"})
-                self.assertEqual(raw_status["sensors"]["headCapacitive"], 1)
-                self.assertEqual(raw_status["led"]["pixels"][0], {"r": 10, "g": 20, "b": 30})
-                self.assertEqual(raw_status["led"]["pixelSignals"][0], [10, 20, 30, 40])
-
                 status, bridge_status = request_json(f"{bridge_base_url}/v1/mira-light/status")
                 self.assertEqual(status, 200)
                 self.assertIsInstance(bridge_status["data"]["servos"], list)
@@ -378,7 +356,6 @@ class MockDeviceE2ETest(unittest.TestCase):
                 self.assertNotIn("ledCount", bridge_status["data"]["led"])
                 self.assertEqual(bridge_status["data"]["led"]["pixels"][0], {"r": 10, "g": 20, "b": 30})
                 self.assertEqual(bridge_status["data"]["led"]["pixelSignals"][0], [10, 20, 30, 40])
-                self.assertEqual(set(bridge_status["data"].keys()), {"servos", "sensors", "led"})
 
                 status, bridge_sensors = request_json(f"{bridge_base_url}/v1/mira-light/sensors")
                 self.assertEqual(status, 200)

@@ -34,6 +34,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from mira_light_runtime import DEFAULT_TIMEOUT_SECONDS, MiraLightRuntime  # noqa: E402
+from mira_light_signal_delivery import build_signal_delivery_contract, load_signal_delivery_schema  # noqa: E402
 from scenes import POSES, PROFILE_INFO, SCENES, SERVO_CALIBRATION  # noqa: E402
 from embodied_memory_client import EmbodiedMemoryClient  # noqa: E402
 
@@ -254,6 +255,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             if path == "/v1/mira-light/actions":
                 self._send_json(200, {"ok": True, "data": self.server.runtime.get_actions()})
+                return
+
+            if path == "/v1/mira-light/signal-delivery":
+                self._send_json(200, {"ok": True, "data": build_signal_delivery_contract()})
+                return
+
+            if path == "/v1/mira-light/signal-delivery/schema":
+                self._send_json(200, {"ok": True, "data": load_signal_delivery_schema(root=ROOT)})
                 return
 
             if path == "/v1/mira-light/runtime":

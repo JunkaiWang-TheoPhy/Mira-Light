@@ -313,6 +313,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._proxy_json("GET", "/v1/mira-light/actions")
             return
 
+        if path == "/api/signal-delivery":
+            self._proxy_json("GET", "/v1/mira-light/signal-delivery")
+            return
+
+        if path == "/api/signal-delivery/schema":
+            self._proxy_json("GET", "/v1/mira-light/signal-delivery/schema")
+            return
+
         if path == "/api/profile":
             self._proxy_json("GET", "/v1/mira-light/profile")
             return

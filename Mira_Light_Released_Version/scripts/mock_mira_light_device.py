@@ -41,6 +41,21 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from mira_light_signal_contract import (
+    DEFAULT_LED_PIN,
+    DEFAULT_LED_PIXEL_COUNT,
+    HEAD_CAPACITIVE_FIELD,
+    VALID_LED_MODES,
+    build_led_status_payload,
+    build_servo_status_list,
+    coerce_int,
+    make_uniform_pixels,
+    normalize_binary_signal,
+    normalize_rgb_triplet,
+    normalize_u8,
+    normalize_vector_pixels,
+    off_pixels,
+)
 from scenes import POSES
 
 
@@ -49,116 +64,17 @@ DEFAULT_ACTIONS = [
     {"name": "wiggle", "label": "Wiggle", "loopsSupported": True},
     {"name": "wave", "label": "Wave", "loopsSupported": False},
 ]
-DEFAULT_LED_COUNT = 40
+DEFAULT_LED_COUNT = DEFAULT_LED_PIXEL_COUNT
+SERVO_LAYOUT = [
+    {"id": 1, "name": "servo1", "pin": 18},
+    {"id": 2, "name": "servo2", "pin": 13},
+    {"id": 3, "name": "servo3", "pin": 14},
+    {"id": 4, "name": "servo4", "pin": 15},
+]
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-
-
-def coerce_int(value: Any, *, field_name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{field_name} must be an integer")
-    if int(value) != value:
-        raise ValueError(f"{field_name} must be an integer")
-    return int(value)
-
-
-def normalize_u8(value: Any, *, field_name: str) -> int:
-    channel = coerce_int(value, field_name=field_name)
-    if not 0 <= channel <= 255:
-        raise ValueError(f"{field_name} must be between 0 and 255")
-    return channel
-
-
-def normalize_binary_signal(value: Any, *, field_name: str) -> int:
-    signal = coerce_int(value, field_name=field_name)
-    if signal not in {0, 1}:
-        raise ValueError(f"{field_name} must be 0 or 1")
-    return signal
-
-
-def normalize_rgb(value: Any, *, field_name: str) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b"}
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        missing = [channel for channel in ("r", "g", "b") if channel not in value]
-        if missing:
-            raise ValueError(f"{field_name} is missing channels: {', '.join(missing)}")
-        red = normalize_u8(value["r"], field_name=f"{field_name}.r")
-        green = normalize_u8(value["g"], field_name=f"{field_name}.g")
-        blue = normalize_u8(value["b"], field_name=f"{field_name}.b")
-    elif isinstance(value, (list, tuple)) and len(value) == 3:
-        red = normalize_u8(value[0], field_name=f"{field_name}[0]")
-        green = normalize_u8(value[1], field_name=f"{field_name}[1]")
-        blue = normalize_u8(value[2], field_name=f"{field_name}[2]")
-    else:
-        raise ValueError(f"{field_name} must be an RGB object or 3-value vector")
-
-    return {"r": red, "g": green, "b": blue}
-
-
-def normalize_led_pixel(
-    value: Any,
-    *,
-    field_name: str,
-    default_brightness: int | None,
-) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b", "brightness"}
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        channels = normalize_rgb(value, field_name=field_name)
-        brightness_raw = value.get("brightness", default_brightness)
-    elif isinstance(value, (list, tuple)) and len(value) in {3, 4}:
-        channels = normalize_rgb(value[:3], field_name=field_name)
-        brightness_raw = value[3] if len(value) == 4 else default_brightness
-    else:
-        raise ValueError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
-
-    if brightness_raw is None:
-        raise ValueError(f"{field_name}.brightness is required")
-
-    return {
-        **channels,
-        "brightness": normalize_u8(brightness_raw, field_name=f"{field_name}.brightness"),
-    }
-
-
-def make_pixel(*, red: int, green: int, blue: int, brightness: int) -> dict[str, int]:
-    return {"r": red, "g": green, "b": blue, "brightness": brightness}
-
-
-def rgb_channels(pixel: dict[str, int]) -> dict[str, int]:
-    return {"r": pixel["r"], "g": pixel["g"], "b": pixel["b"]}
-
-
-def pixel_signal(pixel: dict[str, int]) -> list[int]:
-    return [pixel["r"], pixel["g"], pixel["b"], pixel["brightness"]]
-
-
-def make_uniform_pixels(
-    *,
-    count: int,
-    color: dict[str, int],
-    brightness: int,
-) -> list[dict[str, int]]:
-    return [
-        make_pixel(
-            red=color["r"],
-            green=color["g"],
-            blue=color["b"],
-            brightness=brightness,
-        )
-        for _ in range(count)
-    ]
-
-
-def off_pixels(*, count: int) -> list[dict[str, int]]:
-    return [make_pixel(red=0, green=0, blue=0, brightness=0) for _ in range(count)]
 
 
 @dataclass
@@ -236,15 +152,15 @@ class MockDeviceState:
 
         self._default_servos = deepcopy(POSES["neutral"]["angles"])
         self._led_count = DEFAULT_LED_COUNT
-        self._default_sensors = {"headCapacitive": 0}
-        self._default_led = {
-            "mode": "off",
-            "brightness": 0,
-            "color": {"r": 0, "g": 0, "b": 0},
-            "ledCount": self._led_count,
-            "pixels": [rgb_channels(pixel) for pixel in off_pixels(count=self._led_count)],
-            "pixelSignals": [pixel_signal(pixel) for pixel in off_pixels(count=self._led_count)],
-        }
+        self._default_sensors = {HEAD_CAPACITIVE_FIELD: 0}
+        self._default_led = build_led_status_payload(
+            mode="off",
+            brightness=0,
+            color={"r": 0, "g": 0, "b": 0},
+            pixels=off_pixels(count=self._led_count),
+            led_count=self._led_count,
+            pin=DEFAULT_LED_PIN,
+        )
         self._default_actions = deepcopy(DEFAULT_ACTIONS)
 
         self._servos = deepcopy(self._default_servos)
@@ -258,6 +174,7 @@ class MockDeviceState:
             "stoppedAt": None,
         }
         self._last_reset_at = now_iso()
+        self._last_command_at: str | None = None
         self._persist_state()
 
     def _persist_state(self) -> None:
@@ -283,6 +200,7 @@ class MockDeviceState:
                 "bootedAt": self._booted_at,
                 "requestCount": self._request_counter,
                 "lastResetAt": self._last_reset_at,
+                "lastCommandAt": self._last_command_at,
                 "servos": deepcopy(self._servos),
                 "led": deepcopy(self._led_state),
                 "sensors": deepcopy(self._sensor_state),
@@ -294,19 +212,38 @@ class MockDeviceState:
                 "recentRequests": list(self._requests),
             }
 
+    def _servo_status_list(self) -> list[dict[str, Any]]:
+        return build_servo_status_list(servos=self._servos, servo_layout=SERVO_LAYOUT)
+
+    def _actions_payload_unlocked(self) -> dict[str, Any]:
+        return {
+            "available": deepcopy(self._default_actions),
+            "active": deepcopy(self._action_state),
+        }
+
+    def _status_payload_unlocked(self) -> dict[str, Any]:
+        return {
+            "servos": self._servo_status_list(),
+            "sensors": deepcopy(self._sensor_state),
+            "led": deepcopy(self._led_state),
+        }
+
     def status_payload(self) -> dict[str, Any]:
+        with self._lock:
+            return self._status_payload_unlocked()
+
+    def health_payload(self) -> dict[str, Any]:
         with self._lock:
             return {
                 "ok": True,
-                "device": "mock-mira-light-device",
-                "online": True,
-                "bootedAt": self._booted_at,
-                "lastResetAt": self._last_reset_at,
-                "servos": deepcopy(self._servos),
-                "sensors": deepcopy(self._sensor_state),
-                "led": deepcopy(self._led_state),
-                "activeAction": deepcopy(self._action_state),
-                "requestCount": self._request_counter,
+                "service": "mock-mira-light-device",
+                "time": now_iso(),
+                "snapshot": {
+                    "status": self._status_payload_unlocked(),
+                    "led": deepcopy(self._led_state),
+                    "actions": self._actions_payload_unlocked(),
+                    "lastCommandAt": self._last_command_at,
+                },
             }
 
     def led_payload(self) -> dict[str, Any]:
@@ -319,10 +256,7 @@ class MockDeviceState:
 
     def actions_payload(self) -> dict[str, Any]:
         with self._lock:
-            return {
-                "available": deepcopy(self._default_actions),
-                "active": deepcopy(self._action_state),
-            }
+            return self._actions_payload_unlocked()
 
     def record_request(
         self,
@@ -363,6 +297,7 @@ class MockDeviceState:
                 "stoppedAt": now_iso(),
             }
             self._last_reset_at = now_iso()
+            self._last_command_at = self._last_reset_at
             if clear_requests:
                 self._requests.clear()
                 self._request_counter = 0
@@ -418,18 +353,20 @@ class MockDeviceState:
                     continue
                 if key not in self._servos:
                     raise ValueError(f"Unsupported servo field: {key}")
-                int_value = int(value)
+                int_value = coerce_int(value, field_name=key)
                 if mode == "absolute":
                     self._servos[key] = int_value
                 else:
                     self._servos[key] += int_value
                 changed[key] = self._servos[key]
+            if not changed:
+                raise ValueError("At least one servo field is required")
+            self._last_command_at = now_iso()
             response = {
                 "ok": True,
                 "mode": mode,
-                "applied": deepcopy(payload),
-                "servos": deepcopy(self._servos),
-                "changed": changed,
+                "updated": len(changed),
+                **self._status_payload_unlocked(),
             }
         self._persist_state()
         return response
@@ -439,7 +376,7 @@ class MockDeviceState:
             raise ValueError("LED payload must be an object")
 
         mode = str(payload.get("mode", self._led_state.get("mode", "off")))
-        if mode not in {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}:
+        if mode not in VALID_LED_MODES:
             raise ValueError("Unsupported LED mode")
 
         brightness = self._led_state.get("brightness", 0)
@@ -448,14 +385,7 @@ class MockDeviceState:
 
         color = deepcopy(self._led_state.get("color", {"r": 0, "g": 0, "b": 0}))
         if "color" in payload:
-            color = normalize_rgb(payload["color"], field_name="color")
-
-        normalized: dict[str, Any] = {
-            "mode": mode,
-            "brightness": brightness,
-            "color": color,
-            "ledCount": self._led_count,
-        }
+            color = normalize_rgb_triplet(payload["color"], field_name="color")
 
         if mode == "vector":
             if "pixels" in payload and "pixelSignals" in payload:
@@ -463,16 +393,12 @@ class MockDeviceState:
             raw_pixels = payload.get("pixelSignals", payload.get("pixels"))
             if raw_pixels is None:
                 raise ValueError("pixels or pixelSignals is required when mode=vector")
-            if not isinstance(raw_pixels, list) or len(raw_pixels) != self._led_count:
-                raise ValueError(f"pixels must contain exactly {self._led_count} LED entries")
-            pixels = [
-                normalize_led_pixel(
-                    pixel,
-                    field_name=f"pixels[{index}]",
-                    default_brightness=brightness,
-                )
-                for index, pixel in enumerate(raw_pixels)
-            ]
+            pixels = normalize_vector_pixels(
+                raw_pixels,
+                pixel_count=self._led_count,
+                field_name="pixels",
+                default_brightness=brightness,
+            )
         elif "pixels" in payload or "pixelSignals" in payload:
             raise ValueError("pixels and pixelSignals are only supported when mode=vector")
         elif mode == "off":
@@ -480,30 +406,40 @@ class MockDeviceState:
         else:
             pixels = make_uniform_pixels(count=self._led_count, color=color, brightness=brightness)
 
-        normalized["pixels"] = [rgb_channels(pixel) for pixel in pixels]
-        normalized["pixelSignals"] = [pixel_signal(pixel) for pixel in pixels]
-        return normalized
+        return build_led_status_payload(
+            mode=mode,
+            brightness=brightness,
+            color=color,
+            pixels=pixels,
+            led_count=self._led_count,
+            pin=DEFAULT_LED_PIN,
+        )
 
     def apply_led(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
             self._led_state = self._normalize_led_payload(payload)
+            self._last_command_at = now_iso()
             response = {
                 "ok": True,
-                "applied": deepcopy(self._led_state),
-                "led": deepcopy(self._led_state),
+                **deepcopy(self._led_state),
             }
         self._persist_state()
         return response
 
     def apply_sensors(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
-            if "headCapacitive" not in payload:
-                raise ValueError("headCapacitive is required")
-            self._sensor_state["headCapacitive"] = normalize_binary_signal(
-                payload["headCapacitive"],
-                field_name="headCapacitive",
+            if HEAD_CAPACITIVE_FIELD not in payload:
+                raise ValueError(f"{HEAD_CAPACITIVE_FIELD} is required")
+            self._sensor_state[HEAD_CAPACITIVE_FIELD] = normalize_binary_signal(
+                payload[HEAD_CAPACITIVE_FIELD],
+                field_name=HEAD_CAPACITIVE_FIELD,
             )
-            response = {"ok": True, "sensors": deepcopy(self._sensor_state)}
+            self._last_command_at = now_iso()
+            response = {
+                "ok": True,
+                HEAD_CAPACITIVE_FIELD: self._sensor_state[HEAD_CAPACITIVE_FIELD],
+                "sensors": deepcopy(self._sensor_state),
+            }
         self._persist_state()
         return response
 
@@ -514,8 +450,20 @@ class MockDeviceState:
         with self._lock:
             if "servos" in payload:
                 servos = payload["servos"]
-                if not isinstance(servos, dict):
-                    raise ValueError("servos must be an object")
+                if isinstance(servos, list):
+                    normalized_servos: dict[str, int] = {}
+                    for index, item in enumerate(servos):
+                        if not isinstance(item, dict):
+                            raise ValueError(f"servos[{index}] must be an object")
+                        name = item.get("name")
+                        if not isinstance(name, str) or name not in self._servos:
+                            raise ValueError(f"Unsupported servo field: {name}")
+                        if "angle" not in item:
+                            raise ValueError(f"servos[{index}].angle is required")
+                        normalized_servos[name] = coerce_int(item["angle"], field_name=f"servos[{index}].angle")
+                    servos = normalized_servos
+                elif not isinstance(servos, dict):
+                    raise ValueError("servos must be an object or status-style servo list")
                 for key, value in servos.items():
                     if key not in self._servos:
                         raise ValueError(f"Unsupported servo field: {key}")
@@ -530,11 +478,12 @@ class MockDeviceState:
                 sensors = payload["sensors"]
                 if not isinstance(sensors, dict):
                     raise ValueError("sensors must be an object")
-                if "headCapacitive" in sensors:
-                    self._sensor_state["headCapacitive"] = normalize_binary_signal(
-                        sensors["headCapacitive"],
-                        field_name="sensors.headCapacitive",
+                if HEAD_CAPACITIVE_FIELD in sensors:
+                    self._sensor_state[HEAD_CAPACITIVE_FIELD] = normalize_binary_signal(
+                        sensors[HEAD_CAPACITIVE_FIELD],
+                        field_name=f"sensors.{HEAD_CAPACITIVE_FIELD}",
                     )
+            self._last_command_at = now_iso()
 
         self._persist_state()
         return {"ok": True, "state": self.snapshot()}
@@ -551,6 +500,7 @@ class MockDeviceState:
                 "startedAt": now_iso(),
                 "stoppedAt": None,
             }
+            self._last_command_at = self._action_state["startedAt"]
             response = {
                 "ok": True,
                 "action": deepcopy(self._action_state),
@@ -562,6 +512,7 @@ class MockDeviceState:
         with self._lock:
             self._action_state["running"] = False
             self._action_state["stoppedAt"] = now_iso()
+            self._last_command_at = self._action_state["stoppedAt"]
             response = {"ok": True, "action": deepcopy(self._action_state)}
         self._persist_state()
         return response
@@ -691,9 +642,7 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
 
         try:
             if path == "/health":
-                payload = self.server.state.snapshot()
-                payload["ok"] = True
-                self._send_json(200, payload)
+                self._send_json(200, self.server.state.health_payload())
                 self.server.state.record_request(
                     method="GET",
                     path=path,
@@ -860,7 +809,7 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
 
             if path == "/reset":
                 self.server.state.reset_state(clear_requests=False, clear_faults=False)
-                response = {"ok": True, "status": self.server.state.status_payload()}
+                response = {"ok": True, **self.server.state.status_payload()}
                 self._send_json(200, response)
                 self.server.state.record_request(
                     method="POST",

@@ -174,7 +174,6 @@ class MockDeviceState:
             "stoppedAt": None,
         }
         self._last_reset_at = now_iso()
-        self._last_command_at: str | None = None
         self._persist_state()
 
     def _persist_state(self) -> None:
@@ -200,7 +199,6 @@ class MockDeviceState:
                 "bootedAt": self._booted_at,
                 "requestCount": self._request_counter,
                 "lastResetAt": self._last_reset_at,
-                "lastCommandAt": self._last_command_at,
                 "servos": deepcopy(self._servos),
                 "led": deepcopy(self._led_state),
                 "sensors": deepcopy(self._sensor_state),
@@ -215,35 +213,19 @@ class MockDeviceState:
     def _servo_status_list(self) -> list[dict[str, Any]]:
         return build_servo_status_list(servos=self._servos, servo_layout=SERVO_LAYOUT)
 
-    def _actions_payload_unlocked(self) -> dict[str, Any]:
-        return {
-            "available": deepcopy(self._default_actions),
-            "active": deepcopy(self._action_state),
-        }
-
-    def _status_payload_unlocked(self) -> dict[str, Any]:
-        return {
-            "servos": self._servo_status_list(),
-            "sensors": deepcopy(self._sensor_state),
-            "led": deepcopy(self._led_state),
-        }
-
     def status_payload(self) -> dict[str, Any]:
-        with self._lock:
-            return self._status_payload_unlocked()
-
-    def health_payload(self) -> dict[str, Any]:
         with self._lock:
             return {
                 "ok": True,
-                "service": "mock-mira-light-device",
-                "time": now_iso(),
-                "snapshot": {
-                    "status": self._status_payload_unlocked(),
-                    "led": deepcopy(self._led_state),
-                    "actions": self._actions_payload_unlocked(),
-                    "lastCommandAt": self._last_command_at,
-                },
+                "device": "mock-mira-light-device",
+                "online": True,
+                "bootedAt": self._booted_at,
+                "lastResetAt": self._last_reset_at,
+                "servos": self._servo_status_list(),
+                "sensors": deepcopy(self._sensor_state),
+                "led": deepcopy(self._led_state),
+                "activeAction": deepcopy(self._action_state),
+                "requestCount": self._request_counter,
             }
 
     def led_payload(self) -> dict[str, Any]:
@@ -256,7 +238,10 @@ class MockDeviceState:
 
     def actions_payload(self) -> dict[str, Any]:
         with self._lock:
-            return self._actions_payload_unlocked()
+            return {
+                "available": deepcopy(self._default_actions),
+                "active": deepcopy(self._action_state),
+            }
 
     def record_request(
         self,
@@ -297,7 +282,6 @@ class MockDeviceState:
                 "stoppedAt": now_iso(),
             }
             self._last_reset_at = now_iso()
-            self._last_command_at = self._last_reset_at
             if clear_requests:
                 self._requests.clear()
                 self._request_counter = 0
@@ -359,14 +343,12 @@ class MockDeviceState:
                 else:
                     self._servos[key] += int_value
                 changed[key] = self._servos[key]
-            if not changed:
-                raise ValueError("At least one servo field is required")
-            self._last_command_at = now_iso()
             response = {
                 "ok": True,
                 "mode": mode,
-                "updated": len(changed),
-                **self._status_payload_unlocked(),
+                "applied": deepcopy(payload),
+                "servos": self._servo_status_list(),
+                "changed": changed,
             }
         self._persist_state()
         return response
@@ -418,10 +400,10 @@ class MockDeviceState:
     def apply_led(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
             self._led_state = self._normalize_led_payload(payload)
-            self._last_command_at = now_iso()
             response = {
                 "ok": True,
-                **deepcopy(self._led_state),
+                "applied": deepcopy(self._led_state),
+                "led": deepcopy(self._led_state),
             }
         self._persist_state()
         return response
@@ -434,7 +416,6 @@ class MockDeviceState:
                 payload[HEAD_CAPACITIVE_FIELD],
                 field_name=HEAD_CAPACITIVE_FIELD,
             )
-            self._last_command_at = now_iso()
             response = {
                 "ok": True,
                 HEAD_CAPACITIVE_FIELD: self._sensor_state[HEAD_CAPACITIVE_FIELD],
@@ -483,7 +464,6 @@ class MockDeviceState:
                         sensors[HEAD_CAPACITIVE_FIELD],
                         field_name=f"sensors.{HEAD_CAPACITIVE_FIELD}",
                     )
-            self._last_command_at = now_iso()
 
         self._persist_state()
         return {"ok": True, "state": self.snapshot()}
@@ -500,7 +480,6 @@ class MockDeviceState:
                 "startedAt": now_iso(),
                 "stoppedAt": None,
             }
-            self._last_command_at = self._action_state["startedAt"]
             response = {
                 "ok": True,
                 "action": deepcopy(self._action_state),
@@ -512,7 +491,6 @@ class MockDeviceState:
         with self._lock:
             self._action_state["running"] = False
             self._action_state["stoppedAt"] = now_iso()
-            self._last_command_at = self._action_state["stoppedAt"]
             response = {"ok": True, "action": deepcopy(self._action_state)}
         self._persist_state()
         return response
@@ -642,7 +620,9 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
 
         try:
             if path == "/health":
-                self._send_json(200, self.server.state.health_payload())
+                payload = self.server.state.snapshot()
+                payload["ok"] = True
+                self._send_json(200, payload)
                 self.server.state.record_request(
                     method="GET",
                     path=path,
@@ -809,7 +789,7 @@ class MockDeviceHandler(BaseHTTPRequestHandler):
 
             if path == "/reset":
                 self.server.state.reset_state(clear_requests=False, clear_faults=False)
-                response = {"ok": True, **self.server.state.status_payload()}
+                response = {"ok": True, "status": self.server.state.status_payload()}
                 self._send_json(200, response)
                 self.server.state.record_request(
                     method="POST",

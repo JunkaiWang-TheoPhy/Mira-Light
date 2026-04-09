@@ -30,9 +30,7 @@ from typing import Any
 from mira_light_signal_contract import (
     DEFAULT_LED_PIXEL_COUNT,
     HEAD_CAPACITIVE_FIELD,
-    VALID_LED_MODES,
     build_led_status_payload,
-    coerce_int,
     make_uniform_pixels,
     normalize_binary_signal,
     normalize_rgb_triplet,
@@ -65,8 +63,88 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
+def coerce_int(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field_name} must be an integer")
+    if int(value) != value:
+        raise ValueError(f"{field_name} must be an integer")
+    return int(value)
+
+
 def clamp_angle(value: int) -> int:
     return max(0, min(180, value))
+
+
+def normalize_u8(value: Any, *, field_name: str) -> int:
+    channel = coerce_int(value, field_name=field_name)
+    if not 0 <= channel <= 255:
+        raise ValueError(f"{field_name} must be between 0 and 255")
+    return channel
+
+
+def normalize_rgb(value: Any, *, field_name: str) -> dict[str, int]:
+    if isinstance(value, dict):
+        channels = {channel: coerce_int(value[channel], field_name=f"{field_name}.{channel}") for channel in ("r", "g", "b")}
+    elif isinstance(value, (list, tuple)) and len(value) == 3:
+        channels = {
+            "r": coerce_int(value[0], field_name=f"{field_name}[0]"),
+            "g": coerce_int(value[1], field_name=f"{field_name}[1]"),
+            "b": coerce_int(value[2], field_name=f"{field_name}[2]"),
+        }
+    else:
+        raise ValueError(f"{field_name} must be an RGB object or 3-value vector")
+
+    for channel, raw in channels.items():
+        if not 0 <= raw <= 255:
+            raise ValueError(f"{field_name}.{channel} must be between 0 and 255")
+    return channels
+
+
+def normalize_led_pixel(
+    value: Any,
+    *,
+    field_name: str,
+    default_brightness: int | None,
+) -> dict[str, int]:
+    if isinstance(value, dict):
+        allowed = {"r", "g", "b", "brightness"}
+        unknown = sorted(set(value) - allowed)
+        if unknown:
+            raise ValueError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
+        channels = normalize_rgb(value, field_name=field_name)
+        brightness_raw = value.get("brightness", default_brightness)
+    elif isinstance(value, (list, tuple)) and len(value) in {3, 4}:
+        channels = normalize_rgb(value[:3], field_name=field_name)
+        brightness_raw = value[3] if len(value) == 4 else default_brightness
+    else:
+        raise ValueError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
+
+    if brightness_raw is None:
+        raise ValueError(f"{field_name}.brightness is required")
+
+    return {
+        **channels,
+        "brightness": normalize_u8(brightness_raw, field_name=f"{field_name}.brightness"),
+    }
+
+
+def normalize_binary_signal(value: Any, *, field_name: str) -> int:
+    signal = coerce_int(value, field_name=field_name)
+    if signal not in {0, 1}:
+        raise ValueError(f"{field_name} must be 0 or 1")
+    return signal
+
+
+def make_pixel(*, red: int, green: int, blue: int, brightness: int) -> dict[str, int]:
+    return {"r": red, "g": green, "b": blue, "brightness": brightness}
+
+
+def rgb_channels(pixel: dict[str, int]) -> dict[str, int]:
+    return {"r": pixel["r"], "g": pixel["g"], "b": pixel["b"]}
+
+
+def pixel_signal(pixel: dict[str, int]) -> list[int]:
+    return [pixel["r"], pixel["g"], pixel["b"], pixel["brightness"]]
 
 
 @dataclass
@@ -218,7 +296,7 @@ class MockLampController:
         with self._lock:
             if "mode" in payload:
                 mode = str(payload["mode"])
-                if mode not in VALID_LED_MODES:
+                if mode not in {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}:
                     raise ValueError("Unsupported LED mode")
                 self.state.led_mode = mode
 
