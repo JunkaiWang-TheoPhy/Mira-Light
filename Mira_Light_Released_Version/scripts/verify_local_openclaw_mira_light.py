@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 import sys
@@ -12,6 +13,18 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
+
+
+def resolve_default_bridge_url() -> str:
+    explicit = os.environ.get("MIRA_LIGHT_BRIDGE_URL") or os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+
+    host = (os.environ.get("MIRA_LIGHT_BRIDGE_HOST") or "127.0.0.1").strip()
+    if host in {"0.0.0.0", "::"}:
+        host = "127.0.0.1"
+    port = (os.environ.get("MIRA_LIGHT_BRIDGE_PORT") or "9783").strip()
+    return f"http://{host}:{port}"
 
 
 def run(cmd: list[str]) -> tuple[int, str]:
@@ -22,8 +35,8 @@ def run(cmd: list[str]) -> tuple[int, str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify local Mira Light OpenClaw setup.")
     parser.add_argument("--config-path", default=str(DEFAULT_CONFIG_PATH))
-    parser.add_argument("--bridge-url", default="http://127.0.0.1:9783")
-    parser.add_argument("--bridge-token", default="test-token")
+    parser.add_argument("--bridge-url", default=resolve_default_bridge_url())
+    parser.add_argument("--bridge-token", default=os.environ.get("MIRA_LIGHT_BRIDGE_TOKEN", "test-token"))
     args = parser.parse_args()
 
     config_path = Path(args.config_path).expanduser().resolve()
@@ -68,4 +81,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

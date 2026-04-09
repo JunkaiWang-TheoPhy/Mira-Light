@@ -301,11 +301,40 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     return
 
                 async_run = bool(body.get("async", True))
+                scene_context = body.get("context") if isinstance(body.get("context"), dict) else None
+                cue_mode = str(body.get("cueMode") or "scene")
+                allow_unavailable = bool(body.get("allowUnavailable", False))
                 if async_run:
-                    runtime_state = self.server.runtime.start_scene(scene_name)
+                    runtime_state = self.server.runtime.start_scene(
+                        scene_name,
+                        scene_context=scene_context,
+                        cue_mode=cue_mode,
+                        allow_unavailable=allow_unavailable,
+                    )
                 else:
-                    runtime_state = self.server.runtime.run_scene_blocking(scene_name)
+                    runtime_state = self.server.runtime.run_scene_blocking(
+                        scene_name,
+                        scene_context=scene_context,
+                        cue_mode=cue_mode,
+                        allow_unavailable=allow_unavailable,
+                    )
                 self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/trigger":
+                body = self._read_json_body()
+                event_name = body.get("event") or body.get("name")
+                if not isinstance(event_name, str) or not event_name:
+                    self._send_json(400, {"ok": False, "error": "event is required"})
+                    return
+                payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+                runtime_state = self.server.runtime.trigger_event(event_name, payload)
+                self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/speak":
+                body = self._read_json_body()
+                self._send_json(200, {"ok": True, "data": self.server.runtime.speak_text(body)})
                 return
 
             if path == "/v1/mira-light/stop":
@@ -353,8 +382,41 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 runtime_state = self.server.runtime.update_config(
                     base_url=body.get("baseUrl"),
                     dry_run=body.get("dryRun"),
+                    auto_recover_pose=body.get("autoRecoverPose"),
                 )
                 self._send_json(200, {"ok": True, "runtime": runtime_state})
+                return
+
+            if path == "/v1/mira-light/profile/capture-pose":
+                body = self._read_json_body()
+                pose_name = body.get("name") or body.get("pose")
+                if not isinstance(pose_name, str) or not pose_name:
+                    self._send_json(400, {"ok": False, "error": "pose name is required"})
+                    return
+                data = self.server.runtime.capture_pose_to_profile(
+                    pose_name,
+                    notes=str(body.get("notes") or ""),
+                    verified=bool(body.get("verified", False)),
+                )
+                self._send_json(200, {"ok": True, "data": data})
+                return
+
+            if path == "/v1/mira-light/profile/set-servo-meta":
+                body = self._read_json_body()
+                servo_name = body.get("servo")
+                if not isinstance(servo_name, str) or not servo_name:
+                    self._send_json(400, {"ok": False, "error": "servo is required"})
+                    return
+                updates = {
+                    "label": body.get("label"),
+                    "neutral": body.get("neutral"),
+                    "hard_range": body.get("hardRange"),
+                    "rehearsal_range": body.get("rehearsalRange"),
+                    "notes": body.get("notes"),
+                    "verified": body.get("verified"),
+                }
+                data = self.server.runtime.update_servo_meta_in_profile(servo_name, updates)
+                self._send_json(200, {"ok": True, "data": data})
                 return
 
             if path == "/v1/mira-light/device/hello":

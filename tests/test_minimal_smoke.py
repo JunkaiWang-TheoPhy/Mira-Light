@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 import sys
 
@@ -83,7 +84,7 @@ class MinimalSmokeTest(unittest.TestCase):
                 status, ran = request_json(
                     f"{base_url}/v1/mira-light/run-scene",
                     method="POST",
-                    payload={"scene": "farewell", "async": False},
+                    payload={"scene": "farewell", "async": False, "cueMode": "director"},
                 )
                 self.assertEqual(status, 200)
                 self.assertTrue(ran["ok"])
@@ -91,6 +92,81 @@ class MinimalSmokeTest(unittest.TestCase):
                 status, logs = request_json(f"{base_url}/v1/mira-light/logs")
                 self.assertEqual(status, 200)
                 self.assertTrue(logs["items"])
+                log_text = "\n".join(item["text"] for item in logs["items"])
+                self.assertIn("[cue-host]", log_text)
+                self.assertIn("[audio-dry-run]", log_text)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
+    def test_bridge_trigger_endpoint_starts_unavailable_scene(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        with TemporaryDirectory() as tmpdir:
+            server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=Path(tmpdir),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                status, triggered = request_json(
+                    f"{base_url}/v1/mira-light/trigger",
+                    method="POST",
+                    payload={"event": "voice_tired", "payload": {"transcript": "我今天好累啊"}},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(triggered["ok"])
+                self.assertIn(
+                    "voice_demo_tired",
+                    {triggered["runtime"]["runningScene"], triggered["runtime"]["lastFinishedScene"]},
+                )
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
+    def test_bridge_speak_endpoint_supports_short_public_lines(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        with TemporaryDirectory() as tmpdir:
+            server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=Path(tmpdir),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                status, spoken = request_json(
+                    f"{base_url}/v1/mira-light/speak",
+                    method="POST",
+                    payload={"text": "你好，我是 Mira。", "voice": "openclaw", "wait": False},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(spoken["ok"])
+                self.assertEqual(spoken["data"]["payload"]["voice"], "openclaw")
+                self.assertFalse(spoken["data"]["payload"]["wait"])
+
+                status, blocked = request_json(
+                    f"{base_url}/v1/mira-light/speak",
+                    method="POST",
+                    payload={"text": "x" * 81},
+                )
+                self.assertEqual(status, 400)
+                self.assertIn("no longer than", blocked["error"])
+
+                status, logs = request_json(f"{base_url}/v1/mira-light/logs")
+                self.assertEqual(status, 200)
+                log_text = "\n".join(item["text"] for item in logs["items"])
+                self.assertIn("[runtime] speak voice=openclaw", log_text)
+                self.assertIn("[audio-dry-run]", log_text)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -124,6 +200,24 @@ class MinimalSmokeTest(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "while a scene is running"):
             runtime.set_led_state({"mode": "solid", "color": {"r": 255, "g": 200, "b": 100}})
+
+    def test_runtime_validates_manual_speak_payload(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+
+        accepted = runtime.speak_text({"text": " 你好，\n我是 Mira。 ", "voice": "openclaw", "wait": False})
+        self.assertEqual(
+            accepted["payload"],
+            {"text": "你好， 我是 Mira。", "voice": "openclaw", "wait": False},
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "text is required"):
+            runtime.speak_text({})
+
+        with self.assertRaisesRegex(RuntimeError, "no longer than"):
+            runtime.speak_text({"text": "x" * 81})
+
+        with self.assertRaisesRegex(RuntimeError, "voice must be one of"):
+            runtime.speak_text({"text": "你好", "voice": "robot"})
 
     def test_runtime_validates_led_vector_payload(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
@@ -174,6 +268,63 @@ class MinimalSmokeTest(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=3)
+
+    def test_dynamic_farewell_preview_uses_requested_direction(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        scene = runtime.preview_scene("farewell", {"departureDirection": "left"})
+        first_absolute = next(
+            step for step in scene["steps"] if step.get("type") == "control" and step.get("payload", {}).get("mode") == "absolute"
+        )
+        self.assertEqual(first_absolute["payload"]["servo1"], 78)
+
+    def test_capture_pose_and_servo_meta_refresh_runtime_profile(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        fake_status = {
+            "servos": [
+                {"name": "servo1", "angle": 91},
+                {"name": "servo2", "angle": 95},
+                {"name": "servo3", "angle": 101},
+                {"name": "servo4", "angle": 89},
+            ]
+        }
+        with TemporaryDirectory() as tmpdir:
+            temp_profile = Path(tmpdir) / "mira_light_profile.local.json"
+            with mock.patch.object(runtime, "_profile_path", return_value=temp_profile):
+                with mock.patch.object(runtime, "get_status", return_value=fake_status):
+                    saved = runtime.capture_pose_to_profile("test_pose_runtime", notes="unit-test", verified=True)
+                self.assertEqual(saved["angles"]["servo3"], 101)
+                self.assertIn("test_pose_runtime", runtime.get_profile()["poses"])
+                updated = runtime.update_servo_meta_in_profile(
+                    "servo1",
+                    {"neutral": 93, "rehearsal_range": [74, 108], "verified": True},
+                )
+                self.assertEqual(updated["value"]["neutral"], 93)
+                self.assertEqual(runtime.get_profile()["servoCalibration"]["servo1"]["neutral"], 93)
+
+    def test_apply_tracking_event_sets_tracking_state(self) -> None:
+        runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)
+        event = {
+            "event_type": "target_updated",
+            "tracking": {
+                "target_present": True,
+                "horizontal_zone": "right",
+                "vertical_zone": "middle",
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "target_class": "person",
+                "confidence": 0.84,
+            },
+            "control_hint": {
+                "yaw_error_norm": 0.35,
+                "pitch_error_norm": -0.15,
+                "lift_intent": 0.62,
+                "reach_intent": 0.58,
+            },
+        }
+        state = runtime.apply_tracking_event(event)
+        self.assertTrue(state["trackingActive"])
+        self.assertEqual(state["trackingTarget"]["horizontalZone"], "right")
+        self.assertEqual(state["trackingTarget"]["servoCommand"]["mode"], "absolute")
 
 
 if __name__ == "__main__":

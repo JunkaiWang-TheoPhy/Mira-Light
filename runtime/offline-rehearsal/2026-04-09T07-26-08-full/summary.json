@@ -1,0 +1,140 @@
+{
+  "mode": "full",
+  "startedAt": "2026-04-09T07:26:08+08:00",
+  "finishedAt": "2026-04-09T07:29:42+08:00",
+  "runDir": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full",
+  "artifacts": {
+    "mock-device-log": "mock-device.log",
+    "mock-device-state": "mock-device.state.json",
+    "mock-device-requests": "mock-device.requests.jsonl",
+    "tests-log": "tests.log",
+    "scene-trace-log": "scene-trace.log",
+    "scene-trace-json": "scene-traces/farewell.trace.json",
+    "scene-trace-html": "scene-traces/farewell.trace.html",
+    "vision-replay-log": "vision-replay.log",
+    "vision-replay-report": "vision-replay/vision.replay.report.json",
+    "vision-latest": "vision-replay/vision.latest.json",
+    "vision-bridge-state": "vision-replay/vision.bridge.state.json",
+    "memory-persona-log": "memory-persona-eval.log",
+    "memory-persona-report": "mira-memory-persona-eval.json"
+  },
+  "steps": [
+    {
+      "name": "mock-device",
+      "ok": true,
+      "command": null,
+      "startedAt": "2026-04-09T07:26:08+08:00",
+      "finishedAt": "2026-04-09T07:26:08+08:00",
+      "durationMs": 0,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mock-device.log",
+      "details": {
+        "baseUrl": "http://127.0.0.1:9799",
+        "requestLogPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mock-device.requests.jsonl",
+        "statePath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mock-device.state.json",
+        "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mock-device.log",
+        "faultFile": null
+      }
+    },
+    {
+      "name": "tests",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.test_minimal_smoke",
+        "tests.test_offline_rehearsal_smoke",
+        "tests.test_scene_trace_and_replay"
+      ],
+      "startedAt": "2026-04-09T07:26:08+08:00",
+      "finishedAt": "2026-04-09T07:26:17+08:00",
+      "durationMs": 8488,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/tests.log"
+    },
+    {
+      "name": "scene-trace",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/.venv/bin/python",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/scene_trace_recorder.py",
+        "farewell",
+        "--base-url",
+        "http://127.0.0.1:9799",
+        "--out-dir",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-traces",
+        "--skip-delays"
+      ],
+      "startedAt": "2026-04-09T07:26:17+08:00",
+      "finishedAt": "2026-04-09T07:26:19+08:00",
+      "durationMs": 1719,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-trace.log",
+      "details": {
+        "scene": "farewell",
+        "traceJson": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-traces/farewell.trace.json",
+        "traceHtml": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-traces/farewell.trace.html"
+      }
+    },
+    {
+      "name": "vision-replay",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/.venv/bin/python",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/vision_replay_bench.py",
+        "--captures-dir",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-demo-captures",
+        "--out-dir",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay",
+        "--base-url",
+        "http://127.0.0.1:9799",
+        "--frame-spacing-ms",
+        "1400",
+        "--scene-cooldown-ms",
+        "1200",
+        "--wake-up-cooldown-ms",
+        "2200",
+        "--sleep-grace-ms",
+        "2200",
+        "--warmup-frames",
+        "1",
+        "--allow-experimental",
+        "--generate-synthetic-demo",
+        "--dry-run"
+      ],
+      "startedAt": "2026-04-09T07:26:19+08:00",
+      "finishedAt": "2026-04-09T07:26:22+08:00",
+      "durationMs": 2904,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay.log",
+      "details": {
+        "reportPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.replay.report.json",
+        "latestEventPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.latest.json",
+        "bridgeStatePath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.bridge.state.json"
+      }
+    },
+    {
+      "name": "memory-persona-eval",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/.venv/bin/python",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/mira_memory_persona_eval.py",
+        "--workspace",
+        "/Users/huhulitong/.openclaw/workspace",
+        "--config",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_memory_persona_eval.json",
+        "--out",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mira-memory-persona-eval.json"
+      ],
+      "startedAt": "2026-04-09T07:26:22+08:00",
+      "finishedAt": "2026-04-09T07:29:42+08:00",
+      "durationMs": 200306,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/memory-persona-eval.log",
+      "details": {
+        "workspace": "/Users/huhulitong/.openclaw/workspace",
+        "reportPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/mira-memory-persona-eval.json",
+        "passed": 10,
+        "failed": 0,
+        "skipAgentPrompts": false
+      }
+    }
+  ],
+  "description": "Full offline rehearsal with tests, scene trace, replay bench, and live persona prompts."
+}

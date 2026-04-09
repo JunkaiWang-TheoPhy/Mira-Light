@@ -1,0 +1,99 @@
+{
+  "mode": "quick",
+  "startedAt": "2026-04-09T07:24:12+08:00",
+  "finishedAt": "2026-04-09T07:25:19+08:00",
+  "runDir": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick",
+  "artifacts": {
+    "mock-device-log": "mock-device.log",
+    "mock-device-state": "mock-device.state.json",
+    "mock-device-requests": "mock-device.requests.jsonl",
+    "tests-log": "tests.log",
+    "scene-trace-log": "scene-trace.log",
+    "scene-trace-json": "scene-traces/farewell.trace.json",
+    "scene-trace-html": "scene-traces/farewell.trace.html",
+    "memory-persona-log": "memory-persona-eval.log",
+    "memory-persona-report": "mira-memory-persona-eval.json"
+  },
+  "steps": [
+    {
+      "name": "mock-device",
+      "ok": true,
+      "command": null,
+      "startedAt": "2026-04-09T07:24:12+08:00",
+      "finishedAt": "2026-04-09T07:24:12+08:00",
+      "durationMs": 0,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.log",
+      "details": {
+        "baseUrl": "http://127.0.0.1:9799",
+        "requestLogPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.requests.jsonl",
+        "statePath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.state.json",
+        "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.log",
+        "faultFile": null
+      }
+    },
+    {
+      "name": "tests",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11",
+        "-m",
+        "unittest",
+        "tests.test_offline_rehearsal_smoke"
+      ],
+      "startedAt": "2026-04-09T07:24:12+08:00",
+      "finishedAt": "2026-04-09T07:24:13+08:00",
+      "durationMs": 1621,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/tests.log"
+    },
+    {
+      "name": "scene-trace",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/scene_trace_recorder.py",
+        "farewell",
+        "--base-url",
+        "http://127.0.0.1:9799",
+        "--out-dir",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces",
+        "--skip-delays"
+      ],
+      "startedAt": "2026-04-09T07:24:13+08:00",
+      "finishedAt": "2026-04-09T07:24:14+08:00",
+      "durationMs": 120,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-trace.log",
+      "details": {
+        "scene": "farewell",
+        "traceJson": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces/farewell.trace.json",
+        "traceHtml": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces/farewell.trace.html"
+      }
+    },
+    {
+      "name": "memory-persona-eval",
+      "ok": true,
+      "command": [
+        "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/mira_memory_persona_eval.py",
+        "--workspace",
+        "/Users/huhulitong/.openclaw/workspace",
+        "--config",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_memory_persona_eval.json",
+        "--out",
+        "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mira-memory-persona-eval.json",
+        "--skip-agent-prompts"
+      ],
+      "startedAt": "2026-04-09T07:24:14+08:00",
+      "finishedAt": "2026-04-09T07:25:19+08:00",
+      "durationMs": 64970,
+      "logPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/memory-persona-eval.log",
+      "details": {
+        "workspace": "/Users/huhulitong/.openclaw/workspace",
+        "reportPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mira-memory-persona-eval.json",
+        "passed": 7,
+        "failed": 0,
+        "skipAgentPrompts": true
+      }
+    }
+  ],
+  "description": "Fast confidence pass with mock E2E, one trace, and retrieval/file eval only."
+}

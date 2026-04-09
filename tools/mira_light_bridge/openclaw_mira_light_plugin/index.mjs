@@ -115,6 +115,33 @@ function buildRunSceneTool(api) {
   };
 }
 
+function buildSpeakTool(api) {
+  return {
+    name: "mira_light_speak",
+    description:
+      "Speak a short public line through Mira Light's configured speaker path. Prefer scenes for expressive multi-step behavior.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: ["text"],
+      properties: {
+        text: { type: "string", minLength: 1, maxLength: 80 },
+        voice: { type: "string", enum: ["tts", "openclaw", "say"] },
+        wait: { type: "boolean" },
+      },
+    },
+    async execute(_id, params) {
+      const payload = {
+        text: params.text,
+        ...(params.voice ? { voice: params.voice } : {}),
+        ...(typeof params.wait === "boolean" ? { wait: params.wait } : {}),
+      };
+      const data = await callBridge(api, "POST", "/v1/mira-light/speak", payload);
+      return asTextContent(data);
+    },
+  };
+}
+
 function buildStopTool(api) {
   return {
     name: "mira_light_stop",
@@ -212,6 +239,7 @@ const plugin = {
     api.registerTool(buildRuntimeTool(api), { optional: false });
     api.registerTool(buildStatusTool(api), { optional: false });
     api.registerTool(buildRunSceneTool(api), { optional: false });
+    api.registerTool(buildSpeakTool(api), { optional: false });
     api.registerTool(buildStopTool(api), { optional: false });
     api.registerTool(buildResetTool(api), { optional: false });
     api.registerTool(buildLedTool(api), { optional: false });

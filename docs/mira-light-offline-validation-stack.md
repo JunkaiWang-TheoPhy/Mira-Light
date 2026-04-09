@@ -201,6 +201,50 @@ When you only want the shortest confidence pass, use this order:
 ./.venv/bin/python scripts/mira_memory_persona_eval.py --workspace ~/.openclaw/workspace
 ```
 
+## One-click rehearsal
+
+The repository now includes a thin one-click entry point on top of the
+individual tools:
+
+- [run_mira_light_offline_rehearsal.py](/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/run_mira_light_offline_rehearsal.py)
+- [run_mira_light_offline_rehearsal.sh](/Users/huhulitong/Documents/GitHub/Mira-Light/scripts/run_mira_light_offline_rehearsal.sh)
+- [mira_light_offline_rehearsal.json](/Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_light_offline_rehearsal.json)
+
+Supported modes:
+
+- `quick`: mock E2E + one scene trace + retrieval/file eval
+- `full`: tests + scene trace + vision replay + live persona prompts
+- `fault`: boot with injected faults, then rehearse bridge/runtime resilience
+- `interactive`: keep the mock device running for manual experimentation
+
+Examples:
+
+```bash
+bash scripts/run_mira_light_offline_rehearsal.sh --mode quick
+bash scripts/run_mira_light_offline_rehearsal.sh --mode full
+bash scripts/run_mira_light_offline_rehearsal.sh --mode fault
+bash scripts/run_mira_light_offline_rehearsal.sh --mode interactive
+```
+
+Each run creates a timestamped folder under:
+
+```text
+runtime/offline-rehearsal/<timestamp>-<mode>/
+```
+
+That folder contains:
+
+- `summary.json`
+- `index.html`
+- per-step logs
+- mock device request/state artifacts
+- scene trace outputs
+- vision replay outputs
+- memory/persona report when enabled
+
+Use this entry point when you want a repeatable offline demo or regression pass
+without remembering the exact tool order.
+
 ## What this still does not replace
 
 - true servo calibration

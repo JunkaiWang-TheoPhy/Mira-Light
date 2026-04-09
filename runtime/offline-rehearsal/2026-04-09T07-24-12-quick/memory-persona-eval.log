@@ -1,0 +1,85 @@
+{
+  "workspace": "/Users/huhulitong/.openclaw/workspace",
+  "config": "/Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_memory_persona_eval.json",
+  "counts": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "vision-scene-hint",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "如何把看到人的结果转成 scene_hint",
+      "resultCount": 5,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md"
+      ]
+    },
+    {
+      "id": "scene-first-safety",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "为什么视觉层不应该直接输出舵机角度",
+      "resultCount": 5,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md"
+      ]
+    },
+    {
+      "id": "sleep-transition",
+      "passed": true,
+      "type": "memoryQuery",
+      "query": "什么时候该 sleep 而不是继续表演",
+      "resultCount": 5,
+      "matchedPathExpectation": true,
+      "matchedSnippetExpectation": true,
+      "topPaths": [
+        "memory/mira-light-operator-cheatsheet.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-vision-event-schema.md",
+        "../../Documents/GitHub/Mira-Light/docs/mira-light-single-camera-fourdof-vision-development-guide.md"
+      ]
+    },
+    {
+      "id": "identity-mira",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/IDENTITY.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "soul-observe-first",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/SOUL.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "agents-scene-first",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/AGENTS.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    },
+    {
+      "id": "tools-vision-pipeline",
+      "passed": true,
+      "type": "personaFile",
+      "path": "/Users/huhulitong/.openclaw/workspace/TOOLS.md",
+      "matchedAnyExpectation": true,
+      "matchedAllExpectation": true
+    }
+  ]
+}

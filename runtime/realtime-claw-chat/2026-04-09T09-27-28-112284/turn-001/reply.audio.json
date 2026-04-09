@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+    "哈哈没错～我的名字本来就是米拉呀✨，发音就是米拉（米拉），不管怎么说都是我～"
+  ],
+  "description": "speech:openclaw",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "哈哈没错～我的名字本来就是Mira呀✨，发音就是Mee-ra（米拉），不管怎么说都是我～",
+  "spokenText": "哈哈没错～我的名字本来就是米拉呀✨，发音就是米拉（米拉），不管怎么说都是我～"
+}

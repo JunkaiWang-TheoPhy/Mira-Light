@@ -1,0 +1,130 @@
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/control HTTP/1.1" 400 -
+[runtime] direct led control {"mode": "vector", "pixels": [{"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}, {"r": 12, "g": 34, "b": 56}]}
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/led HTTP/1.1" 200 -
+[bridge-http] 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+[bridge-http] 127.0.0.1 - "GET /v1/mira-light/scenes HTTP/1.1" 200 -
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/run-scene HTTP/1.1" 400 -
+[runtime] start scene farewell cue_mode=director
+=== Scene: farewell / 挥手送别 ===
+[cue-operator] 结束时用它来收尾，再接 sleep。
+[cue-fallback] 直接执行 wave + farewell_bow
+[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[cue-host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[audio-dry-run] prepare-output -> /Users/huhulitong/.local/bin/speaker-hp-use
+[audio-dry-run] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[note] 当前按评委离场的右侧做动态目送。
+[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。
+[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。
+[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。
+[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 108, "color": {"r": 255, "g": 214, "b": 176}}
+[comment] 先目送评委离开的右侧。
+[control] {"mode": "absolute", "servo1": 106, "servo2": 96, "servo3": 100, "servo4": 92}
+[delay] 420ms
+[audio-dry-run] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 谢谢你来看我，下次见。
+[comment] 再做两次慢慢点头，像挥手说再见。
+[control] {"mode": "relative", "servo4": 5}
+[delay] 180ms
+[control] {"mode": "relative", "servo4": -10}
+[delay] 180ms
+[control] {"mode": "relative", "servo4": 5}
+[delay] 220ms
+[control] {"mode": "relative", "servo4": 5}
+[delay] 180ms
+[control] {"mode": "relative", "servo4": -10}
+[delay] 180ms
+[control] {"mode": "relative", "servo4": 5}
+[delay] 220ms
+[comment] 最后微微低头，像有点舍不得。
+[control] {"mode": "absolute", "servo1": 102, "servo2": 92, "servo3": 96, "servo4": 100}
+[delay] 180ms
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 90, "color": {"r": 255, "g": 210, "b": 170}}
+[scene-done] farewell
+[runtime] finished scene farewell
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/run-scene HTTP/1.1" 200 -
+[bridge-http] 127.0.0.1 - "GET /v1/mira-light/logs HTTP/1.1" 200 -
+[trigger] voice_tired -> voice_demo_tired
+[runtime] start scene voice_demo_tired cue_mode=scene
+=== Scene: voice_demo_tired / 语音理解：我今天好累 ===
+[cue-operator] 适合讲‘它不需要说话，也能表达理解’。
+[cue-fallback] 手动触发低头 + 暖色呼吸
+[host] 你只要说一句‘今天好累啊’，它就会用动作和灯光告诉你：它听懂了。
+[note] 现场输入：我今天好累啊
+[note] TODO: 真正实现时接语音识别和情绪分类；在那之前默认通过 OpenClaw 或终端命令触发。
+[tuning] 重点是安静地接住情绪，不要做成积极打招呼。
+[pose] farewell_bow -> {"mode": "absolute", "servo1": 106, "servo2": 92, "servo3": 94, "servo4": 98}
+[audio-dry-run] prepare-output -> /Users/huhulitong/.local/bin/speaker-hp-use
+[audio-dry-run] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 辛苦了，要不要先休息一下？
+[led] {"mode": "breathing", "brightness": 70, "color": {"r": 255, "g": 170, "b": 110}}
+[delay] 2000ms
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 110, "color": {"r": 255, "g": 220, "b": 180}}
+[scene-done] voice_demo_tired
+[runtime] finished scene voice_demo_tired
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/trigger HTTP/1.1" 200 -
+[runtime] direct joint control {"mode": "absolute", "servo1": 90, "servo4": 92}
+[runtime] direct led control {"mode": "vector", "brightness": 180, "pixels": [{"r": 0, "g": 255, "b": 32}, {"r": 1, "g": 254, "b": 32}, {"r": 2, "g": 253, "b": 32}, {"r": 3, "g": 252, "b": 32}, {"r": 4, "g": 251, "b": 32}, {"r": 5, "g": 250, "b": 32}, {"r": 6, "g": 249, "b": 32}, {"r": 7, "g": 248, "b": 32}, {"r": 8, "g": 247, "b": 32}, {"r": 9, "g": 246, "b": 32}, {"r": 10, "g": 245, "b": 32}, {"r": 11, "g": 244, "b": 32}, {"r": 12, "g": 243, "b": 32}, {"r": 13, "g": 242, "b": 32}, {"r": 14, "g": 241, "b": 32}, {"r": 15, "g": 240, "b": 32}, {"r": 16, "g": 239, "b": 32}, {"r": 17, "g": 238, "b": 32}, {"r": 18, "g": 237, "b": 32}, {"r": 19, "g": 236, "b": 32}, {"r": 20, "g": 235, "b": 32}, {"r": 21, "g": 234, "b": 32}, {"r": 22, "g": 233, "b": 32}, {"r": 23, "g": 232, "b": 32}, {"r": 24, "g": 231, "b": 32}, {"r": 25, "g": 230, "b": 32}, {"r": 26, "g": 229, "b": 32}, {"r": 27, "g": 228, "b": 32}, {"r": 28, "g": 227, "b": 32}, {"r": 29, "g": 226, "b": 32}, {"r": 30, "g": 225, "b": 32}, {"r": 31, "g": 224, "b": 32}, {"r": 32, "g": 223, "b": 32}, {"r": 33, "g": 222, "b": 32}, {"r": 34, "g": 221, "b": 32}, {"r": 35, "g": 220, "b": 32}, {"r": 36, "g": 219, "b": 32}, {"r": 37, "g": 218, "b": 32}, {"r": 38, "g": 217, "b": 32}, {"r": 39, "g": 216, "b": 32}]}
+[mock-device] 127.0.0.1 - "POST /__admin/faults HTTP/1.1" 200 -
+[mock-device] 127.0.0.1 - "GET /status HTTP/1.1" 503 -
+[bridge-http] 127.0.0.1 - "GET /v1/mira-light/status HTTP/1.1" 500 -
+[runtime] direct joint control {"mode": "absolute", "servo1": 90}
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/control HTTP/1.1" 500 -
+[runtime] start scene farewell cue_mode=scene
+=== Scene: farewell / 挥手送别 ===
+[cue-operator] 结束时用它来收尾，再接 sleep。
+[cue-fallback] 直接执行 wave + farewell_bow
+[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[note] 当前按评委离场的右侧做动态目送。
+[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。
+[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。
+[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。
+[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[led] {"mode": "solid", "brightness": 108, "color": {"r": 255, "g": 214, "b": 176}}
+[mock-device] 127.0.0.1 - "POST /led HTTP/1.1" 200 -
+[comment] 先目送评委离开的右侧。
+[control] {"mode": "absolute", "servo1": 106, "servo2": 96, "servo3": 100, "servo4": 92}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 420ms
+[audio-dry-run] prepare-output -> /Users/huhulitong/.local/bin/speaker-hp-use
+[audio-dry-run] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 谢谢你来看我，下次见。
+[comment] 再做两次慢慢点头，像挥手说再见。
+[control] {"mode": "relative", "servo4": 5}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 180ms
+[control] {"mode": "relative", "servo4": -10}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 180ms
+[control] {"mode": "relative", "servo4": 5}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 220ms
+[control] {"mode": "relative", "servo4": 5}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 180ms
+[control] {"mode": "relative", "servo4": -10}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 180ms
+[control] {"mode": "relative", "servo4": 5}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 220ms
+[comment] 最后微微低头，像有点舍不得。
+[control] {"mode": "absolute", "servo1": 102, "servo2": 92, "servo3": 96, "servo4": 100}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 180ms
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[led] {"mode": "solid", "brightness": 90, "color": {"r": 255, "g": 210, "b": 170}}
+[mock-device] 127.0.0.1 - "POST /led HTTP/1.1" 200 -
+[scene-done] farewell
+[runtime] finished scene farewell
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/run-scene HTTP/1.1" 200 -
+[mock-device] 127.0.0.1 - "GET /__admin/state HTTP/1.1" 200 -
+
+...........s
+----------------------------------------------------------------------
+Ran 12 tests in 3.960s
+
+OK (skipped=1)

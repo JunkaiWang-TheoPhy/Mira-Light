@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "这个名字读起来简洁顺口，确实很容易让人记住。",
+        "reasoning_content": "\n用户现在说的是Mira发音像Mira和OpenClaw、Mira？不对，看用户输入就是“Mira 发音像Mira 与OpenClaw、Mira。”，哦可能用户是在说这个发音的重复？不对，应该回应的自然点，Mira就是这么读的呀，要不就说“原来你发现这个发音很有意思呀，这个名字本身读起来就很简洁好记。”不对，要1到2句，简短，温柔。哦不对，用户是不是在说发音重复的事？不对，再看，用户输入可能就是说Mira发音重复？那可以说“这个名字读起来朗朗上口，确实很好记呀。”不对，再自然点，要不“原来你觉得这个名字读起来很有意思呀，确实简洁又顺口。”对，就这个？不对，再短点？哦要求1到2句，自然，简短。那“这个名字读起来简洁顺口，确实很容易记住呀。”嗯，可以了。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775703947,
+  "id": "0217757039419822b482879bf9ba508fa4c5c25749ab55980a930",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 226,
+    "prompt_tokens": 97,
+    "total_tokens": 323,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 213
+    }
+  }
+}

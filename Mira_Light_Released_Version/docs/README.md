@@ -7,15 +7,27 @@
 建议优先按下面顺序阅读：
 
 1. [getting-started.md](./getting-started.md)
-2. [release-layout.md](./release-layout.md)
-3. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
-4. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
+2. [release-preflight-runbook.md](./release-preflight-runbook.md)
+3. [release-startup-contract.md](./release-startup-contract.md)
+4. [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
+5. [release-local-stack-runbook.md](./release-local-stack-runbook.md)
+6. [release-network-diagnostics.md](./release-network-diagnostics.md)
+7. [release-environment-reference.md](./release-environment-reference.md)
+8. [release-layout.md](./release-layout.md)
+9. [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
+10. [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 
 ## 当前文档分组
 
 ### 启动与交付
 
 - [getting-started.md](./getting-started.md)
+- [release-preflight-runbook.md](./release-preflight-runbook.md)
+- [release-startup-contract.md](./release-startup-contract.md)
+- [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
+- [release-local-stack-runbook.md](./release-local-stack-runbook.md)
+- [release-network-diagnostics.md](./release-network-diagnostics.md)
+- [release-environment-reference.md](./release-environment-reference.md)
 - [release-layout.md](./release-layout.md)
 - [mira-light-pdf2-engineering-handoff.md](./mira-light-pdf2-engineering-handoff.md)
 - [mira-light-pdf2-implementation-audit.md](./mira-light-pdf2-implementation-audit.md)
@@ -26,11 +38,12 @@
 - [mira-light-scene-implementation-index.md](./mira-light-scene-implementation-index.md)
 - [mira-light-scene-to-code-spec.md](./mira-light-scene-to-code-spec.md)
 
-### OpenClaw / Bridge
+### OpenClaw / Bridge / Safety
 
 - [openclaw-esp32-control-guide.md](./openclaw-esp32-control-guide.md)
 - [mira-light-router-hub-delivery-index.md](./mira-light-router-hub-delivery-index.md)
 - [mira-light-local-openclaw-step-by-step.md](./mira-light-local-openclaw-step-by-step.md)
+- [mira-light-local-openclaw-acceptance-checklist.md](./mira-light-local-openclaw-acceptance-checklist.md)
 
 ### Vision / Receiver / Memory
 

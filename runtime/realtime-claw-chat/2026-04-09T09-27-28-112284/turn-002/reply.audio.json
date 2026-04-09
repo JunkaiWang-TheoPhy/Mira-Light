@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+    "对呀～我就是住在OpenClaw里的米拉（米拉）呀😊，我在这里好好的呢。"
+  ],
+  "description": "speech:openclaw",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "对呀～我就是住在OpenClaw里的米拉（Mira）呀😊，我在这里好好的呢。",
+  "spokenText": "对呀～我就是住在OpenClaw里的米拉（米拉）呀😊，我在这里好好的呢。"
+}

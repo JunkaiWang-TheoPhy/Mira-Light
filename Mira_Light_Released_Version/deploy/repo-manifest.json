@@ -7,16 +7,25 @@
   "defaultOneClickInstall": "bash scripts/one_click_install.sh",
   "defaultCommands": {
     "bootstrap": "npm run bootstrap",
+    "preflight": "npm run preflight",
+    "preflightOnline": "npm run preflight:online",
     "doctor": "npm run doctor",
+    "doctorOnline": "npm run doctor:online",
     "start": "npm run start",
+    "startLocalStack": "npm run start:stack",
     "startConsole": "npm run start:console",
     "startBridge": "npm run start:bridge",
     "startReceiver": "npm run start:receiver",
+    "smokeHttp": "npm run smoke:http",
     "installOpenClaw": "npm run install:openclaw",
+    "removeOpenClaw": "npm run remove:openclaw",
     "verifyOpenClaw": "npm run verify:openclaw",
     "test": "npm run test"
   },
   "components": {
+    "localStack": {
+      "entry": "scripts/start_local_stack.sh"
+    },
     "directorConsole": {
       "entry": "scripts/start_director_console.sh",
       "defaultUrl": "http://127.0.0.1:8765/"

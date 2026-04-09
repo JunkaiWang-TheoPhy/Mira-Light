@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "cueId": "dance",
+      "defaultRequestName": "dance.mp3",
+      "resolvedFile": "dance.wav",
+      "description": "Bundled celebratory cue used by the celebrate scene.",
+      "requiredByScenes": [
+        "celebrate"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T08-18-37-371407/turn-001/input.wav",
+  "transcript": "你好 我是 Mira 。请回复 Smoke ok。",
+  "rawTranscript": "你好 我是 Mira 。请回复 Smoke ok。",
+  "normalizationApplied": false,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sourceFile": "/private/tmp/mira-stt-test.wav",
+  "openclawExitCode": 0,
+  "replyText": "403 The request failed because your account has an overdue balance. Request id: 0217756939499067c52c410876ab8649e200d8680cedfa0b1793a",
+  "audioResult": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+      "403 The request failed because your account has an overdue balance. Request id: 0217756939499067c52c410876ab8649e200d8680cedfa0b1793a"
+    ],
+    "description": "speech:openclaw",
+    "requestedText": "403 The request failed because your account has an overdue balance. Request id: 0217756939499067c52c410876ab8649e200d8680cedfa0b1793a",
+    "spokenText": "403 The request failed because your account has an overdue balance. Request id: 0217756939499067c52c410876ab8649e200d8680cedfa0b1793a"
+  }
+}

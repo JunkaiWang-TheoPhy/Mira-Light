@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Smoke ok",
+        "reasoning_content": "\n用户现在要求回复Smoke ok，所以直接按要求回复就行对吧？哦不对，看要求，用户说请回复Smoke ok，那直接打出来？不对，再看，用户说“你好 我是 Mira 。请回复 Smoke ok。”那我现在就回复Smoke ok？对，就按要求来。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775699354,
+  "id": "021775699352929c54cfbc8e773a7e1d131d5b1cad603e02b7cf2",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 78,
+    "prompt_tokens": 97,
+    "total_tokens": 175,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 75
+    }
+  }
+}

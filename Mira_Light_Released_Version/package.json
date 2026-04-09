@@ -5,12 +5,18 @@
   "scripts": {
     "bootstrap": "bash scripts/one_click_install.sh",
     "doctor": "bash scripts/doctor_release.sh",
-    "start": "bash scripts/start_director_console.sh",
+    "doctor:online": "bash scripts/doctor_release.sh --online",
+    "start": "bash scripts/start_local_stack.sh",
+    "start:stack": "bash scripts/start_local_stack.sh",
     "start:console": "bash scripts/start_director_console.sh",
     "start:bridge": "bash tools/mira_light_bridge/start_bridge.sh",
     "start:receiver": "bash scripts/start_simple_lamp_receiver.sh",
+    "preflight": "bash scripts/run_preflight_release.sh offline",
+    "preflight:online": "bash scripts/run_preflight_release.sh online",
+    "smoke:http": "bash scripts/smoke_local_stack.sh",
     "install:openclaw": "bash scripts/install_openclaw_plugin.sh",
-    "verify:openclaw": "python3 scripts/verify_local_openclaw_mira_light.py",
-    "test": "python3 -m unittest tests.test_minimal_smoke tests.test_embodied_memory"
+    "remove:openclaw": "bash scripts/remove_openclaw_plugin.sh",
+    "verify:openclaw": "bash scripts/run_verify_openclaw.sh",
+    "test": "bash scripts/run_release_tests.sh"
   }
 }

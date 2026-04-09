@@ -45,6 +45,7 @@ class BridgeState:
     target_missing_since_monotonic: float | None = None
     last_scene_started: str | None = None
     last_scene_started_at_monotonic: float | None = None
+    last_tracking_applied_at_monotonic: float | None = None
     scene_counts: dict[str, int] = field(default_factory=dict)
 
 
@@ -115,6 +116,12 @@ def parse_args() -> argparse.Namespace:
         help="How long target absence must persist before sleep is triggered.",
     )
     parser.add_argument(
+        "--tracking-update-ms",
+        type=int,
+        default=220,
+        help="Minimum interval between live tracking control updates.",
+    )
+    parser.add_argument(
         "--log-json",
         action="store_true",
         help="Print bridge decisions as JSON instead of plain text lines.",
@@ -182,6 +189,7 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "lastTargetPresent": bridge.last_target_present,
             "targetMissingSinceMonotonic": bridge.target_missing_since_monotonic,
             "lastSceneStarted": bridge.last_scene_started,
+            "lastTrackingAppliedAtMonotonic": bridge.last_tracking_applied_at_monotonic,
             "sceneCounts": bridge.scene_counts,
         },
         "lastVisionEvent": last_event,
@@ -261,6 +269,34 @@ def apply_scene(scene_name: str, runtime: MiraLightRuntime, bridge_state: Bridge
     log(args, "scene started", scene=scene_name, dry_run=runtime.dry_run)
 
 
+def should_apply_tracking(
+    *,
+    runtime_state: dict[str, Any],
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+) -> tuple[bool, str]:
+    if runtime_state.get("running") and runtime_state.get("runningScene") not in {None, "track_target"}:
+        return False, f"runtime already running {runtime_state.get('runningScene')}"
+
+    last_applied = bridge_state.last_tracking_applied_at_monotonic
+    if last_applied is not None:
+        age_ms = (now_mono - last_applied) * 1000.0
+        if age_ms < args.tracking_update_ms:
+            return False, f"tracking update interval active ({age_ms:.0f}ms)"
+
+    return True, "ok"
+
+
+def apply_tracking(runtime: MiraLightRuntime, bridge_state: BridgeState, event: dict[str, Any], now_mono: float, args: argparse.Namespace) -> None:
+    runtime.apply_tracking_event(event, source="vision")
+    bridge_state.last_scene_started = "track_target"
+    bridge_state.last_scene_started_at_monotonic = now_mono
+    bridge_state.last_tracking_applied_at_monotonic = now_mono
+    bridge_state.scene_counts["track_target"] = bridge_state.scene_counts.get("track_target", 0) + 1
+    log(args, "tracking updated", dry_run=runtime.dry_run)
+
+
 def record_tracking_session_state(
     memory_client: EmbodiedMemoryClient | None,
     *,
@@ -322,7 +358,27 @@ def handle_event(
         horizontal_zone=tracking.get("horizontal_zone"),
     )
 
-    if allowed:
+    if not target_present and runtime_state.get("trackingActive"):
+        runtime.apply_tracking_event(event, source="vision-clear")
+
+    if candidate_scene == "track_target" and target_present:
+        allowed, allowed_reason = should_apply_tracking(
+            runtime_state=runtime_state,
+            bridge_state=bridge_state,
+            now_mono=now_mono,
+            args=args,
+        )
+        log(
+            args,
+            "tracking candidate evaluated",
+            allowed=allowed,
+            allowed_reason=allowed_reason,
+            horizontal_zone=tracking.get("horizontal_zone"),
+            distance_band=tracking.get("distance_band"),
+        )
+        if allowed:
+            apply_tracking(runtime, bridge_state, event, now_mono, args)
+    elif allowed:
         apply_scene(candidate_scene, runtime, bridge_state, now_mono, args)
 
     record_tracking_session_state(

@@ -1,0 +1,99 @@
+[runtime] start scene wake_up cue_mode=scene
+=== Scene: wake_up / 起床 ===
+[cue-operator] 适合作为开场第一幕，强调‘它不是机械启动’。
+[cue-fallback] 直接运行 stretch 后回 neutral
+[host] 当 Mira 感觉到有人靠近，它不会立刻机械转头，而是像刚醒的小动物一样慢慢睁眼、抖一抖、伸个懒腰。
+[note] TODO: 把这个场景接到 person_detected_near 事件；在那之前默认通过 OpenClaw 或终端命令触发。
+[note] 当前版本按 PDF1 的分镜细化为：微光 -> 起身 -> 伸懒腰 -> 抖毛 -> 看向评委。
+[tuning] 先调 sleep / wake_half / wake_high / neutral 四个姿态，确认起身和回落都不拉扯结构。
+[tuning] 如果抖毛看起来像故障，先减小 servo1 与 servo4 的抖动幅度，而不是删掉整个阶段。
+[pose] sleep -> {"mode": "absolute", "servo1": 90, "servo2": 80, "servo3": 82, "servo4": 98}
+[comment] 微光亮起，像刚睁眼。
+[led] {"mode": "solid", "brightness": 6, "color": {"r": 255, "g": 176, "b": 116}}
+[delay] 220ms
+[led] {"mode": "solid", "brightness": 12, "color": {"r": 255, "g": 188, "b": 130}}
+[delay] 180ms
+[led] {"mode": "solid", "brightness": 22, "color": {"r": 255, "g": 200, "b": 148}}
+[delay] 180ms
+[led] {"mode": "breathing", "brightness": 42, "color": {"r": 255, "g": 214, "b": 172}}
+[delay] 420ms
+[comment] 身体抬到半醒。
+[pose] wake_half -> {"mode": "absolute", "servo1": 90, "servo2": 88, "servo3": 90, "servo4": 94}
+[delay] 360ms
+[comment] 继续升高并仰头，做伸懒腰。
+[control] {"mode": "absolute", "servo1": 90, "servo2": 98, "servo3": 108, "servo4": 84}
+[delay] 320ms
+[control] {"mode": "absolute", "servo1": 90, "servo2": 100, "servo3": 112, "servo4": 82}
+[delay] 700ms
+[comment] 回到正常高度并抖两下，像小动物醒来抖毛。
+[control] {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[control] {"mode": "relative", "servo1": 4, "servo4": -2}
+[delay] 120ms
+[control] {"mode": "relative", "servo1": -8, "servo4": 4}
+[delay] 120ms
+[control] {"mode": "relative", "servo1": 4, "servo4": -2}
+[delay] 120ms
+[control] {"mode": "relative", "servo1": -4, "servo4": 2}
+[delay] 120ms
+[control] {"mode": "relative", "servo1": 8, "servo4": -4}
+[delay] 120ms
+[control] {"mode": "relative", "servo1": -4, "servo4": 2}
+[delay] 120ms
+[comment] 最后慢慢看向评委。
+[control] {"mode": "absolute", "servo1": 96, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 132, "color": {"r": 255, "g": 220, "b": 180}}
+[scene-done] wake_up
+[runtime] finished scene wake_up
+[runtime] start scene track_target cue_mode=scene
+=== Scene: track_target / 追踪 ===
+[cue-operator] 只有在 tracking 真正可用时才作为主秀，否则放到备选。
+[cue-fallback] 改用滑杆模拟 tracking 方向或只口头说明
+[host] 你试着在桌上移动这本书，它会一直跟着书看，这一段是用来证明它真的看得见。
+[note] TODO: 这里最终应接入真实视觉目标坐标。
+[note] 当前版本实现的是展位排练用 surrogate choreography：按左 -> 中 -> 右 -> 停 -> 再移动 的跟随节奏编排。
+[tuning] 真正实现时要限制更新频率，避免灯头一步一跳。
+[tuning] 即使是 surrogate 版本，也要尽量做得平滑，不要像预设摆头。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 170, "color": {"r": 232, "g": 242, "b": 255}}
+[comment] 书在左侧时，灯头压低并看向左侧桌面。
+[control] {"mode": "absolute", "servo1": 78, "servo2": 96, "servo3": 96, "servo4": 102}
+[delay] 420ms
+[comment] 目标开始向中间移动。
+[control] {"mode": "absolute", "servo1": 88, "servo2": 96, "servo3": 96, "servo4": 98}
+[delay] 360ms
+[comment] 目标继续到右侧。
+[control] {"mode": "absolute", "servo1": 102, "servo2": 96, "servo3": 96, "servo4": 102}
+[delay] 420ms
+[comment] 评委停下来，Mira 也停住。
+[delay] 520ms
+[comment] 评委再移动，Mira 再跟。
+[control] {"mode": "absolute", "servo1": 94, "servo2": 96, "servo3": 96, "servo4": 98}
+[delay] 320ms
+[control] {"mode": "absolute", "servo1": 108, "servo2": 96, "servo3": 96, "servo4": 104}
+[delay] 420ms
+[comment] 回到中性工作位。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[led] {"mode": "solid", "brightness": 156, "color": {"r": 244, "g": 244, "b": 236}}
+[scene-done] track_target
+[runtime] finished scene track_target
+{
+  "generatedAt": "2026-04-09T07:26:21+08:00",
+  "capturesDir": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-demo-captures",
+  "outDir": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay",
+  "dryRun": true,
+  "allowExperimental": true,
+  "processedFrames": 8,
+  "eventCounts": {
+    "no_target": 4,
+    "target_seen": 1,
+    "target_updated": 2,
+    "target_lost": 1
+  },
+  "sceneCounts": {
+    "wake_up": 1,
+    "track_target": 1
+  },
+  "latestEventPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.latest.json",
+  "eventsJsonlPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.events.jsonl",
+  "bridgeStatePath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/vision-replay/vision.bridge.state.json"
+}

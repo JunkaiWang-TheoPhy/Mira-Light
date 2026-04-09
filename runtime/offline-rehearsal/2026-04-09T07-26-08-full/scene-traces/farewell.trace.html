@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scene Trace: farewell</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f1e8;
+      --panel: #fffaf4;
+      --ink: #2c241c;
+      --muted: #7e6f61;
+      --line: #dfd1c1;
+      --accent: #b5653b;
+    }
+    body {
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+      background: linear-gradient(180deg, #f8efe1 0%, var(--bg) 100%);
+      color: var(--ink);
+      margin: 0;
+      padding: 32px;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    section {
+      background: rgba(255, 250, 244, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 24px;
+      box-shadow: 0 18px 40px rgba(130, 93, 61, 0.08);
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+    h1 {
+      font-size: 32px;
+      color: var(--accent);
+    }
+    p {
+      margin: 8px 0;
+      line-height: 1.55;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.68);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    th, td {
+      vertical-align: top;
+      text-align: left;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f0dfcf;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      color: #7e4c28;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>挥手送别</h1>
+      <p>当你离开时，它会目送你，还会轻轻摆摆头像在说再见。</p>
+      <p><strong>Operator cue:</strong> 结束时用它来收尾，再接 sleep。</p>
+      <div><span class="tag">送别</span><span class="tag">不舍</span></div>
+    </section>
+    <section>
+      <h2>Summary</h2>
+      <div class="meta">
+        <div class="card"><strong>Duration</strong><p>388.16 ms</p></div>
+        <div class="card"><strong>Steps</strong><p>24</p></div>
+        <div class="card"><strong>Requests</strong><p>12</p></div>
+        <div class="card"><strong>Dry Run</strong><p>False</p></div>
+      </div>
+    </section>
+    <section>
+      <h2>Timeline</h2>
+      <table>
+        <thead>
+          <tr><th>t (ms)</th><th>kind</th><th>payload</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0.01</td><td>scene-start</td><td><pre>{
+  &quot;tMs&quot;: 0.01,
+  &quot;kind&quot;: &quot;scene-start&quot;,
+  &quot;scene&quot;: &quot;farewell&quot;,
+  &quot;title&quot;: &quot;挥手送别&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;=== Scene: farewell / 挥手送别 ===&quot;
+}</pre></td></tr><tr><td>0.14</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.14,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -&gt; 两次慢慢点头式挥手 -&gt; 舍不得地低头。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。&quot;
+}</pre></td></tr><tr><td>0.15</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.15,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。&quot;
+}</pre></td></tr><tr><td>0.16</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 0.16,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 1,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;pose&quot;,
+  &quot;stepLabel&quot;: &quot;pose:neutral&quot;
+}</pre></td></tr><tr><td>0.21</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 0.21,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[pose] neutral -&gt; {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 90, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 98, \&quot;servo4\&quot;: 90}&quot;
+}</pre></td></tr><tr><td>351.02</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 351.02,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 90,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 98,
+    &quot;servo4&quot;: 90
+  },
+  &quot;durationMs&quot;: 350.8,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    },
+    &quot;changed&quot;: {
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    }
+  }
+}</pre></td></tr><tr><td>351.04</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 351.04,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 2,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;led&quot;,
+  &quot;stepLabel&quot;: &quot;led:solid&quot;
+}</pre></td></tr><tr><td>351.10</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 351.1,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[led] {\&quot;mode\&quot;: \&quot;solid\&quot;, \&quot;brightness\&quot;: 108, \&quot;color\&quot;: {\&quot;r\&quot;: 255, \&quot;g\&quot;: 214, \&quot;b\&quot;: 176}}&quot;
+}</pre></td></tr><tr><td>354.64</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 354.64,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/led&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;solid&quot;,
+    &quot;brightness&quot;: 108,
+    &quot;color&quot;: {
+      &quot;r&quot;: 255,
+      &quot;g&quot;: 214,
+      &quot;b&quot;: 176
+    }
+  },
+  &quot;durationMs&quot;: 3.53,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 108,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 214,
+        &quot;b&quot;: 176
+      }
+    },
+    &quot;led&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 108,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 214,
+        &quot;b&quot;: 176
+      }
+    }
+  }
+}</pre></td></tr><tr><td>354.65</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 354.65,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 3,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;先目送评委离开的方向。&quot;
+}</pre></td></tr><tr><td>354.66</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 354.66,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 先目送评委离开的方向。&quot;
+}</pre></td></tr><tr><td>354.67</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 354.67,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 4,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo1,servo2,servo3,servo4&quot;
+}</pre></td></tr><tr><td>354.69</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 354.69,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 106, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 100, \&quot;servo4\&quot;: 92}&quot;
+}</pre></td></tr><tr><td>357.80</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 357.8,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 106,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 100,
+    &quot;servo4&quot;: 92
+  },
+  &quot;durationMs&quot;: 3.1,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    },
+    &quot;changed&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    }
+  }
+}</pre></td></tr><tr><td>357.81</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 357.81,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 5,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:420ms&quot;
+}</pre></td></tr><tr><td>357.82</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 357.82,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 420ms&quot;
+}</pre></td></tr><tr><td>357.82</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 357.82,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 420ms&quot;
+}</pre></td></tr><tr><td>357.82</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 357.82,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 6,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;audio&quot;,
+  &quot;stepLabel&quot;: &quot;audio&quot;
+}</pre></td></tr><tr><td>357.85</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 357.85,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[skip-audio] payload={\&quot;type\&quot;: \&quot;audio\&quot;, \&quot;voice\&quot;: \&quot;tts\&quot;, \&quot;allowMissing\&quot;: true, \&quot;text\&quot;: \&quot;谢谢你来看我，下次见。\&quot;, \&quot;wait\&quot;: true}&quot;
+}</pre></td></tr><tr><td>357.85</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 357.85,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 7,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;再做两次慢慢点头，像挥手说再见。&quot;
+}</pre></td></tr><tr><td>357.85</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 357.85,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 再做两次慢慢点头，像挥手说再见。&quot;
+}</pre></td></tr><tr><td>357.86</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 357.86,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 8,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>357.87</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 357.87,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>361.32</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 361.32,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 3.44,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 97
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 97
+    }
+  }
+}</pre></td></tr><tr><td>361.33</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 361.33,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 9,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>361.37</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 361.37,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>361.37</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 361.37,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>361.38</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 361.38,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 10,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>361.41</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 361.41,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: -10}&quot;
+}</pre></td></tr><tr><td>364.06</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 364.06,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: -10
+  },
+  &quot;durationMs&quot;: 2.64,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: -10
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 87
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 87
+    }
+  }
+}</pre></td></tr><tr><td>364.07</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 364.07,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 11,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>364.08</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 364.08,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>364.08</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 364.08,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>364.08</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 364.08,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 12,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>364.10</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 364.1,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>368.03</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 368.03,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 3.92,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 92
+    }
+  }
+}</pre></td></tr><tr><td>368.04</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 368.04,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 13,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:220ms&quot;
+}</pre></td></tr><tr><td>368.05</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 368.05,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 220ms&quot;
+}</pre></td></tr><tr><td>368.05</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 368.05,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 220ms&quot;
+}</pre></td></tr><tr><td>368.06</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 368.06,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 14,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>368.07</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 368.07,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>372.06</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 372.06,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 3.98,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 97
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 97
+    }
+  }
+}</pre></td></tr><tr><td>372.08</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 372.08,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 15,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>372.08</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 372.08,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>372.08</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 372.08,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>372.09</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 372.09,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 16,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>372.11</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 372.11,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: -10}&quot;
+}</pre></td></tr><tr><td>376.62</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 376.62,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: -10
+  },
+  &quot;durationMs&quot;: 4.5,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: -10
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 87
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 87
+    }
+  }
+}</pre></td></tr><tr><td>376.63</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 376.63,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 17,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>376.63</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 376.63,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>376.63</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 376.63,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>376.64</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 376.64,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 18,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo4&quot;
+}</pre></td></tr><tr><td>376.65</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 376.65,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;relative\&quot;, \&quot;servo4\&quot;: 5}&quot;
+}</pre></td></tr><tr><td>379.72</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 379.72,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;servo4&quot;: 5
+  },
+  &quot;durationMs&quot;: 3.07,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;relative&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;relative&quot;,
+      &quot;servo4&quot;: 5
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 106,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 100,
+      &quot;servo4&quot;: 92
+    },
+    &quot;changed&quot;: {
+      &quot;servo4&quot;: 92
+    }
+  }
+}</pre></td></tr><tr><td>379.80</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 379.8,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 19,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:220ms&quot;
+}</pre></td></tr><tr><td>379.82</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 379.82,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 220ms&quot;
+}</pre></td></tr><tr><td>379.82</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 379.82,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 220ms&quot;
+}</pre></td></tr><tr><td>379.83</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 379.83,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 20,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;comment&quot;,
+  &quot;stepLabel&quot;: &quot;最后微微低头，像有点舍不得。&quot;
+}</pre></td></tr><tr><td>379.83</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 379.83,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[comment] 最后微微低头，像有点舍不得。&quot;
+}</pre></td></tr><tr><td>379.84</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 379.84,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 21,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;control&quot;,
+  &quot;stepLabel&quot;: &quot;control:servo1,servo2,servo3,servo4&quot;
+}</pre></td></tr><tr><td>379.86</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 379.86,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[control] {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 102, \&quot;servo2\&quot;: 92, \&quot;servo3\&quot;: 96, \&quot;servo4\&quot;: 100}&quot;
+}</pre></td></tr><tr><td>382.83</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 382.83,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 102,
+    &quot;servo2&quot;: 92,
+    &quot;servo3&quot;: 96,
+    &quot;servo4&quot;: 100
+  },
+  &quot;durationMs&quot;: 2.95,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 102,
+      &quot;servo2&quot;: 92,
+      &quot;servo3&quot;: 96,
+      &quot;servo4&quot;: 100
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 102,
+      &quot;servo2&quot;: 92,
+      &quot;servo3&quot;: 96,
+      &quot;servo4&quot;: 100
+    },
+    &quot;changed&quot;: {
+      &quot;servo1&quot;: 102,
+      &quot;servo2&quot;: 92,
+      &quot;servo3&quot;: 96,
+      &quot;servo4&quot;: 100
+    }
+  }
+}</pre></td></tr><tr><td>382.84</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 382.84,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 22,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;delay&quot;,
+  &quot;stepLabel&quot;: &quot;delay:180ms&quot;
+}</pre></td></tr><tr><td>382.84</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 382.84,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[delay] 180ms&quot;
+}</pre></td></tr><tr><td>382.84</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 382.84,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[trace-skip-delay] 180ms&quot;
+}</pre></td></tr><tr><td>382.85</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 382.85,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 23,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;pose&quot;,
+  &quot;stepLabel&quot;: &quot;pose:neutral&quot;
+}</pre></td></tr><tr><td>382.87</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 382.87,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[pose] neutral -&gt; {\&quot;mode\&quot;: \&quot;absolute\&quot;, \&quot;servo1\&quot;: 90, \&quot;servo2\&quot;: 96, \&quot;servo3\&quot;: 98, \&quot;servo4\&quot;: 90}&quot;
+}</pre></td></tr><tr><td>385.79</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 385.79,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/control&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;servo1&quot;: 90,
+    &quot;servo2&quot;: 96,
+    &quot;servo3&quot;: 98,
+    &quot;servo4&quot;: 90
+  },
+  &quot;durationMs&quot;: 2.9,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;mode&quot;: &quot;absolute&quot;,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;absolute&quot;,
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    },
+    &quot;servos&quot;: {
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    },
+    &quot;changed&quot;: {
+      &quot;servo1&quot;: 90,
+      &quot;servo2&quot;: 96,
+      &quot;servo3&quot;: 98,
+      &quot;servo4&quot;: 90
+    }
+  }
+}</pre></td></tr><tr><td>385.80</td><td>step</td><td><pre>{
+  &quot;tMs&quot;: 385.8,
+  &quot;kind&quot;: &quot;step&quot;,
+  &quot;sceneName&quot;: &quot;farewell&quot;,
+  &quot;sceneTitle&quot;: &quot;挥手送别&quot;,
+  &quot;stepIndex&quot;: 24,
+  &quot;stepTotal&quot;: 24,
+  &quot;stepType&quot;: &quot;led&quot;,
+  &quot;stepLabel&quot;: &quot;led:solid&quot;
+}</pre></td></tr><tr><td>385.83</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 385.83,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[led] {\&quot;mode\&quot;: \&quot;solid\&quot;, \&quot;brightness\&quot;: 90, \&quot;color\&quot;: {\&quot;r\&quot;: 255, \&quot;g\&quot;: 210, \&quot;b\&quot;: 170}}&quot;
+}</pre></td></tr><tr><td>388.11</td><td>request</td><td><pre>{
+  &quot;tMs&quot;: 388.11,
+  &quot;kind&quot;: &quot;request&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;path&quot;: &quot;/led&quot;,
+  &quot;payload&quot;: {
+    &quot;mode&quot;: &quot;solid&quot;,
+    &quot;brightness&quot;: 90,
+    &quot;color&quot;: {
+      &quot;r&quot;: 255,
+      &quot;g&quot;: 210,
+      &quot;b&quot;: 170
+    }
+  },
+  &quot;durationMs&quot;: 2.28,
+  &quot;outcome&quot;: &quot;ok&quot;,
+  &quot;response&quot;: {
+    &quot;ok&quot;: true,
+    &quot;applied&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 90,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 210,
+        &quot;b&quot;: 170
+      }
+    },
+    &quot;led&quot;: {
+      &quot;mode&quot;: &quot;solid&quot;,
+      &quot;brightness&quot;: 90,
+      &quot;color&quot;: {
+        &quot;r&quot;: 255,
+        &quot;g&quot;: 210,
+        &quot;b&quot;: 170
+      }
+    }
+  }
+}</pre></td></tr><tr><td>388.13</td><td>log</td><td><pre>{
+  &quot;tMs&quot;: 388.13,
+  &quot;kind&quot;: &quot;log&quot;,
+  &quot;text&quot;: &quot;[scene-done] farewell&quot;
+}</pre></td></tr><tr><td>388.14</td><td>scene-finished</td><td><pre>{
+  &quot;tMs&quot;: 388.14,
+  &quot;kind&quot;: &quot;scene-finished&quot;,
+  &quot;scene&quot;: &quot;farewell&quot;,
+  &quot;error&quot;: null
+}</pre></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

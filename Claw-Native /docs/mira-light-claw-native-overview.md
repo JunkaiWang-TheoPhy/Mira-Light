@@ -109,7 +109,8 @@ As of `2026-04-09`, the following are confirmed:
 
 - local OpenClaw gateway is working
 - `mira-light-bridge` plugin is discoverable and healthy
-- default model is pinned to `openai-codex/gpt-5.4`
+- the active local model remains machine-configurable and is no longer
+  template-pinned by `Claw-Native`
 - Mira workspace identity files are active locally
 - launchd-managed bridge service is working
 - launchd-managed vision stack is working

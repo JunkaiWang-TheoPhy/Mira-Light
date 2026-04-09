@@ -22,8 +22,10 @@ DEFAULT_TARGET_ROOT = Path.home() / ".openclaw" / "mira-light-service"
 RELATIVE_PATHS = [
     Path("tools/mira_light_bridge/bridge_server.py"),
     Path("tools/mira_light_bridge/bridge_config.json"),
+    Path("tools/mira_light_bridge/embodied_memory_client.py"),
     Path("tools/mira_light_bridge/start_bridge.sh"),
     Path("scripts/cam_receiver_service.py"),
+    Path("scripts/mira_light_audio.py"),
     Path("scripts/mira_light_runtime.py"),
     Path("scripts/run_mira_light_vision_stack.sh"),
     Path("scripts/setup_local_mira_light_service_env.sh"),

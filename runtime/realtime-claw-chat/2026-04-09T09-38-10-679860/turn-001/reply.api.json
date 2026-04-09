@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Smoke ok",
+        "reasoning_content": "\n用户现在需要回复Smoke ok？不对不对，等下用户说请回复Smoke ok？不对，看要求，哦不对用户说你好我是Mira，请回复Smoke ok，那按照要求？不对，Mira是我的名字，用户说请回复Smoke ok，那就是Smoke ok？不对等下，哦不对，用户要求？哦，不对，看用户说请回复Smoke ok，那直接？不对，再看，用户说“你好 我是 Mira 。请回复 Smoke ok。”那按照要求，我要回复的话，就是Smoke ok？不对，等下，有没有看错，对，用户让回复Smoke ok，那直接？不对，要不要？哦不对，用户说请回复Smoke ok，那就是Smoke ok？不对，要不要加什么？哦不对，再看我的设定，温柔简短，哦不对，用户明确说请回复Smoke ok，那就是Smoke ok啊。不对，等下，Smoke ok就是这个，那直接打出来？对，就Smoke ok？不对，有没有问题？哦不对，会不会我就是Mira，哦用户说他是Mira让我回复Smoke ok，那就是Smoke ok啊。对，就回复Smoke ok就好了？",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775698696,
+  "id": "021775698692563fadef930ee560a642a71bddf4d1e9937e3336b",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 277,
+    "prompt_tokens": 101,
+    "total_tokens": 378,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 274
+    }
+  }
+}

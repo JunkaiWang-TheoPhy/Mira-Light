@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "我就是你说的Mira呀，有什么想聊的都可以找我。",
+        "reasoning_content": "\n用户现在重复说了好几次包含Mira，那我温柔回应一下就好，比如“是呀，我就是Mira呀，有什么想聊的都可以告诉我。”不对，要简短，1到2句，那调整一下，就是“我就是你说的Mira呀，有什么想聊的都可以找我。”对，就这个，自然简短。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775703924,
+  "id": "021775703922642d7b3351599aaeccdacf18b44507ad3d5aa3f6f",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 99,
+    "prompt_tokens": 105,
+    "total_tokens": 204,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 81
+    }
+  }
+}

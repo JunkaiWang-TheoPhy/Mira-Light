@@ -666,6 +666,24 @@ body[data-phase="cooldown"] {
   animation-delay: -2.3s;
 }
 
+.firework-f {
+  left: -4%;
+  top: 54%;
+  width: 260px;
+  height: 260px;
+  opacity: 0.34;
+  animation-delay: -1.4s;
+}
+
+.firework-g {
+  right: -5%;
+  top: 56%;
+  width: 280px;
+  height: 280px;
+  opacity: 0.34;
+  animation-delay: -2.6s;
+}
+
 .confetti {
   position: absolute;
   opacity: 0;
@@ -924,15 +942,37 @@ body[data-phase="celebrating"] h1 {
   font-weight: 800;
 }
 
+.side-seal-small {
+  width: 56px;
+  height: 56px;
+  opacity: 0.96;
+}
+
+.side-seal-small span {
+  font-size: 1.2rem;
+}
+
 .seal-left {
   left: 78px;
   bottom: 102px;
+}
+
+.seal-left-outer {
+  left: -10px;
+  top: 86px;
+  animation-delay: -0.9s;
 }
 
 .seal-right {
   right: 80px;
   bottom: 120px;
   animation-delay: -1.2s;
+}
+
+.seal-right-outer {
+  right: -8px;
+  top: 102px;
+  animation-delay: -1.6s;
 }
 
 .side-icon {
@@ -1369,6 +1409,10 @@ h2 {
   animation-delay: -1.3s;
 }
 
+.festive-side-right .festive-badge {
+  top: 4px;
+}
+
 .festive-badge {
   position: absolute;
   top: 8px;
@@ -1425,6 +1469,10 @@ h2 {
     inset 0 4px 10px rgba(255, 224, 176, 0.28),
     0 10px 18px rgba(181, 56, 37, 0.2);
   animation: festiveSway 2.8s ease-in-out infinite;
+}
+
+.festive-side-right .festive-lantern-mini {
+  margin-top: 20px;
 }
 
 .festive-lantern-mini::before,
@@ -1661,6 +1709,10 @@ body[data-phase="celebrating"] .coin {
     letter-spacing: 0.12em;
   }
 
+  .festive-side-right .festive-badge {
+    top: 4px;
+  }
+
   .festive-ingot {
     width: 40px;
     height: 18px;
@@ -1670,6 +1722,10 @@ body[data-phase="celebrating"] .coin {
     width: 28px;
     height: 34px;
     margin-top: 8px;
+  }
+
+  .festive-side-right .festive-lantern-mini {
+    margin-top: 14px;
   }
 
   .festive-lantern-mini span {

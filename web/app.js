@@ -1,6 +1,8 @@
 const sceneGrid = document.getElementById("scene-grid");
 const baseUrlInput = document.getElementById("base-url");
 const dryRunInput = document.getElementById("dry-run");
+const cueModeDirectorInput = document.getElementById("cue-mode-director");
+const farewellDirectionInput = document.getElementById("farewell-direction");
 
 const runtimeRunning = document.getElementById("runtime-running");
 const runtimeScene = document.getElementById("runtime-scene");
@@ -26,6 +28,10 @@ const profileOutput = document.getElementById("profile-output");
 const profileMeta = document.getElementById("profile-meta");
 const servoSummary = document.getElementById("servo-summary");
 const poseSummary = document.getElementById("pose-summary");
+const capturePoseNameInput = document.getElementById("capture-pose-name");
+const capturePoseNotesInput = document.getElementById("capture-pose-notes");
+const capturePoseVerifiedInput = document.getElementById("capture-pose-verified");
+const profileFlash = document.getElementById("profile-flash");
 const logOutput = document.getElementById("log-output");
 const mockMode = document.getElementById("mock-mode");
 const mockModeHint = document.getElementById("mock-mode-hint");
@@ -87,6 +93,14 @@ function writeAttachmentState(state) {
   localStorage.setItem("mira-light-attachments", JSON.stringify(state));
 }
 
+function readCueMode() {
+  return localStorage.getItem("mira-light-cue-mode") === "scene" ? "scene" : "director";
+}
+
+function writeCueMode(mode) {
+  localStorage.setItem("mira-light-cue-mode", mode === "scene" ? "scene" : "director");
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, {
     headers: { "Content-Type": "application/json" },
@@ -122,9 +136,12 @@ function readinessLabel(value) {
 
 function renderRuntime(runtime) {
   runtimeState = runtime;
-  runtimeRunning.textContent = runtime.running ? "RUNNING" : "IDLE";
-  runtimeScene.textContent = runtime.runningScene || runtime.lastFinishedScene || "-";
-  runtimeStep.textContent = runtime.currentStepLabel || runtime.lastCommand || "-";
+  runtimeRunning.textContent = runtime.running ? "RUNNING" : runtime.trackingActive ? "TRACKING" : "IDLE";
+  runtimeScene.textContent = runtime.runningScene || (runtime.trackingActive ? "track_target" : runtime.lastFinishedScene) || "-";
+  runtimeStep.textContent =
+    runtime.currentStepLabel ||
+    (runtime.trackingActive ? `tracking ${runtime.trackingTarget?.horizontalZone || "-"}` : runtime.lastCommand) ||
+    "-";
   runtimeDevice.textContent =
     runtime.deviceOnline === true ? "ONLINE" : runtime.deviceOnline === false ? "OFFLINE" : "UNKNOWN";
   runtimeError.textContent = runtime.lastError || "-";
@@ -132,6 +149,7 @@ function renderRuntime(runtime) {
 
   baseUrlInput.value = runtime.baseUrl || "";
   dryRunInput.checked = Boolean(runtime.dryRun);
+  cueModeDirectorInput.checked = readCueMode() === "director";
 
   document.body.classList.toggle("is-running", Boolean(runtime.running));
   document.body.classList.toggle("is-error", Boolean(runtime.lastError));
@@ -140,6 +158,12 @@ function renderRuntime(runtime) {
   renderDirectorSummary();
   updateSceneAccent();
   renderMockOverview();
+}
+
+function setProfileFlash(message, tone = "default") {
+  if (!profileFlash) return;
+  profileFlash.textContent = message;
+  profileFlash.dataset.tone = tone;
 }
 
 function buildTag(text, tone = "default") {
@@ -159,6 +183,7 @@ function renderSceneGrid() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "scene-card";
+    card.disabled = Boolean(runtimeState?.running || runtimeState?.trackingActive);
     if (isSelected) card.classList.add("is-selected");
     if (isRunning) card.classList.add("is-running");
     card.dataset.readiness = scene.readiness || "prototype";
@@ -213,7 +238,14 @@ function renderSceneGrid() {
       renderSceneGrid();
       renderDirectorSummary();
       try {
-        await fetchJson(`/api/run/${encodeURIComponent(scene.id)}`, { method: "POST" });
+        const payload = { cueMode: readCueMode() };
+        if (scene.id === "farewell") {
+          payload.context = { departureDirection: farewellDirectionInput.value };
+        }
+        await fetchJson(`/api/run/${encodeURIComponent(scene.id)}`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         await refreshRuntime();
         await refreshLogs();
       } catch (error) {
@@ -226,7 +258,12 @@ function renderSceneGrid() {
 }
 
 function renderDirectorSummary() {
-  const activeSceneId = runtimeState?.runningScene || selectedSceneId || runtimeState?.lastFinishedScene || scenes[0]?.id;
+  const activeSceneId =
+    runtimeState?.runningScene ||
+    (runtimeState?.trackingActive ? "track_target" : null) ||
+    selectedSceneId ||
+    runtimeState?.lastFinishedScene ||
+    scenes[0]?.id;
   const scene = sceneById(activeSceneId);
   const readinessState = readAttachmentState();
 
@@ -243,7 +280,9 @@ function renderDirectorSummary() {
 
   summarySceneTitle.textContent = scene.title;
   summarySceneId.textContent = `${scene.id} · ${readinessLabel(scene.readiness)}`;
-  summaryCurrentStep.textContent = runtimeState?.currentStepLabel || "等待触发";
+  summaryCurrentStep.textContent =
+    runtimeState?.currentStepLabel ||
+    (runtimeState?.trackingActive ? `live tracking · ${runtimeState?.trackingTarget?.horizontalZone || "-"}` : "等待触发");
 
   const currentIndex = runtimeState?.currentStepIndex;
   const currentTotal = runtimeState?.currentStepTotal;
@@ -435,6 +474,10 @@ function renderLogs(items) {
       row.classList.add("is-error");
     } else if (item.text.includes("[scene-done]")) {
       row.classList.add("is-scene");
+    } else if (item.text.includes("[audio")) {
+      row.classList.add("is-step");
+    } else if (item.text.includes("[trigger]") || item.text.includes("[cue-")) {
+      row.classList.add("is-scene");
     } else if (item.text.includes("[pose]") || item.text.includes("[action]")) {
       row.classList.add("is-step");
     }
@@ -472,7 +515,7 @@ function renderProfile(profile) {
     const row = document.createElement("div");
     row.className = "servo-row";
     row.innerHTML = `
-      <div>
+      <div class="servo-copy">
         <strong>${servoName}</strong>
         <small>${data.label || "-"}</small>
       </div>
@@ -481,7 +524,21 @@ function renderProfile(profile) {
         <span>R ${(data.rehearsal_range || []).join(" ~ ") || "-"}</span>
         <span>${data.verified ? "verified" : "draft"}</span>
       </div>
+      <div class="servo-editor">
+        <input data-field="label" value="${data.label || ""}" placeholder="label" />
+        <input data-field="neutral" type="number" value="${data.neutral ?? ""}" placeholder="neutral" />
+        <div class="servo-range-inline">
+          <input data-field="rehearsal-min" type="number" value="${data.rehearsal_range?.[0] ?? ""}" placeholder="min" />
+          <input data-field="rehearsal-max" type="number" value="${data.rehearsal_range?.[1] ?? ""}" placeholder="max" />
+        </div>
+        <label class="checkbox compact">
+          <input data-field="verified" type="checkbox" ${data.verified ? "checked" : ""} />
+          <span>verified</span>
+        </label>
+        <button type="button" class="servo-save">保存 ${servoName}</button>
+      </div>
     `;
+    row.querySelector(".servo-save").addEventListener("click", () => saveServoMeta(servoName, row));
     servoSummary.appendChild(row);
   });
 
@@ -502,7 +559,11 @@ function renderProfile(profile) {
 }
 
 function updateSceneAccent() {
-  const activeSceneId = runtimeState?.runningScene || selectedSceneId || runtimeState?.lastFinishedScene;
+  const activeSceneId =
+    runtimeState?.runningScene ||
+    (runtimeState?.trackingActive ? "track_target" : null) ||
+    selectedSceneId ||
+    runtimeState?.lastFinishedScene;
   const scene = sceneById(activeSceneId);
   document.body.dataset.scene = scene?.accent || "default";
 }
@@ -548,6 +609,66 @@ async function refreshProfile() {
   renderProfile(data.profile);
 }
 
+async function capturePose() {
+  const name = capturePoseNameInput.value.trim();
+  if (!name) {
+    setProfileFlash("先填一个 pose 名称。", "error");
+    return;
+  }
+
+  try {
+    const data = await fetchJson("/api/profile/capture-pose", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        notes: capturePoseNotesInput.value.trim(),
+        verified: capturePoseVerifiedInput.checked,
+      }),
+    });
+    setProfileFlash(`已捕获 pose: ${data.data.saved}`, "success");
+    await Promise.all([refreshProfile(), refreshStatus(), refreshLogs()]);
+  } catch (error) {
+    setProfileFlash(error.message, "error");
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
+async function saveServoMeta(servoName, row) {
+  const label = row.querySelector('[data-field="label"]').value.trim();
+  const neutral = row.querySelector('[data-field="neutral"]').value.trim();
+  const rehearsalMin = row.querySelector('[data-field="rehearsal-min"]').value.trim();
+  const rehearsalMax = row.querySelector('[data-field="rehearsal-max"]').value.trim();
+  const verified = row.querySelector('[data-field="verified"]').checked;
+
+  if ((rehearsalMin === "") !== (rehearsalMax === "")) {
+    setProfileFlash("rehearsal min/max 需要一起填写。", "error");
+    return;
+  }
+
+  const payload = {
+    servo: servoName,
+    label: label || null,
+    neutral: neutral === "" ? null : Number(neutral),
+    rehearsalRange:
+      rehearsalMin === "" && rehearsalMax === ""
+        ? null
+        : [Number(rehearsalMin || 0), Number(rehearsalMax || 0)],
+    verified,
+  };
+
+  try {
+    await fetchJson("/api/profile/set-servo-meta", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    setProfileFlash(`已更新 ${servoName}。`, "success");
+    await refreshProfile();
+  } catch (error) {
+    setProfileFlash(error.message, "error");
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
 async function refreshLogs() {
   const data = await fetchJson("/api/logs");
   renderLogs(data.items);
@@ -564,6 +685,21 @@ async function saveConfig() {
     });
     renderRuntime(data.runtime);
     appendLocalLog(`config updated: baseUrl=${data.runtime.baseUrl} dryRun=${data.runtime.dryRun}`);
+  } catch (error) {
+    appendLocalLog(`[ui-error] ${error.message}`);
+  }
+}
+
+async function triggerEvent(eventName, payload = {}) {
+  try {
+    await fetchJson("/api/trigger", {
+      method: "POST",
+      body: JSON.stringify({
+        event: eventName,
+        payload,
+      }),
+    });
+    await Promise.all([refreshRuntime(), refreshLogs(), refreshStatus(), refreshLed()]);
   } catch (error) {
     appendLocalLog(`[ui-error] ${error.message}`);
   }
@@ -619,9 +755,31 @@ document.getElementById("stop-scene").addEventListener("click", stopScene);
 document.getElementById("stop-neutral").addEventListener("click", () => operatorAction("/api/operator/stop-to-neutral"));
 document.getElementById("stop-sleep").addEventListener("click", () => operatorAction("/api/operator/stop-to-sleep"));
 document.getElementById("reset-lamp").addEventListener("click", resetLamp);
+cueModeDirectorInput.addEventListener("change", () => {
+  writeCueMode(cueModeDirectorInput.checked ? "director" : "scene");
+});
+document.getElementById("trigger-touch").addEventListener("click", () =>
+  triggerEvent("touch_detected", { side: "center" }),
+);
+document.getElementById("trigger-sigh").addEventListener("click", () =>
+  triggerEvent("sigh_detected", { transcript: "唉" }),
+);
+document.getElementById("trigger-voice-tired").addEventListener("click", () =>
+  triggerEvent("voice_tired", { transcript: "我今天好累啊" }),
+);
+document.getElementById("trigger-multi-person").addEventListener("click", () =>
+  triggerEvent("multi_person_detected", { primaryDirection: "left", secondaryDirection: "right" }),
+);
+document.getElementById("trigger-farewell").addEventListener("click", () =>
+  triggerEvent("farewell_detected", { direction: farewellDirectionInput.value, cueMode: readCueMode() }),
+);
+document.getElementById("capture-pose").addEventListener("click", capturePose);
+document.getElementById("refresh-profile").addEventListener("click", refreshProfile);
 
 async function bootstrap() {
   try {
+    cueModeDirectorInput.checked = readCueMode() === "director";
+    setProfileFlash("等待操作");
     renderReadinessPanel();
     await refreshRuntime();
     await refreshScenes();

@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "你这是在刷屏玩，还是要跟我道别呀。要是准备离开的话，下次再见就好啦。"
+  ],
+  "description": "speech:say",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "你这是在刷屏玩，还是要跟我道别呀。要是准备离开的话，下次再见就好啦。",
+  "spokenText": "你这是在刷屏玩，还是要跟我道别呀。要是准备离开的话，下次再见就好啦。"
+}

@@ -1,0 +1,12 @@
+{
+  "createdAt": "2026-04-09T08:06:27.791601",
+  "transcriber": "local-mlx",
+  "language": "zh",
+  "sourceFile": "/private/tmp/mira-stt-test.wav",
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/voice-sessions/2026-04-09T08-06-27-791286/input.wav",
+  "transcriptPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/voice-sessions/2026-04-09T08-06-27-791286/transcript.txt",
+  "transcriptPreview": "你好 我是 Mira 。请回复 Smoke ok。",
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira、OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelProfile": "balanced",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4"
+}

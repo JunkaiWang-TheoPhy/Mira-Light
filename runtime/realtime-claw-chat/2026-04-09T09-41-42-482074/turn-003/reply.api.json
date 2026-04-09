@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "你是在打字玩吗？如果是要和我道别的话，我随时等你下次再来聊天。",
+        "reasoning_content": "\n用户发了好多白，可能是想刷屏或者说拜拜？不对，好多白，要不要回应？哦，不对，会不会是打了好多白，那我就说你是在打字玩吗，如果要道别那我等你下次再来找我呀？不对，要1-2句，简短。那可以说“你是在练习打字吗？如果是要和我道别的话，那我在这里等你下次再来找我聊天呀。”不对，改得自然点，简短点。就“你是在打字玩吗？如果是要和我道别的话，我随时等你下次再来聊天。”对，这样就可以了，符合要求，1-2句，温柔简短。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775698973,
+  "id": "021775698970743e9567022b2975e5b3f3905547f23a9d22f0230",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 180,
+    "prompt_tokens": 200,
+    "total_tokens": 380,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 156
+    }
+  }
+}

@@ -34,6 +34,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from mira_light_runtime import DEFAULT_TIMEOUT_SECONDS, MiraLightRuntime  # noqa: E402
+from mira_light_safety import SafetyViolation  # noqa: E402
 from scenes import POSES, PROFILE_INFO, SCENES, SERVO_CALIBRATION  # noqa: E402
 from embodied_memory_client import EmbodiedMemoryClient  # noqa: E402
 
@@ -322,7 +323,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 if not isinstance(pose_name, str) or not pose_name:
                     self._send_json(400, {"ok": False, "error": "pose is required"})
                     return
-                self._send_json(200, {"ok": True, "data": self.server.runtime.apply_pose(pose_name)})
+                applied = self.server.runtime.apply_pose_with_safety(
+                    pose_name,
+                    source=f"bridge.apply-pose:{pose_name}",
+                )
+                self._send_json(200, {"ok": True, "data": applied["data"], "safety": applied["safety"]})
                 return
 
             if path == "/v1/mira-light/operator/stop-to-neutral":
@@ -335,7 +340,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             if path == "/v1/mira-light/control":
                 body = self._read_json_body()
-                self._send_json(200, {"ok": True, "data": self.server.runtime.get_client().control(body)})
+                controlled = self.server.runtime.control_lamp(body, source="bridge.control")
+                self._send_json(200, {"ok": True, "data": controlled["data"], "safety": controlled["safety"]})
                 return
 
             if path == "/v1/mira-light/led":
@@ -381,6 +387,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if path == "/v1/mira-light/device/status":
                 body = self._read_json_body()
                 stored = self.ingest_store.persist_report("status", body)
+                self.server.runtime.sync_safety_from_status(body)
                 self._record_device_outcome("status", body, stored)
                 self._send_json(200, {"ok": True, "stored": stored})
                 return
@@ -395,6 +402,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "Unknown endpoint"})
         except KeyError as exc:
             self._send_json(404, {"ok": False, "error": str(exc)})
+        except SafetyViolation as exc:
+            self._send_json(400, {"ok": False, "error": str(exc), "safety": exc.to_dict()})
         except RuntimeError as exc:
             message = str(exc)
             status_code = 409 if "already running" in message else 400

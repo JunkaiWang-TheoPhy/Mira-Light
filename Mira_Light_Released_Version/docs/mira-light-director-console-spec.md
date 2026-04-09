@@ -12,6 +12,28 @@
 - [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
 - [`scripts/console_server.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/console_server.py)
 
+## 当前控制语义补充
+
+这一轮之后，导演台后面的控制链已经不再是“点一下就原样下发”。
+
+当前发布版里：
+
+- 导演台请求先到 bridge
+- bridge 和 runtime 共用控制安全层
+- `pose`、绝对控制和相对 `nudge` 都可能被 clamp 或 reject
+
+这意味着导演台现在面对的是“带安全裁决的控制面”，而不是纯粹的裸控制转发页。
+
+当前还需要保持准确的说法是：
+
+- bridge 已经会返回 `safety` 元数据
+- runtime 已经会记录 `[safety-clamp]` 和 `[safety-reject]`
+- 导演台还没有把这些元数据做成完整的可视化区块
+
+相关说明见：
+
+- [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
+
 ## 为什么不只是“把按钮做大一点”
 
 普通控制台通常只解决：

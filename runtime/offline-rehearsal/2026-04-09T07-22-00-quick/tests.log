@@ -1,0 +1,136 @@
+[runtime] start scene farewell cue_mode=scene
+=== Scene: farewell / 挥手送别 ===
+[cue-operator] 结束时用它来收尾，再接 sleep。
+[cue-fallback] 直接执行 wave + farewell_bow
+[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[note] 当前按评委离场的右侧做动态目送。
+[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。
+[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。
+[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。
+[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[led] {"mode": "solid", "brightness": 108, "color": {"r": 255, "g": 214, "b": 176}}
+[mock-device] 127.0.0.1 - "POST /led HTTP/1.1" 200 -
+[comment] 先目送评委离开的右侧。
+[control] {"mode": "absolute", "servo1": 106, "servo2": 96, "servo3": 100, "servo4": 92}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 420ms
+[audio] prepare-output -> /Users/huhulitong/.local/bin/speaker-hp-use
+[audio] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 谢谢你来看我，下次见。
+[runtime] start scene farewell cue_mode=scene
+=== Scene: farewell / 挥手送别 ===
+[cue-operator] 结束时用它来收尾，再接 sleep。
+[cue-fallback] 直接执行 wave + farewell_bow
+[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。
+[note] 当前按评委离场的左侧做动态目送。
+[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。
+[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。
+[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。
+[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。
+[pose] neutral -> {"mode": "absolute", "servo1": 90, "servo2": 96, "servo3": 98, "servo4": 90}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[led] {"mode": "solid", "brightness": 108, "color": {"r": 255, "g": 214, "b": 176}}
+[mock-device] 127.0.0.1 - "POST /led HTTP/1.1" 200 -
+[comment] 先目送评委离开的左侧。
+[control] {"mode": "absolute", "servo1": 78, "servo2": 96, "servo3": 100, "servo4": 92}
+[mock-device] 127.0.0.1 - "POST /control HTTP/1.1" 200 -
+[delay] 420ms
+[audio] prepare-output -> /Users/huhulitong/.local/bin/speaker-hp-use
+[audio] speech:tts -> /Users/huhulitong/.local/bin/speaker-hp-tts-play 谢谢你来看我，下次见。
+[mock-device] 127.0.0.1 - "POST /__admin/faults HTTP/1.1" 200 -
+[mock-device] 127.0.0.1 - "GET /status HTTP/1.1" 503 -
+[bridge-http] 127.0.0.1 - "GET /v1/mira-light/status HTTP/1.1" 500 -
+[runtime] direct led control {"mode": "solid", "color": {"r": 255, "g": 210, "b": 180}}
+[mock-device] 127.0.0.1 - "POST /led HTTP/1.1" 200 -
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/led HTTP/1.1" 200 -
+[runtime] direct joint control {"mode": "absolute", "servo1": 90}
+[bridge-http] 127.0.0.1 - "POST /v1/mira-light/control HTTP/1.1" 500 -
+
+EE.
+======================================================================
+ERROR: test_bridge_scene_and_manual_controls_hit_mock_device (tests.test_mock_device_e2e.MockDeviceE2ETest.test_bridge_scene_and_manual_controls_hit_mock_device)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huhulitong/Documents/GitHub/Mira-Light/tests/test_mock_device_e2e.py", line 78, in test_bridge_scene_and_manual_controls_hit_mock_device
+    status, ran = request_json(
+                  ^^^^^^^^^^^^^
+  File "/Users/huhulitong/Documents/GitHub/Mira-Light/tests/test_mock_device_e2e.py", line 38, in request_json
+    with urllib.request.urlopen(req, timeout=3) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 519, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 536, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 1377, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 1352, in do_open
+    r = h.getresponse()
+        ^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 1415, in getresponse
+    response.begin()
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 330, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 291, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/socket.py", line 718, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: timed out
+
+======================================================================
+ERROR: test_dynamic_farewell_context_reaches_mock_device (tests.test_mock_device_e2e.MockDeviceE2ETest.test_dynamic_farewell_context_reaches_mock_device)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huhulitong/Documents/GitHub/Mira-Light/tests/test_mock_device_e2e.py", line 138, in test_dynamic_farewell_context_reaches_mock_device
+    status, ran = request_json(
+                  ^^^^^^^^^^^^^
+  File "/Users/huhulitong/Documents/GitHub/Mira-Light/tests/test_mock_device_e2e.py", line 38, in request_json
+    with urllib.request.urlopen(req, timeout=3) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 519, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 536, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 1377, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/urllib/request.py", line 1352, in do_open
+    r = h.getresponse()
+        ^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 1415, in getresponse
+    response.begin()
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 330, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/http/client.py", line 291, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/socket.py", line 718, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: timed out
+
+----------------------------------------------------------------------
+Ran 3 tests in 7.821s
+
+FAILED (errors=2)

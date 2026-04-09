@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "我就是你说的米拉呀，有什么想聊的都可以找我。"
+  ],
+  "description": "speech:say",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "我就是你说的Mira呀，有什么想聊的都可以找我。",
+  "spokenText": "我就是你说的米拉呀，有什么想聊的都可以找我。"
+}

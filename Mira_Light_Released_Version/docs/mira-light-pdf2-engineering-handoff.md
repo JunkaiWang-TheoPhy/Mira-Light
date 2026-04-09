@@ -28,13 +28,12 @@
 - [`Mira Light 展位交互方案.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案.pdf)
 - [`Mira Light 展位交互方案1.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案1.pdf)
 - [`Mira Light 展位交互方案3.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案3.pdf)
-- `Figs/motions/*.jpg`
 
 说明：
 
 - `方案2` 是动作真值
 - `方案3` 只在局部手绘细节上作为辅助
-- `Figs` 里的图片不是动作真值
+- 历史裁切图不是动作真值，也不再作为 release 目录的一部分
 
 ### 2. 当前硬件程序模型
 
@@ -59,18 +58,11 @@
 - `standup_reminder / celebrate / farewell / sleep` 也已经按 `方案2` 做了细化
 - `track_target` 目前是 **排练用 surrogate choreography**，不是最终视觉闭环
 
-当前场景说明已经覆盖到：
+当前逐场景解释已经收敛到：
 
-- [`Figs/motions/01_wake_up/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/01_wake_up/README.md)
-- [`Figs/motions/02_curious/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/02_curious/README.md)
-- [`Figs/motions/03_touch_affection/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/03_touch_affection/README.md)
-- [`Figs/motions/04_cute_probe/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/04_cute_probe/README.md)
-- [`Figs/motions/05_daydream/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/05_daydream/README.md)
-- [`Figs/motions/06_standup_reminder/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/06_standup_reminder/README.md)
-- [`Figs/motions/07_track_target/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/07_track_target/README.md)
-- [`Figs/motions/08_celebrate/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/08_celebrate/README.md)
-- [`Figs/motions/09_farewell/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/09_farewell/README.md)
-- [`Figs/motions/10_sleep/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/10_sleep/README.md)
+- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
+- [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
+- [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
 
 ## 接手时的文件优先级
 
@@ -84,16 +76,16 @@
 1. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
 2. [`scripts/mira_light_runtime.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/mira_light_runtime.py)
 
-### 第三层：场景说明与图示
+### 第三层：场景说明
 
-1. `Figs/motions/*/README.md`
-2. `Figs/motions/*/*.jpg`
+1. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
+2. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
 
 说明：
 
-- `README.md` 用来解释代码
-- `jpg` 用来辅助理解动作
-- 一旦图、文档、代码冲突，以 `方案2 PDF` 为准
+- 解释层现在直接留在 release docs 里
+- 不再依赖单独的 `Figs` 镜像目录
+- 一旦说明文档、代码、PDF 冲突，以 `方案2 PDF` 为准
 
 ### 第四层：当前交付状态解释
 
@@ -129,18 +121,19 @@
 9. `farewell`
 10. `sleep`
 
-### 三、把每个场景都落成了动作说明目录
+### 三、把每个场景都落成了代码侧动作说明
 
-当前 `Figs/motions/` 已经覆盖 `01~10`。
+当前 release 已经不再保留单独的 `Figs/motions/` 目录。
 
-每个目录至少包含：
+场景解释统一收敛到：
 
-- 一个 `README.md`
-- 一张或多张从 PDF 裁切出的辅助图
+- `scripts/scenes.py`
+- `docs/mira-light-scene-implementation-index.md`
+- `docs/mira-light-pdf2-implementation-audit.md`
 
 ## 接手时必须知道的三个事实
 
-### 1. `Figs/motions` 不是最终真值
+### 1. 历史裁切说明不是最终真值
 
 原因：
 
@@ -202,7 +195,7 @@
 3. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
 4. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
 5. 本文档
-6. `Figs/motions/*/README.md`
+6. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-scene-implementation-index.md)
 
 ### 第 1 步：先验证代码可加载
 
@@ -255,7 +248,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run slee
 ### 第 4 步：改任何一个场景时，至少同步三处
 
 1. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-2. 对应的 `Figs/motions/<scene>/README.md`
+2. [`docs/mira-light-scene-implementation-index.md`](/Users/Zhuanz/Documents/GitHub/Mira-Light/docs/mira-light-scene-implementation-index.md)
 3. [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
 
 如果影响导演台语义，还要同步：
@@ -303,7 +296,7 @@ python3 scripts/booth_controller.py --base-url http://172.20.10.3 --dry-run slee
 
 ## 不要做的事
 
-- 不要根据 `Figs` 裁切图反推真值
+- 不要根据历史裁切图或旧图示反推真值
 - 不要重新引入“第五个程序关节”抽象
 - 不要跳过 dry-run 就直接上真机乱试
 - 不要把旧 `方案.pdf / 方案1.pdf` 当作当前实现真值

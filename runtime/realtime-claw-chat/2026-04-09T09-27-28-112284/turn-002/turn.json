@@ -1,0 +1,28 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T09-27-28-112284/turn-002/input.wav",
+  "transcript": "Mira 发音像 Mira 与 OpenClaw、Mira。Mira 发音像 Mira 与 OpenClaw、Mira。",
+  "rawTranscript": "Mira 发音像 米拉 与 OpenClaw、Mee-ra。Mira 发音像 米拉 与 OpenClaw、Mee-ra。",
+  "normalizationApplied": true,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "inputDevice": {
+    "index": 3,
+    "name": "DJI MIC MINI",
+    "inputs": 2,
+    "defaultSamplerate": 48000.0
+  },
+  "openclawExitCode": 0,
+  "replyText": "对呀～我就是住在OpenClaw里的米拉（Mira）呀😊，我在这里好好的呢。",
+  "audioResult": {
+    "ok": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-openclaw-tts-play",
+      "对呀～我就是住在OpenClaw里的米拉（米拉）呀😊，我在这里好好的呢。"
+    ],
+    "description": "speech:openclaw",
+    "stdout": "",
+    "stderr": "",
+    "requestedText": "对呀～我就是住在OpenClaw里的米拉（Mira）呀😊，我在这里好好的呢。",
+    "spokenText": "对呀～我就是住在OpenClaw里的米拉（米拉）呀😊，我在这里好好的呢。"
+  }
+}

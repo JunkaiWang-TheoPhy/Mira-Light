@@ -1,0 +1,30 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T09-49-10-360957/turn-001/input.wav",
+  "transcript": "你好 我是 Mira 。请回复 Smoke ok。",
+  "rawTranscript": "你好 我是 Mira 。请回复 Smoke ok。",
+  "normalizationApplied": false,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sourceFile": "/private/tmp/mira-stt-test.wav",
+  "agentMessage": "请用简短自然的中文回复，不要使用 emoji 或表情符号。\n\n用户刚刚说：你好 我是 Mira 。请回复 Smoke ok。",
+  "replyBackend": "cloud-api",
+  "replyText": "Smoke ok",
+  "rawReplyText": "Smoke ok",
+  "emojiStripped": false,
+  "apiMeta": {
+    "provider": "volcengine-coding",
+    "model": "ark-code-latest",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions"
+  },
+  "audioResult": {
+    "ok": true,
+    "dryRun": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-say",
+      "Smoke ok"
+    ],
+    "description": "speech:say",
+    "requestedText": "Smoke ok",
+    "spokenText": "Smoke ok"
+  }
+}

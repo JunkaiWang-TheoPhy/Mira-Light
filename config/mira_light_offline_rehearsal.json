@@ -1,0 +1,79 @@
+{
+  "pythonPath": "./.venv/bin/python",
+  "runtimeRoot": "runtime/offline-rehearsal",
+  "mockDevice": {
+    "host": "127.0.0.1",
+    "port": 9799,
+    "startupTimeoutSeconds": 12.0,
+    "healthPollSeconds": 0.25
+  },
+  "sceneTrace": {
+    "scene": "farewell",
+    "skipDelays": true
+  },
+  "visionReplay": {
+    "allowExperimental": true,
+    "generateSyntheticDemo": true,
+    "frameSpacingMs": 1400,
+    "sceneCooldownMs": 1200,
+    "wakeUpCooldownMs": 2200,
+    "sleepGraceMs": 2200,
+    "warmupFrames": 1,
+    "dryRun": true
+  },
+  "memoryPersonaEval": {
+    "workspace": "~/.openclaw/workspace",
+    "config": "config/mira_memory_persona_eval.json",
+    "skipAgentPrompts": false
+  },
+  "modes": {
+    "quick": {
+      "description": "Fast confidence pass with mock E2E, one trace, and retrieval/file eval only.",
+      "tests": [
+        "tests.test_offline_rehearsal_smoke"
+      ],
+      "sceneTrace": true,
+      "visionReplay": false,
+      "memoryPersonaEval": true,
+      "memoryPersonaEvalSkipAgentPrompts": true,
+      "faultFile": null,
+      "interactive": false
+    },
+    "full": {
+      "description": "Full offline rehearsal with tests, scene trace, replay bench, and live persona prompts.",
+      "tests": [
+        "tests.test_minimal_smoke",
+        "tests.test_offline_rehearsal_smoke",
+        "tests.test_scene_trace_and_replay"
+      ],
+      "sceneTrace": true,
+      "visionReplay": true,
+      "memoryPersonaEval": true,
+      "memoryPersonaEvalSkipAgentPrompts": false,
+      "faultFile": null,
+      "interactive": false
+    },
+    "fault": {
+      "description": "Boot with injected mock faults, then run bridge/runtime regression steps.",
+      "tests": [
+        "tests.test_offline_rehearsal_smoke"
+      ],
+      "sceneTrace": true,
+      "visionReplay": false,
+      "memoryPersonaEval": false,
+      "memoryPersonaEvalSkipAgentPrompts": true,
+      "faultFile": "config/mira_light_mock_faults.example.json",
+      "interactive": false
+    },
+    "interactive": {
+      "description": "Start the mock device and keep it alive for manual rehearsal work.",
+      "tests": [],
+      "sceneTrace": false,
+      "visionReplay": false,
+      "memoryPersonaEval": false,
+      "memoryPersonaEvalSkipAgentPrompts": true,
+      "faultFile": null,
+      "interactive": true
+    }
+  }
+}

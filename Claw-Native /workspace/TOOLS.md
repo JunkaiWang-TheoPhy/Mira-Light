@@ -1,6 +1,7 @@
 # TOOLS.md
 
-This is the template form of the Mira Light OpenClaw workspace.
+This file records the machine and deployment facts that let Mira understand how
+her current body is wired.
 
 ## Machine facts
 
@@ -8,7 +9,17 @@ This is the template form of the Mira Light OpenClaw workspace.
 - OpenClaw state dir: `__HOME__/.openclaw`
 - Active workspace: `__HOME__/.openclaw/workspace`
 - User timezone: `__TIMEZONE__`
-- Default model: `openai-codex/gpt-5.4`
+- Repo template does not pin a model; keep the current local model unless a
+  human explicitly requests a change
+
+## Self + deployment map
+
+- Packaged identity source: `__REPO_ROOT__/Claw-Native /workspace/`
+- Active identity files: `__HOME__/.openclaw/workspace/`
+- Active OpenClaw config: `__HOME__/.openclaw/openclaw.json`
+- Plugin code is loaded from
+  `__REPO_ROOT__/tools/mira_light_bridge/openclaw_mira_light_plugin`
+- Bridge and vision daemons run from `__HOME__/.openclaw/mira-light-service`
 
 ## Mira Light bridge
 
@@ -29,6 +40,19 @@ This is the template form of the Mira Light OpenClaw workspace.
 - Local dashboard: `http://127.0.0.1:18789/`
 - Service status command: `openclaw gateway status`
 
+## Update rules
+
+- If `IDENTITY.md`, `SOUL.md`, `MEMORY.md`, `AGENTS.md`, or `TOOLS.md` changes,
+  sync the corresponding files into `__HOME__/.openclaw/workspace/` and
+  consider `openclaw memory index`
+- If plugin files change, restart the gateway:
+  `launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway`
+- If bridge or vision runtime files change, run
+  `python3 __REPO_ROOT__/scripts/sync_local_mira_light_service.py`, then
+  restart:
+  `launchctl kickstart -k gui/$(id -u)/ai.mira-light.bridge`
+  `launchctl kickstart -k gui/$(id -u)/ai.mira-light.vision`
+
 ## OpenClaw plugin surface
 
 The enabled plugin is `mira-light-bridge`. Prefer these tools in this order:
@@ -37,9 +61,10 @@ The enabled plugin is `mira-light-bridge`. Prefer these tools in this order:
 2. `mira_light_status`
 3. `mira_light_list_scenes`
 4. `mira_light_run_scene`
-5. `mira_light_set_led`
-6. `mira_light_stop` / `mira_light_reset`
-7. `mira_light_control_joints` only for calibration or recovery
+5. `mira_light_speak` for short public lines only
+6. `mira_light_set_led`
+7. `mira_light_stop` / `mira_light_reset`
+8. `mira_light_control_joints` only for calibration or recovery
 
 ## Scene guidance
 

@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "好的，smoke ok。",
+        "reasoning_content": "\n用户现在要求回复smoke ok？不对，等下看用户说“请回复smoke ok”，哦不对，不对，我是Mira，用户说他是Mira让回复smoke ok？哦不对，看要求，用户让回复smoke ok，那？不对，等下再看：用户说“你好,我是Mira,请回复smoke ok。”哦，要求是只用1到2句中文？不对不对，哦不对，用户要求回复smoke ok？不对，等下我的设定是中文陪伴，哦不对，再看，用户说请回复smoke ok，那？不对，smoke ok？哦不对，等下会不会我看错了，哦不对，用户说“请回复smoke ok”，那直接？不对，要中文？不对不对，再看规则：“请只用 1 到 2 句中文回答。”哦，不对，用户让回复smoke ok，那怎么说？不对，哦，不对，用户说他是Mira，让我回复smoke ok，那smoke ok就是？不对，哦不对，等下，smoke是吸烟的意思？不对，用户明确说请回复smoke ok，那我就？不对，不对，再理：用户输入：“你好,我是Mira,请回复smoke ok。”那要求回复这个，那转成？不对，不对，哦，会不会就是用户让回复smoke ok，那我就写？不对，规则说中文，那smoke ok是吸烟可以？不对，不对，哦，不对，我本身叫Mira，用户说他是Mira，让我回复smoke ok，那应该就是按照要求？不对，等下，要不要说，按照你的要求回复，smoke ok？不对，规则说1到2句，中文，哦，不对，smoke ok音译？不对，不对，用户明确要求回复smoke ok，那我就说“好的，smoke ok。”不对，不对，还是中文？哦哦不对，会不会我理解错了，用户让我回复smoke ok，那我就按照要求来，那就是“smoke ok”不对，规则说中文陪伴，哦不对，规则说“只用1到2句中文回答”，那我可以说“好的，这就是你要求的内容：smoke ok。”不对，会不会太啰嗦？或者就“好的，smoke ok。”可以吗？不对，再看，用户说“请回复smoke ok”，那直接满足就好，简短，那就是“好的，smoke ok。”不对，要不要全中文？不对，用户指定要回复这个内容，所以没问题吧，不对，再想，哦，不对，smoke ok就是吸烟没问题？不对，用户说请回复smoke ok，就是让你输出这个，所以应该是“好的，按照你的要求回复：smoke ok。”不对，太长？就“好的，smoke ok。”就可以了，符合要求，1句，简短，自然。对，就这个。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775698797,
+  "id": "02177569878826460d9d1fce08649db5f71e61508d2f87f638ac8",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 667,
+    "prompt_tokens": 101,
+    "total_tokens": 768,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 660
+    }
+  }
+}

@@ -1,0 +1,1042 @@
+{
+  "jsonPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-traces/farewell.trace.json",
+  "htmlPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-26-08-full/scene-traces/farewell.trace.html",
+  "report": {
+    "scene": {
+      "name": "farewell",
+      "title": "挥手送别",
+      "hostLine": "当你离开时，它会目送你，还会轻轻摆摆头像在说再见。",
+      "emotionTags": [
+        "送别",
+        "不舍"
+      ],
+      "operatorCue": "结束时用它来收尾，再接 sleep。",
+      "readiness": "ready",
+      "notes": [
+        "TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。",
+        "当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。"
+      ],
+      "tuningNotes": [
+        "先看过去，再挥手，再低头，这三个阶段不要压成一团。",
+        "挥手动作宁可慢一点，也不要做成机械抽搐。"
+      ]
+    },
+    "summary": {
+      "durationMs": 388.16,
+      "stepCount": 24,
+      "requestCount": 12,
+      "dryRun": false,
+      "skipDelays": true,
+      "baseUrl": "http://127.0.0.1:9799"
+    },
+    "timeline": [
+      {
+        "tMs": 0.01,
+        "kind": "scene-start",
+        "scene": "farewell",
+        "title": "挥手送别"
+      },
+      {
+        "tMs": 0.14,
+        "kind": "log",
+        "text": "=== Scene: farewell / 挥手送别 ==="
+      },
+      {
+        "tMs": 0.14,
+        "kind": "log",
+        "text": "[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。"
+      },
+      {
+        "tMs": 0.15,
+        "kind": "log",
+        "text": "[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。"
+      },
+      {
+        "tMs": 0.15,
+        "kind": "log",
+        "text": "[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。"
+      },
+      {
+        "tMs": 0.15,
+        "kind": "log",
+        "text": "[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。"
+      },
+      {
+        "tMs": 0.15,
+        "kind": "log",
+        "text": "[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。"
+      },
+      {
+        "tMs": 0.16,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 1,
+        "stepTotal": 24,
+        "stepType": "pose",
+        "stepLabel": "pose:neutral"
+      },
+      {
+        "tMs": 0.21,
+        "kind": "log",
+        "text": "[pose] neutral -> {\"mode\": \"absolute\", \"servo1\": 90, \"servo2\": 96, \"servo3\": 98, \"servo4\": 90}"
+      },
+      {
+        "tMs": 351.02,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "absolute",
+          "servo1": 90,
+          "servo2": 96,
+          "servo3": 98,
+          "servo4": 90
+        },
+        "durationMs": 350.8,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "absolute",
+          "applied": {
+            "mode": "absolute",
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          },
+          "servos": {
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          },
+          "changed": {
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          }
+        }
+      },
+      {
+        "tMs": 351.04,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 2,
+        "stepTotal": 24,
+        "stepType": "led",
+        "stepLabel": "led:solid"
+      },
+      {
+        "tMs": 351.1,
+        "kind": "log",
+        "text": "[led] {\"mode\": \"solid\", \"brightness\": 108, \"color\": {\"r\": 255, \"g\": 214, \"b\": 176}}"
+      },
+      {
+        "tMs": 354.64,
+        "kind": "request",
+        "method": "POST",
+        "path": "/led",
+        "payload": {
+          "mode": "solid",
+          "brightness": 108,
+          "color": {
+            "r": 255,
+            "g": 214,
+            "b": 176
+          }
+        },
+        "durationMs": 3.53,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "applied": {
+            "mode": "solid",
+            "brightness": 108,
+            "color": {
+              "r": 255,
+              "g": 214,
+              "b": 176
+            }
+          },
+          "led": {
+            "mode": "solid",
+            "brightness": 108,
+            "color": {
+              "r": 255,
+              "g": 214,
+              "b": 176
+            }
+          }
+        }
+      },
+      {
+        "tMs": 354.65,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 3,
+        "stepTotal": 24,
+        "stepType": "comment",
+        "stepLabel": "先目送评委离开的方向。"
+      },
+      {
+        "tMs": 354.66,
+        "kind": "log",
+        "text": "[comment] 先目送评委离开的方向。"
+      },
+      {
+        "tMs": 354.67,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 4,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo1,servo2,servo3,servo4"
+      },
+      {
+        "tMs": 354.69,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"absolute\", \"servo1\": 106, \"servo2\": 96, \"servo3\": 100, \"servo4\": 92}"
+      },
+      {
+        "tMs": 357.8,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "absolute",
+          "servo1": 106,
+          "servo2": 96,
+          "servo3": 100,
+          "servo4": 92
+        },
+        "durationMs": 3.1,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "absolute",
+          "applied": {
+            "mode": "absolute",
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 92
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 92
+          },
+          "changed": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 92
+          }
+        }
+      },
+      {
+        "tMs": 357.81,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 5,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:420ms"
+      },
+      {
+        "tMs": 357.82,
+        "kind": "log",
+        "text": "[delay] 420ms"
+      },
+      {
+        "tMs": 357.82,
+        "kind": "log",
+        "text": "[trace-skip-delay] 420ms"
+      },
+      {
+        "tMs": 357.82,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 6,
+        "stepTotal": 24,
+        "stepType": "audio",
+        "stepLabel": "audio"
+      },
+      {
+        "tMs": 357.85,
+        "kind": "log",
+        "text": "[skip-audio] payload={\"type\": \"audio\", \"voice\": \"tts\", \"allowMissing\": true, \"text\": \"谢谢你来看我，下次见。\", \"wait\": true}"
+      },
+      {
+        "tMs": 357.85,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 7,
+        "stepTotal": 24,
+        "stepType": "comment",
+        "stepLabel": "再做两次慢慢点头，像挥手说再见。"
+      },
+      {
+        "tMs": 357.85,
+        "kind": "log",
+        "text": "[comment] 再做两次慢慢点头，像挥手说再见。"
+      },
+      {
+        "tMs": 357.86,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 8,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 357.87,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 361.32,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": 5
+        },
+        "durationMs": 3.44,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": 5
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 97
+          },
+          "changed": {
+            "servo4": 97
+          }
+        }
+      },
+      {
+        "tMs": 361.33,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 9,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:180ms"
+      },
+      {
+        "tMs": 361.37,
+        "kind": "log",
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 361.37,
+        "kind": "log",
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 361.38,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 10,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 361.41,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": -10}"
+      },
+      {
+        "tMs": 364.06,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": -10
+        },
+        "durationMs": 2.64,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": -10
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 87
+          },
+          "changed": {
+            "servo4": 87
+          }
+        }
+      },
+      {
+        "tMs": 364.07,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 11,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:180ms"
+      },
+      {
+        "tMs": 364.08,
+        "kind": "log",
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 364.08,
+        "kind": "log",
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 364.08,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 12,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 364.1,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 368.03,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": 5
+        },
+        "durationMs": 3.92,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": 5
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 92
+          },
+          "changed": {
+            "servo4": 92
+          }
+        }
+      },
+      {
+        "tMs": 368.04,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 13,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:220ms"
+      },
+      {
+        "tMs": 368.05,
+        "kind": "log",
+        "text": "[delay] 220ms"
+      },
+      {
+        "tMs": 368.05,
+        "kind": "log",
+        "text": "[trace-skip-delay] 220ms"
+      },
+      {
+        "tMs": 368.06,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 14,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 368.07,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 372.06,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": 5
+        },
+        "durationMs": 3.98,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": 5
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 97
+          },
+          "changed": {
+            "servo4": 97
+          }
+        }
+      },
+      {
+        "tMs": 372.08,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 15,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:180ms"
+      },
+      {
+        "tMs": 372.08,
+        "kind": "log",
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 372.08,
+        "kind": "log",
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 372.09,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 16,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 372.11,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": -10}"
+      },
+      {
+        "tMs": 376.62,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": -10
+        },
+        "durationMs": 4.5,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": -10
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 87
+          },
+          "changed": {
+            "servo4": 87
+          }
+        }
+      },
+      {
+        "tMs": 376.63,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 17,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:180ms"
+      },
+      {
+        "tMs": 376.63,
+        "kind": "log",
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 376.63,
+        "kind": "log",
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 376.64,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 18,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo4"
+      },
+      {
+        "tMs": 376.65,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 379.72,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "relative",
+          "servo4": 5
+        },
+        "durationMs": 3.07,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "relative",
+          "applied": {
+            "mode": "relative",
+            "servo4": 5
+          },
+          "servos": {
+            "servo1": 106,
+            "servo2": 96,
+            "servo3": 100,
+            "servo4": 92
+          },
+          "changed": {
+            "servo4": 92
+          }
+        }
+      },
+      {
+        "tMs": 379.8,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 19,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:220ms"
+      },
+      {
+        "tMs": 379.82,
+        "kind": "log",
+        "text": "[delay] 220ms"
+      },
+      {
+        "tMs": 379.82,
+        "kind": "log",
+        "text": "[trace-skip-delay] 220ms"
+      },
+      {
+        "tMs": 379.83,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 20,
+        "stepTotal": 24,
+        "stepType": "comment",
+        "stepLabel": "最后微微低头，像有点舍不得。"
+      },
+      {
+        "tMs": 379.83,
+        "kind": "log",
+        "text": "[comment] 最后微微低头，像有点舍不得。"
+      },
+      {
+        "tMs": 379.84,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 21,
+        "stepTotal": 24,
+        "stepType": "control",
+        "stepLabel": "control:servo1,servo2,servo3,servo4"
+      },
+      {
+        "tMs": 379.86,
+        "kind": "log",
+        "text": "[control] {\"mode\": \"absolute\", \"servo1\": 102, \"servo2\": 92, \"servo3\": 96, \"servo4\": 100}"
+      },
+      {
+        "tMs": 382.83,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "absolute",
+          "servo1": 102,
+          "servo2": 92,
+          "servo3": 96,
+          "servo4": 100
+        },
+        "durationMs": 2.95,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "absolute",
+          "applied": {
+            "mode": "absolute",
+            "servo1": 102,
+            "servo2": 92,
+            "servo3": 96,
+            "servo4": 100
+          },
+          "servos": {
+            "servo1": 102,
+            "servo2": 92,
+            "servo3": 96,
+            "servo4": 100
+          },
+          "changed": {
+            "servo1": 102,
+            "servo2": 92,
+            "servo3": 96,
+            "servo4": 100
+          }
+        }
+      },
+      {
+        "tMs": 382.84,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 22,
+        "stepTotal": 24,
+        "stepType": "delay",
+        "stepLabel": "delay:180ms"
+      },
+      {
+        "tMs": 382.84,
+        "kind": "log",
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 382.84,
+        "kind": "log",
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 382.85,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 23,
+        "stepTotal": 24,
+        "stepType": "pose",
+        "stepLabel": "pose:neutral"
+      },
+      {
+        "tMs": 382.87,
+        "kind": "log",
+        "text": "[pose] neutral -> {\"mode\": \"absolute\", \"servo1\": 90, \"servo2\": 96, \"servo3\": 98, \"servo4\": 90}"
+      },
+      {
+        "tMs": 385.79,
+        "kind": "request",
+        "method": "POST",
+        "path": "/control",
+        "payload": {
+          "mode": "absolute",
+          "servo1": 90,
+          "servo2": 96,
+          "servo3": 98,
+          "servo4": 90
+        },
+        "durationMs": 2.9,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "mode": "absolute",
+          "applied": {
+            "mode": "absolute",
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          },
+          "servos": {
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          },
+          "changed": {
+            "servo1": 90,
+            "servo2": 96,
+            "servo3": 98,
+            "servo4": 90
+          }
+        }
+      },
+      {
+        "tMs": 385.8,
+        "kind": "step",
+        "sceneName": "farewell",
+        "sceneTitle": "挥手送别",
+        "stepIndex": 24,
+        "stepTotal": 24,
+        "stepType": "led",
+        "stepLabel": "led:solid"
+      },
+      {
+        "tMs": 385.83,
+        "kind": "log",
+        "text": "[led] {\"mode\": \"solid\", \"brightness\": 90, \"color\": {\"r\": 255, \"g\": 210, \"b\": 170}}"
+      },
+      {
+        "tMs": 388.11,
+        "kind": "request",
+        "method": "POST",
+        "path": "/led",
+        "payload": {
+          "mode": "solid",
+          "brightness": 90,
+          "color": {
+            "r": 255,
+            "g": 210,
+            "b": 170
+          }
+        },
+        "durationMs": 2.28,
+        "outcome": "ok",
+        "response": {
+          "ok": true,
+          "applied": {
+            "mode": "solid",
+            "brightness": 90,
+            "color": {
+              "r": 255,
+              "g": 210,
+              "b": 170
+            }
+          },
+          "led": {
+            "mode": "solid",
+            "brightness": 90,
+            "color": {
+              "r": 255,
+              "g": 210,
+              "b": 170
+            }
+          }
+        }
+      },
+      {
+        "tMs": 388.13,
+        "kind": "log",
+        "text": "[scene-done] farewell"
+      },
+      {
+        "tMs": 388.14,
+        "kind": "scene-finished",
+        "scene": "farewell",
+        "error": null
+      }
+    ],
+    "logs": [
+      {
+        "tMs": 0.14,
+        "text": "=== Scene: farewell / 挥手送别 ==="
+      },
+      {
+        "tMs": 0.14,
+        "text": "[host] 当你离开时，它会目送你，还会轻轻摆摆头像在说再见。"
+      },
+      {
+        "tMs": 0.15,
+        "text": "[note] TODO: 离场方向识别接入后，把 farewell_look 改成按离场方位实时生成。"
+      },
+      {
+        "tMs": 0.15,
+        "text": "[note] 当前版本按 PDF2 为主、参考 PDF3 的手绘页，做成：目送 -> 两次慢慢点头式挥手 -> 舍不得地低头。"
+      },
+      {
+        "tMs": 0.15,
+        "text": "[tuning] 先看过去，再挥手，再低头，这三个阶段不要压成一团。"
+      },
+      {
+        "tMs": 0.15,
+        "text": "[tuning] 挥手动作宁可慢一点，也不要做成机械抽搐。"
+      },
+      {
+        "tMs": 0.2,
+        "text": "[pose] neutral -> {\"mode\": \"absolute\", \"servo1\": 90, \"servo2\": 96, \"servo3\": 98, \"servo4\": 90}"
+      },
+      {
+        "tMs": 351.09,
+        "text": "[led] {\"mode\": \"solid\", \"brightness\": 108, \"color\": {\"r\": 255, \"g\": 214, \"b\": 176}}"
+      },
+      {
+        "tMs": 354.66,
+        "text": "[comment] 先目送评委离开的方向。"
+      },
+      {
+        "tMs": 354.69,
+        "text": "[control] {\"mode\": \"absolute\", \"servo1\": 106, \"servo2\": 96, \"servo3\": 100, \"servo4\": 92}"
+      },
+      {
+        "tMs": 357.82,
+        "text": "[delay] 420ms"
+      },
+      {
+        "tMs": 357.82,
+        "text": "[trace-skip-delay] 420ms"
+      },
+      {
+        "tMs": 357.85,
+        "text": "[skip-audio] payload={\"type\": \"audio\", \"voice\": \"tts\", \"allowMissing\": true, \"text\": \"谢谢你来看我，下次见。\", \"wait\": true}"
+      },
+      {
+        "tMs": 357.85,
+        "text": "[comment] 再做两次慢慢点头，像挥手说再见。"
+      },
+      {
+        "tMs": 357.87,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 361.36,
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 361.37,
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 361.41,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": -10}"
+      },
+      {
+        "tMs": 364.08,
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 364.08,
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 364.1,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 368.05,
+        "text": "[delay] 220ms"
+      },
+      {
+        "tMs": 368.05,
+        "text": "[trace-skip-delay] 220ms"
+      },
+      {
+        "tMs": 368.07,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 372.08,
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 372.08,
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 372.11,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": -10}"
+      },
+      {
+        "tMs": 376.63,
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 376.63,
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 376.65,
+        "text": "[control] {\"mode\": \"relative\", \"servo4\": 5}"
+      },
+      {
+        "tMs": 379.82,
+        "text": "[delay] 220ms"
+      },
+      {
+        "tMs": 379.82,
+        "text": "[trace-skip-delay] 220ms"
+      },
+      {
+        "tMs": 379.83,
+        "text": "[comment] 最后微微低头，像有点舍不得。"
+      },
+      {
+        "tMs": 379.86,
+        "text": "[control] {\"mode\": \"absolute\", \"servo1\": 102, \"servo2\": 92, \"servo3\": 96, \"servo4\": 100}"
+      },
+      {
+        "tMs": 382.84,
+        "text": "[delay] 180ms"
+      },
+      {
+        "tMs": 382.84,
+        "text": "[trace-skip-delay] 180ms"
+      },
+      {
+        "tMs": 382.87,
+        "text": "[pose] neutral -> {\"mode\": \"absolute\", \"servo1\": 90, \"servo2\": 96, \"servo3\": 98, \"servo4\": 90}"
+      },
+      {
+        "tMs": 385.82,
+        "text": "[led] {\"mode\": \"solid\", \"brightness\": 90, \"color\": {\"r\": 255, \"g\": 210, \"b\": 170}}"
+      },
+      {
+        "tMs": 388.13,
+        "text": "[scene-done] farewell"
+      }
+    ]
+  }
+}

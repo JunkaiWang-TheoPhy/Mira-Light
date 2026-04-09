@@ -19,7 +19,6 @@ Mira_Light_Released_Version/
 ├─ config/
 ├─ deploy/
 ├─ docs/
-├─ Figs/
 ├─ scripts/
 ├─ tests/
 ├─ tools/
@@ -37,9 +36,6 @@ Mira_Light_Released_Version/
 - `docs/`
   保存 release 版说明文档和原始 PDF
 
-- `Figs/`
-  当前主要保留 `motions/`，用来解释场景动作
-
 - `scripts/`
   核心运行时、安装脚本、console、scene 定义、receiver、vision 入口
 
@@ -50,4 +46,4 @@ Mira_Light_Released_Version/
   本地 bridge 与 OpenClaw 插件
 
 - `web/`
-  导演台与场景展示页
+  导演台前端与少量场景展示页

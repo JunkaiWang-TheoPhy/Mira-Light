@@ -7,7 +7,7 @@
 - 当前 `Mira Light` 的十个主场景在代码里是怎么组织的
 - 每个场景在 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 里用了哪些步骤类型
 - 它和 [`docs/mira-light-booth-scene-table.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-booth-scene-table.md) 的导演层描述是什么关系
-- 它和 `Figs/motions/*/README.md` 的动作细节文档是什么关系
+- release 目录在移除 `Figs/` 后，动作解释信息应该从哪里继续看
 
 这份文档不是动作真值本身。
 
@@ -16,6 +16,25 @@
 - [`Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
 
 为准。
+
+## 当前执行边界补充
+
+需要补一句当前 release 已经变化的工程事实：
+
+- 场景步骤虽然仍然定义在 `SCENES`
+- 但 scene 里的 `pose` 和 `control` 现在不会再绕开运行时安全层
+
+这意味着：
+
+- 安全范围内会正常执行
+- 超出 `rehearsal_range` 但仍在 `hard_range` 内会被 clamp
+- 超出 `hard_range` 的危险输入会被 reject
+
+所以当前场景代码已经不是“写什么角度就必定原样下发”，而是“先通过 choreography，再通过安全裁决”。
+
+相关说明见：
+
+- [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
 
 ## 三层关系
 
@@ -55,7 +74,9 @@
 
 文件：
 
-- `Figs/motions/*/README.md`
+- 本文档各场景分节
+- [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
+- [`docs/mira-light-pdf2-implementation-audit.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-implementation-audit.md)
 
 它讲的是：
 
@@ -63,7 +84,7 @@
 - 每段动作对应什么姿态
 - 当前代码和 PDF 的关系
 
-这一层是代码的“逐场景说明书”。
+这一层是 release 里的“逐场景说明书”。
 
 ## 当前代码结构总览
 
@@ -429,7 +450,7 @@ delay(180),
 
 1. `mira-light-booth-scene-table.md` 讲的是“导演意图”，不是代码真值。
 2. `scripts/scenes.py` 是当前真正的可执行 choreography。
-3. `Figs/motions/*/README.md` 是逐场景解释层，适合对照 PDF 和代码看。 
+3. release 不再附带 `Figs/motions/*/README.md`，逐场景解释以本文、handoff 和 audit 文档为准。
 
 ## 当前十个主场景在代码里的写法
 
@@ -527,9 +548,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/01_wake_up/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/01_wake_up/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `wake_up` 的解释层
 
 ---
 
@@ -636,9 +657,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/02_curious/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/02_curious/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `curious_observe` 的解释层
 
 ---
 
@@ -718,9 +739,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/03_touch_affection/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/03_touch_affection/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `touch_affection` 的解释层
 
 ---
 
@@ -803,9 +824,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/04_cute_probe/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/04_cute_probe/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `cute_probe` 的解释层
 
 ---
 
@@ -879,9 +900,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/05_daydream/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/05_daydream/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `daydream` 的解释层
 
 ---
 
@@ -982,9 +1003,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/06_standup_reminder/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/06_standup_reminder/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `standup_reminder` 的解释层
 
 ---
 
@@ -1065,9 +1086,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/07_track_target/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/07_track_target/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `track_target` 的解释层
 
 ---
 
@@ -1187,9 +1208,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/08_celebrate/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/08_celebrate/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `celebrate` 的解释层
 
 ---
 
@@ -1265,9 +1286,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/09_farewell/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/09_farewell/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `farewell` 的解释层
 
 ---
 
@@ -1343,9 +1364,9 @@ steps = [
 ]
 ```
 
-### 相关细节文档
+### 相关说明
 
-- [`Figs/motions/10_sleep/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions/10_sleep/README.md)
+- 当前 release 不再附带单独的 `motions README`；本节与 [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py) 一起构成 `sleep` 的解释层
 
 ---
 
@@ -1405,9 +1426,9 @@ steps = [
 1. [`docs/Mira Light 展位交互方案2.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/Mira%20Light%20展位交互方案2.pdf)
 2. [`docs/ESP32 智能台灯.pdf`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/ESP32%20智能台灯.pdf)
 3. [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-4. [`Figs/motions/*/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions)
+4. 本文档对应场景章节
 5. [`docs/mira-light-pdf2-engineering-handoff.md`](/Users/Zhuanz/Documents/Github/Mira-Light/docs/mira-light-pdf2-engineering-handoff.md)
 
 ## 一句话总结
 
-`mira-light-booth-scene-table.md` 负责讲“演什么”，`scripts/scenes.py` 负责讲“怎么执行”，`Figs/motions/*/README.md` 负责讲“为什么这么写”。技术同学如果要继续开发，应该优先盯住 `scripts/scenes.py` 和每个场景对应的 `motions README`。 
+`mira-light-booth-scene-table.md` 负责讲“演什么”，`scripts/scenes.py` 负责讲“怎么执行”，本文和 handoff / audit 文档负责讲“为什么这么写”。技术同学如果要继续开发，应该优先盯住 `scripts/scenes.py` 和 release docs。 

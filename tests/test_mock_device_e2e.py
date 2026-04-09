@@ -63,6 +63,7 @@ class MockDeviceE2ETest(unittest.TestCase):
             mock_base_url = f"http://127.0.0.1:{mock_server.server_address[1]}"
 
             runtime = MiraLightRuntime(base_url=mock_base_url, dry_run=False, timeout_seconds=1.0)
+            runtime.audio_player.dry_run = True
             bridge_server = BridgeHTTPServer(
                 ("127.0.0.1", 0),
                 BridgeHandler,
@@ -115,6 +116,55 @@ class MockDeviceE2ETest(unittest.TestCase):
                     mock_server.server_close()
                     mock_thread.join(timeout=3)
 
+    def test_dynamic_farewell_context_reaches_mock_device(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            mock_server = create_server("127.0.0.1", 0)
+            mock_thread = self._start_server(mock_server)
+            mock_base_url = f"http://127.0.0.1:{mock_server.server_address[1]}"
+
+            runtime = MiraLightRuntime(base_url=mock_base_url, dry_run=False, timeout_seconds=1.0)
+            runtime.audio_player.dry_run = True
+            bridge_server = BridgeHTTPServer(
+                ("127.0.0.1", 0),
+                BridgeHandler,
+                runtime=runtime,
+                token="",
+                ingest_root=tmp_root / "ingest",
+            )
+            bridge_thread = self._start_server(bridge_server)
+            bridge_base_url = f"http://127.0.0.1:{bridge_server.server_address[1]}"
+
+            with mock.patch.object(BoothController, "_sleep_ms", autospec=True, return_value=None):
+                try:
+                    status, ran = request_json(
+                        f"{bridge_base_url}/v1/mira-light/run-scene",
+                        method="POST",
+                        payload={
+                            "scene": "farewell",
+                            "async": False,
+                            "context": {"departureDirection": "left"},
+                        },
+                    )
+                    self.assertEqual(status, 200)
+                    self.assertTrue(ran["ok"])
+
+                    status, admin_state = request_json(f"{mock_base_url}/__admin/state")
+                    self.assertEqual(status, 200)
+                    control_payloads = [
+                        item["payload"]
+                        for item in admin_state["recentRequests"]
+                        if item["path"] == "/control" and isinstance(item.get("payload"), dict)
+                    ]
+                    self.assertTrue(any(payload.get("servo1") == 78 for payload in control_payloads))
+                finally:
+                    bridge_server.shutdown()
+                    bridge_server.server_close()
+                    bridge_thread.join(timeout=3)
+                    mock_server.shutdown()
+                    mock_server.server_close()
+                    mock_thread.join(timeout=3)
+
     def test_fault_injection_surfaces_bridge_errors(self) -> None:
         with TemporaryDirectory() as tmpdir:
             tmp_root = Path(tmpdir)
@@ -123,6 +173,7 @@ class MockDeviceE2ETest(unittest.TestCase):
             mock_base_url = f"http://127.0.0.1:{mock_server.server_address[1]}"
 
             runtime = MiraLightRuntime(base_url=mock_base_url, dry_run=False, timeout_seconds=0.2)
+            runtime.audio_player.dry_run = True
             bridge_server = BridgeHTTPServer(
                 ("127.0.0.1", 0),
                 BridgeHandler,

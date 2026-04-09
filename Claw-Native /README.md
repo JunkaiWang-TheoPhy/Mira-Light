@@ -28,7 +28,7 @@ instead of renaming it mid-stream.
 
 - Mira identity, soul, operator style, and skill policy
 - local OpenClaw plugin wiring for `mira-light-bridge`
-- explicit default model pinning to `openai-codex/gpt-5.4`
+- a reusable OpenClaw config template that does not force a specific model
 - bridge and vision env layout
 - launchd-based always-on gateway, bridge, and vision topology
 - memory indexing strategy and current limitations

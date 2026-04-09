@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "好的，smoke ok。"
+  ],
+  "description": "speech:say",
+  "requestedText": "好的，smoke ok。",
+  "spokenText": "好的，smoke ok。"
+}

@@ -1,0 +1,9 @@
+{
+  "createdAt": "2026-04-09T07:56:10.713432",
+  "transcriber": "local-mlx",
+  "language": "zh",
+  "sourceFile": "/private/tmp/mira-stt-test.wav",
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/voice-sessions/2026-04-09T07-56-10/input.wav",
+  "transcriptPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/voice-sessions/2026-04-09T07-56-10/transcript.txt",
+  "transcriptPreview": "你好,我是MIRROR。請回覆SmokeOK。"
+}

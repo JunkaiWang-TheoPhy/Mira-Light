@@ -1,0 +1,39 @@
+{
+  "text": "你好,我是MIRROR。請回覆SmokeOK。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 3.8000000000000003,
+      "text": "你好,我是MIRROR。請回覆SmokeOK。",
+      "tokens": [
+        50364,
+        26410,
+        11,
+        15914,
+        44,
+        7740,
+        49,
+        2483,
+        1543,
+        16302,
+        8350,
+        2888,
+        228,
+        26578,
+        2949,
+        9443,
+        1543,
+        50554
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.45284331472296463,
+      "compression_ratio": 0.82,
+      "no_speech_prob": 0.008286059834063053
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000
+}

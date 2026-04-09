@@ -823,6 +823,26 @@ button.danger {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.mini-controls {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mini-controls label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.mini-controls select {
+  width: 100%;
+}
+
+.scene-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .mock-overview {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -935,6 +955,12 @@ button.danger {
   accent-color: #ff6b9d;
 }
 
+.checkbox.compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .readiness-copy {
   display: grid;
   gap: 4px;
@@ -954,6 +980,50 @@ button.danger {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.profile-tools {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.profile-capture-card,
+.profile-flash {
+  border-radius: 16px;
+  border: 1px solid rgba(159, 144, 224, 0.18);
+  background: rgba(255, 255, 255, 0.42);
+  padding: 12px;
+}
+
+.profile-capture-card {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-flash {
+  color: var(--text-strong);
+}
+
+.profile-flash[data-tone="success"] {
+  border-color: rgba(88, 182, 128, 0.28);
+}
+
+.profile-flash[data-tone="error"] {
+  border-color: rgba(220, 91, 91, 0.34);
+  color: #8f2432;
 }
 
 .meta-card,
@@ -988,11 +1058,16 @@ button.danger {
 }
 
 .servo-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(120px, 0.4fr) minmax(0, 1fr);
   gap: 16px;
-  align-items: center;
+  align-items: start;
   padding: 12px;
+}
+
+.servo-copy {
+  display: grid;
+  gap: 4px;
 }
 
 .servo-row strong,
@@ -1009,9 +1084,20 @@ button.danger {
 .servo-values {
   display: grid;
   gap: 4px;
-  text-align: right;
+  text-align: left;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.servo-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.servo-range-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .pose-card {
@@ -1119,7 +1205,8 @@ body.is-error .status-pill:nth-child(5) {
   .status-strip,
   .diagnostics,
   .meta-grid,
-  .operator-grid {
+  .operator-grid,
+  .profile-form-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1133,8 +1220,7 @@ body.is-error .status-pill:nth-child(5) {
   }
 
   .servo-row {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
   }
 
   .servo-values {

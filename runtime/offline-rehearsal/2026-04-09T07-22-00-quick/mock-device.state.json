@@ -1,0 +1,55 @@
+{
+  "service": "mock-mira-light-device",
+  "bootedAt": "2026-04-09T07:22:01+08:00",
+  "requestCount": 1,
+  "lastResetAt": "2026-04-09T07:22:01+08:00",
+  "servos": {
+    "servo1": 90,
+    "servo2": 96,
+    "servo3": 98,
+    "servo4": 90
+  },
+  "led": {
+    "mode": "off",
+    "brightness": 0
+  },
+  "actions": {
+    "available": [
+      {
+        "name": "dance",
+        "label": "Dance",
+        "loopsSupported": true
+      },
+      {
+        "name": "wiggle",
+        "label": "Wiggle",
+        "loopsSupported": true
+      },
+      {
+        "name": "wave",
+        "label": "Wave",
+        "loopsSupported": false
+      }
+    ],
+    "active": {
+      "running": false,
+      "name": null,
+      "payload": null,
+      "startedAt": null,
+      "stoppedAt": null
+    }
+  },
+  "faults": [],
+  "recentRequests": [
+    {
+      "ts": "2026-04-09T07:22:01+08:00",
+      "method": "GET",
+      "path": "/health",
+      "payload": null,
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 1
+    }
+  ]
+}

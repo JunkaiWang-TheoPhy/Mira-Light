@@ -35,7 +35,7 @@ PLUGIN_SOURCE_DIR = REPO_ROOT / "tools" / "mira_light_bridge" / "openclaw_mira_l
 
 
 def now_stamp() -> str:
-    return datetime.now(timezone.utc).astimezone().strftime("%Y%m%d-%H%M%S")
+    return datetime.now(timezone.utc).astimezone().strftime("%Y%m%d-%H%M%S-%f")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -166,4 +166,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,36 @@
+{
+  "text": "Mira 发音像Mira。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 3.0,
+      "text": "Mira 发音像Mee-ra。",
+      "tokens": [
+        50364,
+        44,
+        4271,
+        220,
+        28926,
+        18034,
+        12760,
+        44,
+        1653,
+        12,
+        424,
+        1543,
+        50514
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.7923716136387416,
+      "compression_ratio": 0.71875,
+      "no_speech_prob": 0.772608757019043
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000,
+  "rawText": "Mira 发音像Mee-ra。",
+  "normalizationApplied": true
+}

@@ -1,0 +1,35 @@
+{
+  "text": "你好 我是 Mira 。请回复 Smoke ok。",
+  "language": "zh",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 3.8000000000000003,
+      "text": "你好 我是 Mira 。请回复 Smoke ok。",
+      "tokens": [
+        50364,
+        26410,
+        34625,
+        28394,
+        220,
+        1543,
+        27908,
+        8350,
+        1787,
+        235,
+        36191,
+        3133,
+        1543,
+        50554
+      ],
+      "temperature": 0.0,
+      "avg_logprob": -0.4411692937215169,
+      "compression_ratio": 0.8269230769230769,
+      "no_speech_prob": 0.0022082640789449215
+    }
+  ],
+  "modelRepo": "mlx-community/whisper-small-mlx-q4",
+  "sampleRate": 16000
+}

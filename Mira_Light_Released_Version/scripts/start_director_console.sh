@@ -19,20 +19,30 @@ if [[ -z "${PYTHON_BIN}" ]]; then
   exit 1
 fi
 
+if ! "${PYTHON_BIN}" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+  echo "Python 3.10+ is required for Mira Light release scripts." >&2
+  "${PYTHON_BIN}" --version >&2 || true
+  exit 1
+fi
+
 HOST="${MIRA_LIGHT_CONSOLE_HOST:-127.0.0.1}"
 PORT="${MIRA_LIGHT_CONSOLE_PORT:-8765}"
-BASE_URL="${MIRA_LIGHT_BASE_URL:-http://172.20.10.3}"
-DRY_RUN="${MIRA_LIGHT_DRY_RUN:-0}"
+BRIDGE_BASE_URL="${MIRA_LIGHT_CONSOLE_BRIDGE_URL:-${MIRA_LIGHT_BRIDGE_URL:-http://127.0.0.1:9783}}"
+BRIDGE_TOKEN_ENV="${MIRA_LIGHT_CONSOLE_BRIDGE_TOKEN_ENV:-MIRA_LIGHT_BRIDGE_TOKEN}"
+BRIDGE_TIMEOUT_SECONDS="${MIRA_LIGHT_CONSOLE_BRIDGE_TIMEOUT_SECONDS:-5}"
 
 ARGS=(
   "${REPO_ROOT}/scripts/console_server.py"
   "--host" "${HOST}"
   "--port" "${PORT}"
-  "--base-url" "${BASE_URL}"
+  "--bridge-base-url" "${BRIDGE_BASE_URL}"
+  "--bridge-token-env" "${BRIDGE_TOKEN_ENV}"
+  "--bridge-timeout" "${BRIDGE_TIMEOUT_SECONDS}"
 )
 
-if [[ "${DRY_RUN}" == "1" ]]; then
-  ARGS+=("--dry-run")
+if [[ "${MIRA_LIGHT_DRY_RUN:-0}" == "1" ]]; then
+  echo "[console-start] note: MIRA_LIGHT_DRY_RUN is a bridge/runtime setting." >&2
+  echo "[console-start] note: start the bridge with --dry-run or use scripts/start_local_stack.sh --dry-run." >&2
 fi
 
 exec "${PYTHON_BIN}" "${ARGS[@]}"

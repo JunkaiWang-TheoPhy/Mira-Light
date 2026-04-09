@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "对呀，本来就是这个发音呀，叫起来很顺口也好记。",
+        "reasoning_content": "\n用户现在说Mira发音像Mira，其实就是说发音一样嘛，温柔回应就好，就说对呀，这个名字本身就很好念，叫起来很顺口对吧？不对，要1到2句，简短。就说对呀，这个名字本身的发音就是这样，念起来很顺口好记呢？不对，再自然点。哦，用户说“Mira 发音像Mira”，其实就是说发音就是本身嘛，就说哈哈，本来就是这个名字呀，念起来简单又顺口呀？不对，更短一点。就说对呀，本来就是这个发音呀，叫起来很顺口好记。嗯，差不多，就这个吧。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775699074,
+  "id": "021775699071795e8eb33bba790666117f5ace3387e18421f8371",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 162,
+    "prompt_tokens": 94,
+    "total_tokens": 256,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 146
+    }
+  }
+}

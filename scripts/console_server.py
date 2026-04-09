@@ -160,7 +160,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/run/"):
             scene_name = unquote(path.removeprefix("/api/run/"))
-            self._proxy_json("POST", "/v1/mira-light/run-scene", {"scene": scene_name, "async": True})
+            body = self._read_json_body()
+            payload = {"scene": scene_name, "async": True}
+            if isinstance(body, dict):
+                payload.update(body)
+            self._proxy_json("POST", "/v1/mira-light/run-scene", payload)
+            return
+
+        if path == "/api/trigger":
+            self._proxy_json("POST", "/v1/mira-light/trigger", self._read_json_body())
             return
 
         if path == "/api/reset":
@@ -185,6 +193,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path == "/api/config":
             self._proxy_json("POST", "/v1/mira-light/config", self._read_json_body())
+            return
+
+        if path == "/api/profile/capture-pose":
+            self._proxy_json("POST", "/v1/mira-light/profile/capture-pose", self._read_json_body())
+            return
+
+        if path == "/api/profile/set-servo-meta":
+            self._proxy_json("POST", "/v1/mira-light/profile/set-servo-meta", self._read_json_body())
             return
 
         self._send_json(404, {"ok": False, "error": "Unknown endpoint"})

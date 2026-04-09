@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "这个名字读起来简洁顺口，确实很容易让人记住。"
+  ],
+  "description": "speech:say",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "这个名字读起来简洁顺口，确实很容易让人记住。",
+  "spokenText": "这个名字读起来简洁顺口，确实很容易让人记住。"
+}

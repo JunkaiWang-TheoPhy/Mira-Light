@@ -78,6 +78,10 @@
             <input id="dry-run" type="checkbox" />
             <span>Dry Run</span>
           </label>
+          <label class="checkbox">
+            <input id="cue-mode-director" type="checkbox" checked />
+            <span>导演 Cue 模式</span>
+          </label>
           <button id="save-config" type="button">保存配置</button>
         </div>
       </section>
@@ -138,7 +142,7 @@
             <div class="panel-header">
               <div>
                 <h2>Operator Quick Actions</h2>
-                <p>这些是展位最常用的收场、回正和应急动作。</p>
+                <p>这些是展位最常用的收场、回正和应急动作。场景卡片现在默认会走“主持人口播 + Mira 动作 + 音频”的导演 cue。</p>
               </div>
             </div>
             <div class="operator-grid">
@@ -151,6 +155,30 @@
               <button id="refresh-status" type="button">刷新 /status</button>
               <button id="refresh-led" type="button">刷新 /led</button>
               <button id="refresh-actions" type="button">刷新 /actions</button>
+            </div>
+          </section>
+
+          <section class="panel trigger-panel">
+            <div class="panel-header">
+              <div>
+                <h2>实时触发</h2>
+                <p>把手部、叹气、疲惫语音和离场方向，先收敛成这组稳定入口。</p>
+              </div>
+            </div>
+            <div class="mini-controls">
+              <label for="farewell-direction">送别方向</label>
+              <select id="farewell-direction">
+                <option value="left">左侧离场</option>
+                <option value="center">正前方离场</option>
+                <option value="right" selected>右侧离场</option>
+              </select>
+            </div>
+            <div class="operator-grid">
+              <button id="trigger-touch" type="button">触发摸一摸</button>
+              <button id="trigger-sigh" type="button">触发叹气安慰</button>
+              <button id="trigger-voice-tired" type="button">触发我好累了</button>
+              <button id="trigger-multi-person" type="button">触发多人纠结</button>
+              <button id="trigger-farewell" type="button">触发动态送别</button>
             </div>
           </section>
 
@@ -202,6 +230,24 @@
                 <h2>Profile / Pose 可视化</h2>
                 <p>默认展示摘要，而不是一整块原始 JSON。</p>
               </div>
+            </div>
+            <div class="profile-tools">
+              <div class="profile-capture-card">
+                <strong>捕获当前姿态到 Profile</strong>
+                <div class="profile-form-grid">
+                  <input id="capture-pose-name" type="text" placeholder="pose 名称，如 neutral_live" />
+                  <input id="capture-pose-notes" type="text" placeholder="备注，如 真机校准 2026-04-09" />
+                </div>
+                <label class="checkbox compact">
+                  <input id="capture-pose-verified" type="checkbox" />
+                  <span>保存为 verified pose</span>
+                </label>
+                <div class="profile-actions">
+                  <button id="capture-pose" type="button">捕获当前 Pose</button>
+                  <button id="refresh-profile" type="button">刷新 Profile</button>
+                </div>
+              </div>
+              <div id="profile-flash" class="profile-flash" aria-live="polite">等待操作</div>
             </div>
             <div id="profile-meta" class="meta-grid"></div>
             <div id="servo-summary" class="servo-summary"></div>

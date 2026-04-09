@@ -2,9 +2,6 @@
   "agents": {
     "defaults": {
       "workspace": "__HOME__/.openclaw/workspace",
-      "model": {
-        "primary": "openai-codex/gpt-5.4"
-      },
       "heartbeat": {
         "every": "0m"
       },

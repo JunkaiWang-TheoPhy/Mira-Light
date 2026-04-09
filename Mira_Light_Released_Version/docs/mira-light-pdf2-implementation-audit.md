@@ -25,7 +25,7 @@
 
 - `方案2` 是当前动作真值
 - `方案3` 只在局部动作细节上作为补充参考
-- `Figs/motions/*.jpg` 只是裁切辅助图，不是动作真值
+- 历史裁切图只适合作为辅助理解，不是动作真值，也不再作为 release 目录的一部分
 
 ## 当前机械结论
 
@@ -41,7 +41,7 @@
 这个结论已同步到：
 
 - [`scripts/scenes.py`](/Users/Zhuanz/Documents/Github/Mira-Light/scripts/scenes.py)
-- [`Figs/motions/*/README.md`](/Users/Zhuanz/Documents/Github/Mira-Light/Figs/motions)
+- 当前 release 侧说明文档
 
 ## 这轮已经修掉的问题
 
@@ -79,18 +79,17 @@
 - `standup_reminder / celebrate / farewell / sleep` 已经是明确的 choreography
 - `track_target` 目前是展位排练用 surrogate choreography，不是真实视觉闭环
 
-### 4. `motions` 目录已扩展到 1~10
+### 4. 历史 `motions` 材料不再随 release 交付
 
-当前 `Figs/motions/` 已经覆盖前十个主场景，每个目录里包含：
+过去存在一组 `Figs/motions/` 辅助材料，用来解释当前代码动作。
 
-- 一个 `README.md`
-- 一组从 PDF 裁切出的辅助图
+现在 release 目录已经把这些镜像式说明移除，原因是：
 
-说明：
+- 它们不是动作真值
+- 它们主要来自 PDF 裁切
+- 维护成本高，而且容易和 `scripts/scenes.py` 产生双份真相
 
-- `README.md` 用来解释当前代码动作
-- `jpg` 用来辅助理解 PDF 手绘动作
-- 图裁切可能不完美，因此不能反向覆盖 PDF2 真值
+当前应直接以 `scripts/scenes.py`、本审计文档和 handoff 文档理解动作实现。
 
 ## 当前十个主场景实现状态
 

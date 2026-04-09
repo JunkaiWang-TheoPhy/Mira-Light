@@ -1,0 +1,30 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "如果你是要和我道别，那下次想聊天随时再来找我就好。",
+        "reasoning_content": "\n用户现在打了一堆白，应该是要结束聊天？不对，打了一堆白，会不会是输入法问题？不对，Mira是温柔陪伴，这么多白，应该是说拜拜？那回应的话，就说拜拜啦，要是之后想聊天随时再来找我就好？不对，要1到2句，简短。就说，是要准备离开了吗？如果要拜拜的话，那下次想聊天随时再来哦。不对，更自然点，是不是你打错字啦，还是要和我说再见呀。不对，一堆白，就是拜拜的重复？那温柔点说，如果你是要和我道别，那下次想聊天随时再来找我就好。对，就这个，简短。嗯，调整下，更自然：如果你是要和我道别，那下次想聊天随时再来找我就好。对，就一句，符合要求。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1775698952,
+  "id": "021775698949305d72149264581351fe280677b9f79ce0829baf3",
+  "model": "doubao-seed-2.0-lite",
+  "service_tier": "default",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 209,
+    "prompt_tokens": 200,
+    "total_tokens": 409,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 191
+    }
+  }
+}

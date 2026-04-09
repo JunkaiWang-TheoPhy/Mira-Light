@@ -20,6 +20,11 @@
 
 ## Sync + restart flow
 
+- If workspace identity files changed:
+  - copy the updated files into `__HOME__/.openclaw/workspace/`
+  - run `openclaw memory index`
+- If plugin files changed:
+  - `launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway`
 - `python3 scripts/sync_local_mira_light_service.py`
 - `launchctl kickstart -k gui/$(id -u)/ai.mira-light.bridge`
 - `launchctl kickstart -k gui/$(id -u)/ai.mira-light.vision`

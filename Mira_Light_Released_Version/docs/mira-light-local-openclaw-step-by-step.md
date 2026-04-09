@@ -60,6 +60,37 @@ OpenClaw
 - 本地 scene / pose / reset / stop 都能统一暴露成工具
 - 以后迁到云端 OpenClaw 时，不用重做一套逻辑
 
+## 发布版当前推荐的接入入口
+
+如果你正在使用 `Mira_Light_Released_Version/`，当前更推荐优先使用已经整理好的脚本入口，而不是直接手动复制和改 JSON。
+
+安装：
+
+```bash
+bash scripts/install_openclaw_plugin.sh
+```
+
+移除：
+
+```bash
+bash scripts/remove_openclaw_plugin.sh
+```
+
+或者：
+
+```bash
+npm run remove:openclaw
+```
+
+这组脚本已经会处理：
+
+- `~/.openclaw/openclaw.json` 备份
+- `plugins.allow` 写入或移除
+- `plugins.entries` 写入或移除
+- 本地插件目录 / 软链建立与清理
+
+如果你需要理解底层原理，再继续看下面的手工步骤即可。
+
 ## 这条链路里有哪些现成文件
 
 ### 1. 场景与执行层
@@ -263,6 +294,16 @@ cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak.mira-light
 - 不容易乱打角度
 - 更适合展位演示
 
+另外需要注意：
+
+- 发布版当前 bridge / runtime 已经共享控制安全层
+- 裸关节控制现在可能被 clamp 或 reject
+- 导演台和 bridge 返回已经能反映这些安全结果
+
+相关说明见：
+
+- [release-control-safety-and-openclaw-rollback.md](./release-control-safety-and-openclaw-rollback.md)
+
 ## 第 9 步：把本机导演台作为辅助验证界面
 
 本机 OpenClaw 接入不是为了取代导演台。
@@ -291,4 +332,3 @@ OpenClaw -> 本机 bridge -> ESP32
 ```
 
 先跑通真实灯，再跑通 bridge，再让 OpenClaw 接插件，这才是最稳的本机接法。
-

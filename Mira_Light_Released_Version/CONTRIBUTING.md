@@ -9,15 +9,15 @@ If you modify this directory, prefer:
 - minimal diffs
 - release-safe docs
 - relative-path friendly references
-- keeping `scripts/`, `tools/`, `web/`, `docs/`, and `Figs/motions/` in sync
+- keeping `scripts/`, `tools/`, `web/`, and `docs/` in sync
 
 ## Required Sync Rules
 
 When changing a scene:
 
 1. update [`scripts/scenes.py`](./scripts/scenes.py)
-2. update the matching `Figs/motions/<scene>/README.md`
-3. update the relevant release docs if behavior or scope changed
+2. update the relevant release docs if behavior or scope changed
+3. update the user-facing web or handoff docs if the scene contract changed
 
 When changing release install or startup behavior:
 
@@ -42,3 +42,4 @@ That means:
 - avoid depending on files outside this folder
 - prefer relative links inside docs
 - keep copied reference docs clearly marked when they still contain legacy links
+- avoid reintroducing release-side mirror assets that are not runtime truth

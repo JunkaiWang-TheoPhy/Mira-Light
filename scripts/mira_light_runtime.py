@@ -23,24 +23,43 @@ ESP32 REST API:
 from __future__ import annotations
 
 from collections import deque
+from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import os
+from pathlib import Path
 import threading
 import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict
 
-from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
+from mira_light_audio import AudioCuePlayer
+from scenes import (
+    COMFORT_WARM,
+    POSES,
+    PROFILE_INFO,
+    SCENE_META,
+    SCENES,
+    SERVO_CALIBRATION,
+    SOFT_WARM,
+    absolute,
+    audio,
+    comment,
+    delay,
+    led,
+    pose,
+)
 
 
 DEFAULT_TIMEOUT_SECONDS = 3.0
 SERVO_KEYS = ("servo1", "servo2", "servo3", "servo4")
 VALID_CONTROL_MODES = {"absolute", "relative"}
 VALID_LED_MODES = {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}
+VALID_SPEAK_VOICES = {"tts", "openclaw", "say", "default", "host", "narration"}
 MAX_RELATIVE_DELTA = 45
 LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
+MAX_PUBLIC_SPEAK_CHARS = int(os.environ.get("MIRA_LIGHT_MAX_SPEAK_CHARS", "80"))
 
 
 class SceneStopped(RuntimeError):
@@ -83,6 +102,47 @@ def _normalize_rgb_triplet(value: Any, *, field_name: str) -> dict[str, int]:
         if not 0 <= channel_value <= 255:
             raise PayloadValidationError(f"{field_name}.{channel_name} must be between 0 and 255")
     return normalized
+
+
+def _load_profile_file(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {"servoCalibration": {}, "poses": {}}
+
+    raw = path.read_text(encoding="utf-8").strip()
+    if not raw:
+        return {"servoCalibration": {}, "poses": {}}
+
+    parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Invalid profile file: {path}")
+    parsed.setdefault("servoCalibration", {})
+    parsed.setdefault("poses", {})
+    return parsed
+
+
+def _save_profile_file(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _status_to_angles(status_payload: dict[str, Any]) -> dict[str, int]:
+    servos = status_payload.get("servos", [])
+    result: dict[str, int] = {}
+    for item in servos:
+        name = item.get("name")
+        angle = item.get("angle")
+        if isinstance(name, str) and isinstance(angle, (int, float)):
+            result[name] = int(angle)
+    return result
+
+
+DIRECTION_YAW = {
+    "left": 78,
+    "center": 92,
+    "right": 106,
+}
+
+TRACKING_FOCUS = {"r": 232, "g": 242, "b": 255}
 
 
 class MiraLightClient:
@@ -162,11 +222,15 @@ class BoothController:
         emit: Callable[[str], None] | None = None,
         should_stop: Callable[[], bool] | None = None,
         on_step: Callable[[dict[str, Any]], None] | None = None,
+        audio_player: AudioCuePlayer | None = None,
+        cue_mode: str = "scene",
     ):
         self.client = client
         self.emit = emit or print
         self.should_stop = should_stop or (lambda: False)
         self.on_step = on_step
+        self.audio_player = audio_player
+        self.cue_mode = cue_mode
 
     def _log(self, message: str) -> None:
         self.emit(message)
@@ -185,16 +249,28 @@ class BoothController:
             remaining = deadline - time.monotonic()
             time.sleep(min(0.05, max(0.0, remaining)))
 
-    def run_scene(self, scene_name: str) -> None:
-        if scene_name not in SCENES:
+    def run_scene(self, scene_name: str, scene_definition: dict[str, Any] | None = None) -> None:
+        if scene_name not in SCENES and scene_definition is None:
             raise KeyError(f"Unknown scene: {scene_name}")
 
-        scene = SCENES[scene_name]
+        scene = deepcopy(scene_definition or SCENES[scene_name])
         self._log(f"=== Scene: {scene_name} / {scene['title']} ===")
+
+        operator_cue = scene.get("operator_cue")
+        if operator_cue:
+            self._log(f"[cue-operator] {operator_cue}")
+
+        fallback_hint = scene.get("fallback_hint")
+        if fallback_hint:
+            self._log(f"[cue-fallback] {fallback_hint}")
 
         host_line = scene.get("host_line")
         if host_line:
             self._log(f"[host] {host_line}")
+            if self.cue_mode in {"director", "full"}:
+                self._log(f"[cue-host] {host_line}")
+                self.run_step({"type": "audio", "text": host_line, "voice": "tts", "wait": True})
+                self._sleep_ms(140)
 
         for note in scene.get("notes", []):
             self._log(f"[note] {note}")
@@ -292,7 +368,10 @@ class BoothController:
             return
 
         if step_type == "audio":
-            self._log(f"[skip-audio] asset={step['name']}")
+            if self.audio_player is None:
+                self._log(f"[skip-audio] payload={json.dumps(step, ensure_ascii=False)}")
+                return
+            self.audio_player.play_step(step)
             return
 
         if step_type == "sensor_gate":
@@ -317,12 +396,14 @@ class MiraLightRuntime:
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
         self.embodied_memory_client = embodied_memory_client
+        self.audio_player = AudioCuePlayer(emit=lambda message: self.log(message), dry_run=dry_run)
         self.show_experimental = os.environ.get("MIRA_LIGHT_SHOW_EXPERIMENTAL", "").strip().lower() in {
             "1",
             "true",
             "yes",
             "on",
         }
+        self.auto_recover_pose = os.environ.get("MIRA_LIGHT_AUTO_RECOVER_POSE", "").strip()
 
         self._log_lock = threading.Lock()
         self._state_lock = threading.Lock()
@@ -343,6 +424,15 @@ class MiraLightRuntime:
         self._last_command: str | None = None
         self._device_online: bool | None = None
         self._last_status_at: str | None = None
+        self._cue_mode = "scene"
+        self._active_scene_context: dict[str, Any] = {}
+        self._last_scene_context: dict[str, Any] = {}
+        self._last_trigger: dict[str, Any] | None = None
+        self._tracking_active = False
+        self._tracking_last_update_at: str | None = None
+        self._tracking_target: dict[str, Any] = {}
+        self._tracking_servo_state: dict[str, int] = dict(POSES.get("neutral", {}).get("angles", {}))
+        self._tracking_led_state: dict[str, Any] = {}
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
         self.embodied_memory_client = client
@@ -370,10 +460,16 @@ class MiraLightRuntime:
     def _ensure_manual_control_allowed(self, capability: str) -> None:
         with self._state_lock:
             running_scene = self._running_scene
+            tracking_active = self._tracking_active
         if running_scene:
             raise RuntimeError(
                 f"Cannot directly {capability} while a scene is running: {running_scene}. "
                 "Stop the scene first."
+            )
+        if tracking_active:
+            raise RuntimeError(
+                f"Cannot directly {capability} while live tracking is active. "
+                "Stop tracking first."
             )
 
     def validate_control_payload(self, payload: Dict[str, Any]) -> dict[str, int | str]:
@@ -478,6 +574,43 @@ class MiraLightRuntime:
 
         return normalized
 
+    def validate_speak_payload(self, payload: Dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("Speak payload must be a JSON object")
+
+        allowed_keys = {"text", "voice", "wait"}
+        unknown = sorted(set(payload) - allowed_keys)
+        if unknown:
+            raise PayloadValidationError(f"Unsupported speak fields: {', '.join(unknown)}")
+
+        raw_text = payload.get("text")
+        if not isinstance(raw_text, str):
+            raise PayloadValidationError("text is required")
+        cleaned_text = " ".join(raw_text.split()).strip()
+        if not cleaned_text:
+            raise PayloadValidationError("text is required")
+        if len(cleaned_text) > MAX_PUBLIC_SPEAK_CHARS:
+            raise PayloadValidationError(
+                f"text must be no longer than {MAX_PUBLIC_SPEAK_CHARS} characters"
+            )
+
+        raw_voice = payload.get("voice", "tts")
+        if not isinstance(raw_voice, str):
+            raise PayloadValidationError("voice must be a string")
+        voice = raw_voice.strip().lower() or "tts"
+        if voice not in VALID_SPEAK_VOICES:
+            raise PayloadValidationError("voice must be one of: " + ", ".join(sorted(VALID_SPEAK_VOICES)))
+
+        wait = payload.get("wait", True)
+        if not isinstance(wait, bool):
+            raise PayloadValidationError("wait must be a boolean")
+
+        return {
+            "text": cleaned_text,
+            "voice": voice,
+            "wait": wait,
+        }
+
     def control_joints(self, payload: Dict[str, Any]) -> Any:
         self._ensure_manual_control_allowed("control joints")
         normalized = self.validate_control_payload(payload)
@@ -494,6 +627,22 @@ class MiraLightRuntime:
             self._last_command = f"led:{normalized['mode']}"
         return self.get_client().set_led(normalized)
 
+    def speak_text(self, payload: Dict[str, Any]) -> dict[str, Any]:
+        self._ensure_manual_control_allowed("speak")
+        normalized = self.validate_speak_payload(payload)
+        self.log(
+            f"[runtime] speak voice={normalized['voice']} "
+            f"wait={'true' if normalized['wait'] else 'false'} text={normalized['text']}"
+        )
+        with self._state_lock:
+            self._last_command = f"speak:{normalized['voice']}"
+        audio_result = self.audio_player.speak_text(
+            normalized["text"],
+            voice=str(normalized["voice"]),
+            wait=bool(normalized["wait"]),
+        )
+        return {"payload": normalized, "audio": audio_result}
+
     def _record_step(self, step_state: dict[str, Any]) -> None:
         with self._state_lock:
             self._current_step_index = step_state.get("stepIndex")
@@ -502,7 +651,13 @@ class MiraLightRuntime:
             self._current_step_type = step_state.get("stepType")
             self._last_command = step_state.get("stepLabel")
 
-    def update_config(self, *, base_url: str | None = None, dry_run: bool | None = None) -> dict[str, Any]:
+    def update_config(
+        self,
+        *,
+        base_url: str | None = None,
+        dry_run: bool | None = None,
+        auto_recover_pose: str | None = None,
+    ) -> dict[str, Any]:
         with self._state_lock:
             if self._running_scene:
                 raise RuntimeError("Cannot change runtime config while a scene is running")
@@ -510,7 +665,16 @@ class MiraLightRuntime:
                 self.base_url = base_url.rstrip("/")
             if dry_run is not None:
                 self.dry_run = bool(dry_run)
-        self.log(f"[config] base_url={self.base_url} dry_run={self.dry_run}")
+                self.audio_player.dry_run = self.dry_run
+            if auto_recover_pose is not None:
+                cleaned = auto_recover_pose.strip()
+                if cleaned and cleaned not in POSES:
+                    raise RuntimeError(f"Unknown recovery pose: {cleaned}")
+                self.auto_recover_pose = cleaned
+        self.log(
+            f"[config] base_url={self.base_url} dry_run={self.dry_run} "
+            f"auto_recover_pose={self.auto_recover_pose or '-'}"
+        )
         return self.get_runtime_state()
 
     def is_scene_available(self, scene_name: str) -> bool:
@@ -537,6 +701,7 @@ class MiraLightRuntime:
                 "requirementIds": meta.get("requirementIds", []),
                 "fallbackHint": meta.get("fallbackHint", ""),
                 "operatorCue": meta.get("operatorCue", ""),
+                "hostLineAudioReady": True,
             }
             )
         return items
@@ -560,6 +725,14 @@ class MiraLightRuntime:
                 "deviceOnline": self._device_online,
                 "lastStatusAt": self._last_status_at,
                 "sceneCount": len(SCENES),
+                "cueMode": self._cue_mode,
+                "sceneContext": deepcopy(self._active_scene_context),
+                "lastSceneContext": deepcopy(self._last_scene_context),
+                "lastTrigger": deepcopy(self._last_trigger),
+                "autoRecoverPose": self.auto_recover_pose,
+                "trackingActive": self._tracking_active,
+                "trackingLastUpdateAt": self._tracking_last_update_at,
+                "trackingTarget": deepcopy(self._tracking_target),
             }
 
     def get_status(self) -> Any:
@@ -586,6 +759,171 @@ class MiraLightRuntime:
             "servoCalibration": SERVO_CALIBRATION,
             "poses": POSES,
         }
+
+    def _profile_path(self) -> Path:
+        return Path(PROFILE_INFO["path"])
+
+    def _mark_profile_updated(self) -> None:
+        PROFILE_INFO["exists"] = self._profile_path().is_file()
+        PROFILE_INFO["loaded"] = PROFILE_INFO["exists"]
+
+    def _normalize_direction(self, raw: Any, *, default: str = "right") -> str:
+        value = str(raw or "").strip().lower()
+        if value in {"left", "l", "west"}:
+            return "left"
+        if value in {"center", "centre", "mid", "middle", "c"}:
+            return "center"
+        if value in {"right", "r", "east"}:
+            return "right"
+        return default
+
+    def _direction_from_context(self, scene_context: dict[str, Any], *, default: str = "right") -> str:
+        for key in ("departureDirection", "direction", "horizontalZone", "primaryDirection", "touchSide", "side"):
+            if key in scene_context:
+                return self._normalize_direction(scene_context.get(key), default=default)
+        return default
+
+    def _build_dynamic_farewell_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        direction = self._direction_from_context(scene_context, default="right")
+        look_yaw = DIRECTION_YAW[direction]
+        bow_yaw = {"left": 82, "center": 92, "right": 102}[direction]
+        label = {"left": "左侧", "center": "正前方", "right": "右侧"}[direction]
+
+        scene = deepcopy(SCENES["farewell"])
+        scene["notes"] = [
+            f"当前按评委离场的{label}做动态目送。",
+            *scene.get("notes", []),
+        ]
+        scene["steps"] = [
+            pose("neutral"),
+            led("solid", brightness=108, color={"r": 255, "g": 214, "b": 176}),
+            comment(f"先目送评委离开的{label}。"),
+            absolute(servo1=look_yaw, servo2=96, servo3=100, servo4=92),
+            delay(420),
+            audio(text="谢谢你来看我，下次见。", wait=True, voice="tts"),
+            comment("再做两次慢慢点头，像挥手说再见。"),
+            {"type": "control", "payload": {"mode": "relative", "servo4": 5}},
+            delay(180),
+            {"type": "control", "payload": {"mode": "relative", "servo4": -10}},
+            delay(180),
+            {"type": "control", "payload": {"mode": "relative", "servo4": 5}},
+            delay(220),
+            {"type": "control", "payload": {"mode": "relative", "servo4": 5}},
+            delay(180),
+            {"type": "control", "payload": {"mode": "relative", "servo4": -10}},
+            delay(180),
+            {"type": "control", "payload": {"mode": "relative", "servo4": 5}},
+            delay(220),
+            comment("最后微微低头，像有点舍不得。"),
+            absolute(servo1=bow_yaw, servo2=92, servo3=96, servo4=100),
+            delay(180),
+            pose("neutral"),
+            led("solid", brightness=90, color={"r": 255, "g": 210, "b": 170}),
+        ]
+        return scene
+
+    def _build_dynamic_touch_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        direction = self._direction_from_context(scene_context, default="center")
+        base_yaw = {"left": 84, "center": 92, "right": 100}[direction]
+        scene = deepcopy(SCENES["touch_affection"])
+        updated_steps: list[dict[str, Any]] = []
+        for step in scene["steps"]:
+            next_step = deepcopy(step)
+            if next_step.get("type") == "control" and next_step.get("payload", {}).get("mode") == "absolute":
+                payload = dict(next_step["payload"])
+                if "servo1" in payload:
+                    payload["servo1"] = max(72, min(110, int(base_yaw + (payload["servo1"] - 92))))
+                next_step["payload"] = payload
+            updated_steps.append(next_step)
+        scene["steps"] = updated_steps
+        scene["notes"] = [f"当前按 {direction} 侧来手做前探与蹭蹭。", *scene.get("notes", [])]
+        return scene
+
+    def _build_dynamic_multi_person_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        primary = self._normalize_direction(scene_context.get("primaryDirection"), default="left")
+        secondary = self._normalize_direction(scene_context.get("secondaryDirection"), default="right")
+        primary_yaw = DIRECTION_YAW[primary]
+        secondary_yaw = DIRECTION_YAW[secondary]
+
+        scene = deepcopy(SCENES["multi_person_demo"])
+        scene["notes"] = [f"当前按 {primary} -> {secondary} -> {primary} 的顺序模拟纠结。", *scene.get("notes", [])]
+        scene["steps"] = [
+            pose("neutral"),
+            comment("先看向第一个人。"),
+            absolute(servo1=primary_yaw, servo2=96, servo3=98, servo4=92),
+            delay(420),
+            comment("又被第二个人吸引过去。"),
+            absolute(servo1=secondary_yaw, servo2=96, servo3=98, servo4=90),
+            delay(320),
+            comment("犹豫一下，最后还是回到第一个人。"),
+            absolute(servo1=primary_yaw, servo2=96, servo3=100, servo4=94),
+            delay(420),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
+        ]
+        return scene
+
+    def _resolve_scene_definition(self, scene_name: str, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
+        resolved_context = deepcopy(scene_context or {})
+
+        if scene_name == "farewell":
+            scene = self._build_dynamic_farewell_scene(resolved_context)
+        elif scene_name == "touch_affection":
+            scene = self._build_dynamic_touch_scene(resolved_context)
+        elif scene_name == "multi_person_demo":
+            scene = self._build_dynamic_multi_person_scene(resolved_context)
+        else:
+            scene = deepcopy(SCENES[scene_name])
+
+        meta = SCENE_META.get(scene_name, {})
+        scene["operator_cue"] = meta.get("operatorCue", "")
+        scene["fallback_hint"] = meta.get("fallbackHint", "")
+
+        transcript = str(resolved_context.get("transcript") or "").strip()
+        if transcript:
+            scene.setdefault("notes", []).insert(0, f"现场输入：{transcript}")
+
+        return scene
+
+    def preview_scene(self, scene_name: str, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
+        if scene_name not in SCENES:
+            raise KeyError(f"Unknown scene: {scene_name}")
+        return self._resolve_scene_definition(scene_name, scene_context=scene_context)
+
+    def capture_pose_to_profile(self, pose_name: str, *, notes: str = "", verified: bool = False) -> dict[str, Any]:
+        status_payload = self.get_status()
+        angles = _status_to_angles(status_payload)
+        if not angles:
+            raise RuntimeError("Could not extract servo angles from /status")
+
+        profile_path = self._profile_path()
+        profile = _load_profile_file(profile_path)
+        saved_pose = {
+            "verified": bool(verified),
+            "angles": angles,
+            "notes": notes or f"Captured from lamp status at {self.base_url}",
+        }
+        profile["poses"][pose_name] = saved_pose
+        _save_profile_file(profile_path, profile)
+        POSES[pose_name] = deepcopy(saved_pose)
+        self._mark_profile_updated()
+        self.log(f"[profile] captured pose {pose_name} -> {profile_path}")
+        return {"saved": pose_name, "path": str(profile_path), "angles": angles}
+
+    def update_servo_meta_in_profile(self, servo_name: str, updates: dict[str, Any]) -> dict[str, Any]:
+        if servo_name not in SERVO_CALIBRATION:
+            raise KeyError(f"Unknown servo: {servo_name}")
+
+        profile_path = self._profile_path()
+        profile = _load_profile_file(profile_path)
+        current = dict(profile["servoCalibration"].get(servo_name, {}))
+        current.update({key: value for key, value in updates.items() if value is not None})
+        profile["servoCalibration"][servo_name] = current
+        _save_profile_file(profile_path, profile)
+        SERVO_CALIBRATION[servo_name] = deepcopy(current)
+        self._mark_profile_updated()
+        self.log(f"[profile] updated servo meta {servo_name} -> {profile_path}")
+        return {"saved": servo_name, "path": str(profile_path), "value": current}
 
     def _record_scene_outcome(self, scene_name: str, status: str, error: str | None = None) -> None:
         client = self.embodied_memory_client
@@ -615,6 +953,129 @@ class MiraLightRuntime:
         except Exception as exc:  # noqa: BLE001
             self.log(f"[memory-warning] record_scene_session_state failed: {exc}")
 
+    def _servo_neutral(self, servo_name: str, fallback: int) -> int:
+        calibration = SERVO_CALIBRATION.get(servo_name, {})
+        value = calibration.get("neutral", fallback)
+        return int(value) if isinstance(value, (int, float)) else fallback
+
+    def _servo_rehearsal_range(self, servo_name: str, fallback: tuple[int, int]) -> tuple[int, int]:
+        calibration = SERVO_CALIBRATION.get(servo_name, {})
+        values = calibration.get("rehearsal_range", fallback)
+        if (
+            isinstance(values, list)
+            and len(values) == 2
+            and all(isinstance(item, (int, float)) for item in values)
+        ):
+            return int(values[0]), int(values[1])
+        return fallback
+
+    def _clear_tracking_state(self, *, reason: str) -> None:
+        with self._state_lock:
+            self._tracking_active = False
+            self._tracking_last_update_at = self._now()
+            self._tracking_target = {"reason": reason, "active": False}
+            self._current_step_label = None
+            self._current_step_type = None
+        self.log(f"[tracking] cleared reason={reason}")
+
+    def _smooth_servo_target(self, servo_name: str, target: int, alpha: float = 0.42) -> int:
+        current = int(self._tracking_servo_state.get(servo_name, self._servo_neutral(servo_name, 90)))
+        next_value = round(current + (target - current) * alpha)
+        if abs(next_value - current) <= 1:
+            next_value = current if abs(target - current) <= 2 else target
+        self._tracking_servo_state[servo_name] = int(next_value)
+        return int(next_value)
+
+    def apply_tracking_event(self, event: dict[str, Any], *, source: str = "vision") -> dict[str, Any]:
+        if not isinstance(event, dict):
+            raise RuntimeError("tracking event must be a JSON object")
+
+        with self._state_lock:
+            running_scene = self._running_scene
+        if running_scene and running_scene != "track_target":
+            raise RuntimeError(f"Cannot update live tracking while another scene is running: {running_scene}")
+
+        tracking = event.get("tracking", {}) if isinstance(event.get("tracking"), dict) else {}
+        control_hint = event.get("control_hint", {}) if isinstance(event.get("control_hint"), dict) else {}
+        target_present = bool(tracking.get("target_present"))
+        if not target_present:
+            self._clear_tracking_state(reason="target_missing")
+            return self.get_runtime_state()
+
+        yaw_error = float(control_hint.get("yaw_error_norm", 0.0) or 0.0)
+        pitch_error = float(control_hint.get("pitch_error_norm", 0.0) or 0.0)
+        lift_intent = float(control_hint.get("lift_intent", 0.5) or 0.5)
+        reach_intent = float(control_hint.get("reach_intent", 0.35) or 0.35)
+
+        servo1_neutral = self._servo_neutral("servo1", 90)
+        servo2_neutral = self._servo_neutral("servo2", 96)
+        servo3_neutral = self._servo_neutral("servo3", 98)
+        servo4_neutral = self._servo_neutral("servo4", 90)
+
+        servo1_low, servo1_high = self._servo_rehearsal_range("servo1", (72, 110))
+        servo2_low, servo2_high = self._servo_rehearsal_range("servo2", (78, 112))
+        servo3_low, servo3_high = self._servo_rehearsal_range("servo3", (80, 120))
+        servo4_low, servo4_high = self._servo_rehearsal_range("servo4", (80, 104))
+
+        desired_servo1 = max(servo1_low, min(servo1_high, round(servo1_neutral + yaw_error * 18)))
+        desired_servo2 = max(servo2_low, min(servo2_high, round(servo2_neutral + (lift_intent - 0.5) * 16)))
+        desired_servo3 = max(servo3_low, min(servo3_high, round(servo3_neutral + (reach_intent - 0.3) * 22)))
+        desired_servo4 = max(servo4_low, min(servo4_high, round(servo4_neutral - pitch_error * 10)))
+
+        payload = {
+            "mode": "absolute",
+            "servo1": self._smooth_servo_target("servo1", desired_servo1),
+            "servo2": self._smooth_servo_target("servo2", desired_servo2),
+            "servo3": self._smooth_servo_target("servo3", desired_servo3),
+            "servo4": self._smooth_servo_target("servo4", desired_servo4),
+        }
+        normalized_payload = self.validate_control_payload(payload)
+        led_payload = {
+            "mode": "solid",
+            "brightness": 166 if tracking.get("distance_band") == "near" else 150,
+            "color": TRACKING_FOCUS,
+        }
+        normalized_led = self.validate_led_payload(led_payload)
+
+        self.log(
+            "[tracking] "
+            f"{source} yaw={yaw_error:.2f} pitch={pitch_error:.2f} "
+            f"distance={tracking.get('distance_band')} zone={tracking.get('horizontal_zone')} "
+            f"-> {json.dumps(normalized_payload, ensure_ascii=False)}"
+        )
+        self.get_client().control(normalized_payload)
+
+        if normalized_led != self._tracking_led_state:
+            self.get_client().set_led(normalized_led)
+            self._tracking_led_state = dict(normalized_led)
+
+        with self._state_lock:
+            self._tracking_active = True
+            self._tracking_last_update_at = self._now()
+            self._tracking_target = {
+                "source": source,
+                "eventType": event.get("event_type"),
+                "horizontalZone": tracking.get("horizontal_zone"),
+                "verticalZone": tracking.get("vertical_zone"),
+                "distanceBand": tracking.get("distance_band"),
+                "approachState": tracking.get("approach_state"),
+                "targetClass": tracking.get("target_class"),
+                "confidence": tracking.get("confidence"),
+                "controlHint": {
+                    "yawErrorNorm": yaw_error,
+                    "pitchErrorNorm": pitch_error,
+                    "liftIntent": lift_intent,
+                    "reachIntent": reach_intent,
+                },
+                "servoCommand": dict(normalized_payload),
+            }
+            self._last_command = f"tracking:{tracking.get('horizontal_zone') or 'unknown'}"
+            self._current_step_label = f"tracking:{tracking.get('horizontal_zone') or 'unknown'}"
+            self._current_step_type = "tracking"
+            self._current_step_index = None
+            self._current_step_total = None
+        return self.get_runtime_state()
+
     def reset_lamp(self) -> Any:
         self.log("[runtime] reset lamp")
         with self._state_lock:
@@ -635,16 +1096,28 @@ class MiraLightRuntime:
         self._stop_event.set()
         with self._state_lock:
             self._last_command = "stop"
+            self._tracking_active = False
+            self._tracking_target = {"reason": "manual-stop", "active": False}
+            self._current_step_label = None
+            self._current_step_type = None
+        self.audio_player.stop_all()
         try:
             self.get_client().stop_action()
         except Exception as exc:  # noqa: BLE001 - we want the runtime to survive booth errors
             self.log(f"[runtime-error] stop_action failed: {exc}")
         return self.get_runtime_state()
 
-    def _prepare_run(self, scene_name: str) -> None:
+    def _prepare_run(
+        self,
+        scene_name: str,
+        *,
+        scene_context: dict[str, Any] | None = None,
+        cue_mode: str = "scene",
+        allow_unavailable: bool = False,
+    ) -> dict[str, Any]:
         if scene_name not in SCENES:
             raise KeyError(f"Unknown scene: {scene_name}")
-        if not self.is_scene_available(scene_name):
+        if not allow_unavailable and not self.is_scene_available(scene_name):
             raise RuntimeError(
                 f"Scene not enabled for minimal mode: {scene_name}. "
                 "Set MIRA_LIGHT_SHOW_EXPERIMENTAL=1 to run non-ready scenes."
@@ -665,10 +1138,19 @@ class MiraLightRuntime:
             self._current_step_label = "scene:start"
             self._current_step_type = "scene"
             self._last_command = f"run-scene:{scene_name}"
-        self.log(f"[runtime] start scene {scene_name}")
+            self._cue_mode = cue_mode
+            self._active_scene_context = deepcopy(scene_context or {})
+            self._tracking_active = False
+            self._tracking_target = {}
+        scene_definition = self._resolve_scene_definition(scene_name, scene_context=scene_context)
+        with self._state_lock:
+            self._current_step_total = len(scene_definition.get("steps", []))
+        self.log(f"[runtime] start scene {scene_name} cue_mode={cue_mode}")
         self._record_scene_session_state(scene_name, "started")
+        return scene_definition
 
     def _finish_run(self, scene_name: str, error: str | None = None) -> None:
+        active_context = deepcopy(self._active_scene_context)
         with self._state_lock:
             self._running_scene = None
             self._last_finished_at = self._now()
@@ -678,6 +1160,9 @@ class MiraLightRuntime:
             self._current_step_total = None
             self._current_step_label = None
             self._current_step_type = None
+            self._last_scene_context = active_context
+            self._active_scene_context = {}
+            self._cue_mode = "scene"
         if error:
             self.log(f"[runtime-error] scene {scene_name}: {error}")
         else:
@@ -685,12 +1170,31 @@ class MiraLightRuntime:
         status = "completed"
         if error:
             status = "stopped" if isinstance(error, str) and "stop requested" in error.lower() else "failed"
+        self.audio_player.stop_all()
+        if status == "failed" and self.auto_recover_pose:
+            try:
+                self.apply_pose(self.auto_recover_pose)
+                self.log(f"[runtime] auto recovered to pose {self.auto_recover_pose}")
+            except Exception as exc:  # noqa: BLE001
+                self.log(f"[runtime-error] auto recover failed: {exc}")
         self._record_scene_outcome(scene_name, status, error)
         self._record_scene_session_state(scene_name, status, error)
         self._run_lock.release()
 
-    def run_scene_blocking(self, scene_name: str) -> dict[str, Any]:
-        self._prepare_run(scene_name)
+    def run_scene_blocking(
+        self,
+        scene_name: str,
+        *,
+        scene_context: dict[str, Any] | None = None,
+        cue_mode: str = "scene",
+        allow_unavailable: bool = False,
+    ) -> dict[str, Any]:
+        scene_definition = self._prepare_run(
+            scene_name,
+            scene_context=scene_context,
+            cue_mode=cue_mode,
+            allow_unavailable=allow_unavailable,
+        )
         error_text = None
         try:
             controller = BoothController(
@@ -698,8 +1202,10 @@ class MiraLightRuntime:
                 emit=self.log,
                 should_stop=self._stop_event.is_set,
                 on_step=self._record_step,
+                audio_player=self.audio_player,
+                cue_mode=cue_mode,
             )
-            controller.run_scene(scene_name)
+            controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
             error_text = str(exc)
         except Exception as exc:  # noqa: BLE001
@@ -709,7 +1215,7 @@ class MiraLightRuntime:
             self._finish_run(scene_name, error_text)
         return self.get_runtime_state()
 
-    def _run_scene_worker(self, scene_name: str) -> None:
+    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any], cue_mode: str) -> None:
         error_text = None
         try:
             controller = BoothController(
@@ -717,8 +1223,10 @@ class MiraLightRuntime:
                 emit=self.log,
                 should_stop=self._stop_event.is_set,
                 on_step=self._record_step,
+                audio_player=self.audio_player,
+                cue_mode=cue_mode,
             )
-            controller.run_scene(scene_name)
+            controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
             error_text = str(exc)
         except Exception as exc:  # noqa: BLE001
@@ -726,13 +1234,70 @@ class MiraLightRuntime:
         finally:
             self._finish_run(scene_name, error_text)
 
-    def start_scene(self, scene_name: str) -> dict[str, Any]:
-        self._prepare_run(scene_name)
-        worker = threading.Thread(target=self._run_scene_worker, args=(scene_name,), daemon=True)
+    def start_scene(
+        self,
+        scene_name: str,
+        *,
+        scene_context: dict[str, Any] | None = None,
+        cue_mode: str = "scene",
+        allow_unavailable: bool = False,
+    ) -> dict[str, Any]:
+        scene_definition = self._prepare_run(
+            scene_name,
+            scene_context=scene_context,
+            cue_mode=cue_mode,
+            allow_unavailable=allow_unavailable,
+        )
+        worker = threading.Thread(
+            target=self._run_scene_worker,
+            args=(scene_name, scene_definition, cue_mode),
+            daemon=True,
+        )
         with self._state_lock:
             self._runner_thread = worker
         worker.start()
         return self.get_runtime_state()
+
+    def trigger_event(self, event_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        event_key = str(event_name or "").strip().lower()
+        event_payload = deepcopy(payload or {})
+        scene_name = ""
+        scene_context: dict[str, Any] = {}
+
+        if event_key in {"touch", "touch_detected", "hand_near"}:
+            scene_name = "touch_affection"
+            scene_context = {"touchSide": event_payload.get("side") or event_payload.get("horizontalZone")}
+        elif event_key in {"sigh", "sigh_detected"}:
+            scene_name = "sigh_demo"
+            scene_context = {"transcript": event_payload.get("transcript") or "唉"}
+        elif event_key in {"voice_tired", "tired", "voice_demo_tired"}:
+            scene_name = "voice_demo_tired"
+            scene_context = {"transcript": event_payload.get("transcript") or "今天好累啊"}
+        elif event_key in {"multi_person", "multi_person_detected"}:
+            scene_name = "multi_person_demo"
+            scene_context = {
+                "primaryDirection": event_payload.get("primaryDirection") or "left",
+                "secondaryDirection": event_payload.get("secondaryDirection") or "right",
+            }
+        elif event_key in {"farewell", "departing_direction", "farewell_detected"}:
+            scene_name = "farewell"
+            scene_context = {"departureDirection": event_payload.get("direction") or event_payload.get("horizontalZone")}
+        else:
+            raise RuntimeError(f"Unsupported trigger event: {event_name}")
+
+        self._last_trigger = {
+            "event": event_key,
+            "payload": deepcopy(event_payload),
+            "scene": scene_name,
+            "ts": self._now(),
+        }
+        self.log(f"[trigger] {event_key} -> {scene_name}")
+        return self.start_scene(
+            scene_name,
+            scene_context=scene_context,
+            cue_mode=str(event_payload.get("cueMode") or "scene"),
+            allow_unavailable=True,
+        )
 
     def stop_to_pose(self, pose_name: str) -> dict[str, Any]:
         self.stop_scene()

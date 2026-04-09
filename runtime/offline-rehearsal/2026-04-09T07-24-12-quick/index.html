@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mira Light Offline Rehearsal</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4efe7;
+      --panel: rgba(255, 251, 246, 0.92);
+      --ink: #2b241c;
+      --line: #ddd0c1;
+      --accent: #8b4b23;
+      --ok: #1f7a4c;
+      --bad: #a53434;
+    }
+    body {
+      margin: 0;
+      padding: 28px;
+      background: linear-gradient(180deg, #efe5d6 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 24px;
+      box-shadow: 0 14px 34px rgba(90, 54, 24, 0.08);
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+    h1 {
+      color: var(--accent);
+      font-size: 32px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Mira Light Offline Rehearsal</h1>
+      <div class="meta">
+        <div class="card"><strong>Mode</strong><div>quick</div></div>
+        <div class="card"><strong>Started</strong><div>2026-04-09T07:24:12+08:00</div></div>
+        <div class="card"><strong>Finished</strong><div>2026-04-09T07:25:19+08:00</div></div>
+        <div class="card"><strong>Run Dir</strong><div>/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick</div></div>
+      </div>
+    </section>
+    <section>
+      <h2>Artifacts</h2>
+      <ul>
+        <li><a href="memory-persona-eval.log">memory-persona-log</a></li><li><a href="mira-memory-persona-eval.json">memory-persona-report</a></li><li><a href="mock-device.log">mock-device-log</a></li><li><a href="mock-device.requests.jsonl">mock-device-requests</a></li><li><a href="mock-device.state.json">mock-device-state</a></li><li><a href="scene-traces/farewell.trace.html">scene-trace-html</a></li><li><a href="scene-traces/farewell.trace.json">scene-trace-json</a></li><li><a href="scene-trace.log">scene-trace-log</a></li><li><a href="tests.log">tests-log</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Steps</h2>
+      <table>
+        <thead>
+          <tr><th>step</th><th>status</th><th>duration</th><th>command</th><th>log</th><th>details</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>mock-device</td><td>ok</td><td>0 ms</td><td><code></code></td><td><a href="mock-device.log">mock-device.log</a></td><td><pre>{
+  &quot;baseUrl&quot;: &quot;http://127.0.0.1:9799&quot;,
+  &quot;requestLogPath&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.requests.jsonl&quot;,
+  &quot;statePath&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.state.json&quot;,
+  &quot;logPath&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mock-device.log&quot;,
+  &quot;faultFile&quot;: null
+}</pre></td></tr><tr><td>tests</td><td>ok</td><td>1621 ms</td><td><code>/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11 -m unittest tests.test_offline_rehearsal_smoke</code></td><td><a href="tests.log">tests.log</a></td><td><pre>{}</pre></td></tr><tr><td>scene-trace</td><td>ok</td><td>120 ms</td><td><code>/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11 /Users/huhulitong/Documents/GitHub/Mira-Light/scripts/scene_trace_recorder.py farewell --base-url http://127.0.0.1:9799 --out-dir /Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces --skip-delays</code></td><td><a href="scene-trace.log">scene-trace.log</a></td><td><pre>{
+  &quot;scene&quot;: &quot;farewell&quot;,
+  &quot;traceJson&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces/farewell.trace.json&quot;,
+  &quot;traceHtml&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/scene-traces/farewell.trace.html&quot;
+}</pre></td></tr><tr><td>memory-persona-eval</td><td>ok</td><td>64970 ms</td><td><code>/Users/huhulitong/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11 /Users/huhulitong/Documents/GitHub/Mira-Light/scripts/mira_memory_persona_eval.py --workspace /Users/huhulitong/.openclaw/workspace --config /Users/huhulitong/Documents/GitHub/Mira-Light/config/mira_memory_persona_eval.json --out /Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mira-memory-persona-eval.json --skip-agent-prompts</code></td><td><a href="memory-persona-eval.log">memory-persona-eval.log</a></td><td><pre>{
+  &quot;workspace&quot;: &quot;/Users/huhulitong/.openclaw/workspace&quot;,
+  &quot;reportPath&quot;: &quot;/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/offline-rehearsal/2026-04-09T07-24-12-quick/mira-memory-persona-eval.json&quot;,
+  &quot;passed&quot;: 7,
+  &quot;failed&quot;: 0,
+  &quot;skipAgentPrompts&quot;: true
+}</pre></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

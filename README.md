@@ -16,6 +16,13 @@ Start here:
 - `Claw-Native /docs/mira-light-claw-native-overview.md`
 - `Claw-Native /docs/mira-light-claw-native-runbook.md`
 - `Claw-Native /docs/mira-light-claw-native-automation.md`
+- `docs/mira-light-offline-validation-stack.md`
+
+One-click offline rehearsal:
+
+```bash
+bash scripts/run_mira_light_offline_rehearsal.sh --mode quick
+```
 
 ## Camera Receiver
 
@@ -68,6 +75,7 @@ Additional behavior:
 
 The most relevant design notes in this repository right now are:
 
+- [docs/feature/README.md](./docs/feature/README.md)
 - [docs/mira-context-proactivity-architecture.md](./docs/mira-context-proactivity-architecture.md)
 - [docs/mira-light-embodied-memory-integration-2026-04-09.md](./docs/mira-light-embodied-memory-integration-2026-04-09.md)
 - [docs/mira-light-to-mira-v3-layered-memory-integration-plan.md](./docs/mira-light-to-mira-v3-layered-memory-integration-plan.md)
@@ -76,6 +84,14 @@ Those two documents together explain:
 
 - how Mira should evolve from context capture into proactive companionship
 - how `Mira-Light` now participates as an embodied memory producer for cloud Mira
+
+The feature progress index additionally separates current status by topic:
+
+- memory and knowledge-graph-ready structure
+- local vector memory and semantic retrieval
+- Claw-Native local rollout
+- offline rehearsal and mock validation
+- vision replay and observability
 
 The layered-memory execution guide additionally explains:
 

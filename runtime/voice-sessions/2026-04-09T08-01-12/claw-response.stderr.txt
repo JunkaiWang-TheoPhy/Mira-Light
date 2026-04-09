@@ -1,0 +1,5 @@
+Gateway agent failed; falling back to embedded: Error: gateway timeout after 60000ms
+Gateway target: ws://127.0.0.1:18789
+Source: local loopback
+Config: /Users/huhulitong/.openclaw/openclaw.json
+Bind: loopback

@@ -1,0 +1,53 @@
+{
+  "defaultBundle": "minimal",
+  "bundles": {
+    "minimal": {
+      "title": "Minimal Ready Scenes",
+      "description": "Smallest release-safe bundle that matches the current ready-only default.",
+      "scenes": [
+        "cute_probe",
+        "daydream",
+        "farewell"
+      ]
+    },
+    "booth_core": {
+      "title": "Booth Core MVP",
+      "description": "Main booth story arc with opening, interaction, proof, celebration, and closing scenes.",
+      "scenes": [
+        "wake_up",
+        "curious_observe",
+        "touch_affection",
+        "track_target",
+        "celebrate",
+        "farewell",
+        "sleep"
+      ]
+    },
+    "booth_extended": {
+      "title": "Booth Extended",
+      "description": "Full ten-scene choreography set for rehearsals and complete booth demos.",
+      "scenes": [
+        "wake_up",
+        "curious_observe",
+        "touch_affection",
+        "cute_probe",
+        "daydream",
+        "standup_reminder",
+        "track_target",
+        "celebrate",
+        "farewell",
+        "sleep"
+      ]
+    },
+    "sensor_demos": {
+      "title": "Sensor Demos",
+      "description": "Supplementary scenes for mic, vision, and emotion-detection demos.",
+      "scenes": [
+        "track_target",
+        "sigh_demo",
+        "multi_person_demo",
+        "voice_demo_tired"
+      ]
+    }
+  }
+}

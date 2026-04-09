@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/huhulitong/.local/bin/speaker-hp-say",
+    "对呀，本来就是这个发音呀，叫起来很顺口也好记。"
+  ],
+  "description": "speech:say",
+  "stdout": "",
+  "stderr": "",
+  "requestedText": "对呀，本来就是这个发音呀，叫起来很顺口也好记。",
+  "spokenText": "对呀，本来就是这个发音呀，叫起来很顺口也好记。"
+}

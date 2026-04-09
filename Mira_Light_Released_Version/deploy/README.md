@@ -11,6 +11,8 @@
 
 - [../README.md](../README.md)
 - [../docs/getting-started.md](../docs/getting-started.md)
+- [../docs/release-startup-contract.md](../docs/release-startup-contract.md)
+- [../docs/release-environment-reference.md](../docs/release-environment-reference.md)
 
 如果是工具或 agent 读取，优先看：
 

@@ -8,7 +8,7 @@
 
 ## 最小通过标准
 
-至少满足下面 5 条，才算“本机 OpenClaw 接入完成”。
+至少满足下面 6 条，才算“本机 OpenClaw 接入完成”。
 
 ## 1. 真实灯在线
 
@@ -74,6 +74,21 @@ openclaw plugins doctor
 
 - 没有 `mira-light-bridge` 相关错误
 
+## 6. 安装、控制与回滚都能闭环
+
+建议至少再确认：
+
+- `bash scripts/install_openclaw_plugin.sh` 可重复执行
+- `python3 scripts/verify_local_openclaw_mira_light.py` 通过
+- 通过 bridge 发一次控制时，没有持续性的 `[safety-reject]`
+- `bash scripts/remove_openclaw_plugin.sh` 能干净移除配置和插件目录
+
+这一步的意义是：
+
+- 不只是“装进去了”
+- 还要确认控制受安全层保护
+- 也要确认后续能退出
+
 ## 推荐的自动化辅助
 
 ### 安装脚本
@@ -88,6 +103,12 @@ python3 scripts/install_local_openclaw_mira_light.py --doctor
 python3 scripts/verify_local_openclaw_mira_light.py
 ```
 
+### 回滚脚本
+
+```bash
+bash scripts/remove_openclaw_plugin.sh
+```
+
 ## 一句话结论
 
 只有当：
@@ -97,7 +118,7 @@ python3 scripts/verify_local_openclaw_mira_light.py
 -> bridge 可达
 -> OpenClaw 配置已写入
 -> plugins doctor 通过
+-> install / remove / safety 都闭环
 ```
 
 这四层都成立，才能说“本机 OpenClaw 已接入 Mira Light”。
-

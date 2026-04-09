@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple static web console that proxies all control requests to the bridge."""
+"""Director console static frontend that proxies all control requests to the bridge."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:9783"
 DEFAULT_BRIDGE_TIMEOUT_SECONDS = 5.0
+DEFAULT_BRIDGE_TOKEN_ENV = "MIRA_LIGHT_BRIDGE_TOKEN"
 
 
 class ConsoleHTTPServer(ThreadingHTTPServer):
@@ -195,13 +196,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", default=8765, type=int, help="HTTP bind port")
     parser.add_argument(
         "--bridge-base-url",
-        default=os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL", DEFAULT_BRIDGE_URL),
+        "--base-url",
+        dest="bridge_base_url",
+        default=(
+            os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_URL", "")
+            or os.environ.get("MIRA_LIGHT_BRIDGE_URL", "")
+            or DEFAULT_BRIDGE_URL
+        ),
         help="Bridge base URL",
     )
-    parser.add_argument("--bridge-token-env", default="MIRA_LIGHT_BRIDGE_TOKEN", help="Bridge token env name")
+    parser.add_argument(
+        "--bridge-token-env",
+        default=os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_TOKEN_ENV", DEFAULT_BRIDGE_TOKEN_ENV),
+        help="Bridge token env name",
+    )
     parser.add_argument(
         "--bridge-timeout",
-        default=DEFAULT_BRIDGE_TIMEOUT_SECONDS,
+        default=float(os.environ.get("MIRA_LIGHT_CONSOLE_BRIDGE_TIMEOUT_SECONDS", DEFAULT_BRIDGE_TIMEOUT_SECONDS)),
         type=float,
         help="Bridge proxy timeout in seconds",
     )
@@ -216,6 +227,7 @@ def main() -> int:
     print(f"[console] starting at http://{args.host}:{args.port}")
     print(f"[console] proxying bridge {args.bridge_base_url}")
     print(f"[console] bridge token env {args.bridge_token_env} present={bool(bridge_token)}")
+    print(f"[console] bridge timeout {args.bridge_timeout:.1f}s")
 
     server = ConsoleHTTPServer(
         (args.host, args.port),

@@ -32,6 +32,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict
 
+from mira_light_safety import MiraLightSafetyController, SafetyDecision, SafetyViolation
 from scenes import POSES, PROFILE_INFO, SCENE_META, SCENES, SERVO_CALIBRATION
 
 
@@ -119,11 +120,15 @@ class BoothController:
         emit: Callable[[str], None] | None = None,
         should_stop: Callable[[], bool] | None = None,
         on_step: Callable[[dict[str, Any]], None] | None = None,
+        apply_control: Callable[[dict[str, Any]], Any] | None = None,
+        reset_lamp: Callable[[], Any] | None = None,
     ):
         self.client = client
         self.emit = emit or print
         self.should_stop = should_stop or (lambda: False)
         self.on_step = on_step
+        self.apply_control = apply_control or client.control
+        self.reset_lamp = reset_lamp or client.reset
 
     def _log(self, message: str) -> None:
         self.emit(message)
@@ -214,7 +219,7 @@ class BoothController:
                 raise KeyError(f"Unknown pose: {pose_name}")
             payload = {"mode": "absolute", **POSES[pose_name]["angles"]}
             self._log(f"[pose] {pose_name} -> {json.dumps(payload, ensure_ascii=False)}")
-            self.client.control(payload)
+            self.apply_control(payload)
             return
 
         if step_type == "led":
@@ -224,7 +229,7 @@ class BoothController:
 
         if step_type == "control":
             self._log(f"[control] {json.dumps(step['payload'], ensure_ascii=False)}")
-            self.client.control(step["payload"])
+            self.apply_control(step["payload"])
             return
 
         if step_type == "action":
@@ -239,7 +244,7 @@ class BoothController:
 
         if step_type == "reset":
             self._log("[reset] POST /reset")
-            self.client.reset()
+            self.reset_lamp()
             return
 
         if step_type == "status":
@@ -286,6 +291,7 @@ class MiraLightRuntime:
         self._run_lock = threading.Lock()
         self._stop_event = threading.Event()
         self._logs: deque[dict[str, str]] = deque(maxlen=300)
+        self._safety = MiraLightSafetyController(SERVO_CALIBRATION)
 
         self._running_scene: str | None = None
         self._runner_thread: threading.Thread | None = None
@@ -390,6 +396,7 @@ class MiraLightRuntime:
                 "deviceOnline": self._device_online,
                 "lastStatusAt": self._last_status_at,
                 "sceneCount": len(SCENES),
+                "estimatedServoState": self._safety.snapshot(),
             }
 
     def get_status(self) -> Any:
@@ -399,6 +406,7 @@ class MiraLightRuntime:
             with self._state_lock:
                 self._device_online = False
             raise
+        self._safety.sync_from_status(data)
         with self._state_lock:
             self._device_online = True
             self._last_status_at = self._now()
@@ -416,6 +424,75 @@ class MiraLightRuntime:
             "servoCalibration": SERVO_CALIBRATION,
             "poses": POSES,
         }
+
+    def sync_safety_from_status(self, payload: Any) -> bool:
+        return self._safety.sync_from_status(payload)
+
+    def _log_safety_decision(self, decision: SafetyDecision) -> None:
+        if decision.status != "clamped":
+            return
+        for change in decision.changes:
+            servo = change["servo"]
+            if decision.mode == "relative":
+                self.log(
+                    "[safety-clamp] "
+                    f"source={decision.source} servo={servo} "
+                    f"requested_delta={change['requestedDelta']} applied_delta={change['appliedDelta']} "
+                    f"target={change['targetAngle']} applied_target={change['appliedTargetAngle']} "
+                    f"rehearsal_range={change['rehearsalRange']}"
+                )
+                continue
+            self.log(
+                "[safety-clamp] "
+                f"source={decision.source} servo={servo} "
+                f"requested_angle={change['requestedAngle']} applied_angle={change['appliedAngle']} "
+                f"rehearsal_range={change['rehearsalRange']}"
+            )
+
+    def _log_safety_rejection(self, exc: SafetyViolation) -> None:
+        detail = exc.detail
+        servo = detail.get("servo", "-")
+        self.log(f"[safety-reject] source={exc.source} servo={servo} error={exc}")
+
+    def _run_safe_control(
+        self,
+        payload: dict[str, Any],
+        *,
+        source: str,
+        update_last_command: bool,
+    ) -> tuple[Any, SafetyDecision]:
+        try:
+            decision = self._safety.plan_control(payload, source=source)
+        except SafetyViolation as exc:
+            self._log_safety_rejection(exc)
+            raise
+
+        result = self.get_client().control(decision.sanitized_payload)
+        self._safety.commit(decision)
+        self._log_safety_decision(decision)
+        if update_last_command:
+            with self._state_lock:
+                self._last_command = source
+        return result, decision
+
+    def control_lamp(
+        self,
+        payload: dict[str, Any],
+        *,
+        source: str = "runtime.control",
+        update_last_command: bool = True,
+    ) -> dict[str, Any]:
+        result, decision = self._run_safe_control(payload, source=source, update_last_command=update_last_command)
+        return {"data": result, "safety": decision.to_dict()}
+
+    def send_control(
+        self,
+        payload: dict[str, Any],
+        *,
+        source: str = "runtime.control",
+        update_last_command: bool = True,
+    ) -> Any:
+        return self.control_lamp(payload, source=source, update_last_command=update_last_command)["data"]
 
     def _record_scene_outcome(self, scene_name: str, status: str, error: str | None = None) -> None:
         client = self.embodied_memory_client
@@ -435,16 +512,38 @@ class MiraLightRuntime:
         self.log("[runtime] reset lamp")
         with self._state_lock:
             self._last_command = "reset"
-        return self.get_client().reset()
+        result = self.get_client().reset()
+        self._safety.mark_unknown()
+        return result
 
-    def apply_pose(self, pose_name: str) -> Any:
+    def apply_pose_with_safety(
+        self,
+        pose_name: str,
+        *,
+        source: str | None = None,
+        update_last_command: bool = True,
+    ) -> dict[str, Any]:
         if pose_name not in POSES:
             raise KeyError(f"Unknown pose: {pose_name}")
         payload = {"mode": "absolute", **POSES[pose_name]["angles"]}
+        source_name = source or f"apply-pose:{pose_name}"
+        try:
+            decision = self._safety.plan_pose(pose_name, POSES[pose_name]["angles"], source=source_name)
+        except SafetyViolation as exc:
+            self._log_safety_rejection(exc)
+            raise
+
+        result = self.get_client().control(decision.sanitized_payload)
+        self._safety.commit(decision)
+        self._log_safety_decision(decision)
+        if update_last_command:
+            with self._state_lock:
+                self._last_command = f"apply-pose:{pose_name}"
+        return {"data": result, "safety": decision.to_dict(), "payload": payload}
+
+    def apply_pose(self, pose_name: str) -> Any:
         self.log(f"[runtime] apply pose {pose_name}")
-        with self._state_lock:
-            self._last_command = f"apply-pose:{pose_name}"
-        return self.get_client().control(payload)
+        return self.apply_pose_with_safety(pose_name)["data"]
 
     def stop_scene(self) -> dict[str, Any]:
         self.log("[runtime] stop requested")
@@ -512,6 +611,12 @@ class MiraLightRuntime:
                 emit=self.log,
                 should_stop=self._stop_event.is_set,
                 on_step=self._record_step,
+                apply_control=lambda payload: self.send_control(
+                    payload,
+                    source=f"scene:{scene_name}:{payload.get('mode', 'relative')}",
+                    update_last_command=False,
+                ),
+                reset_lamp=self.reset_lamp,
             )
             controller.run_scene(scene_name)
         except SceneStopped as exc:
@@ -531,6 +636,12 @@ class MiraLightRuntime:
                 emit=self.log,
                 should_stop=self._stop_event.is_set,
                 on_step=self._record_step,
+                apply_control=lambda payload: self.send_control(
+                    payload,
+                    source=f"scene:{scene_name}:{payload.get('mode', 'relative')}",
+                    update_last_command=False,
+                ),
+                reset_lamp=self.reset_lamp,
             )
             controller.run_scene(scene_name)
         except SceneStopped as exc:

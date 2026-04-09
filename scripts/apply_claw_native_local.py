@@ -128,7 +128,8 @@ def materialize_openclaw_config(existing: dict[str, Any], desired: dict[str, Any
     defaults = agents.setdefault("defaults", {})
     desired_defaults = desired["agents"]["defaults"]
     defaults["workspace"] = desired_defaults["workspace"]
-    defaults["model"] = desired_defaults["model"]
+    if "model" in desired_defaults:
+        defaults["model"] = desired_defaults["model"]
     defaults["heartbeat"] = desired_defaults["heartbeat"]
     defaults["memorySearch"] = desired_defaults["memorySearch"]
     defaults["sandbox"] = desired_defaults["sandbox"]

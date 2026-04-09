@@ -1,0 +1,238 @@
+{
+  "service": "mock-mira-light-device",
+  "bootedAt": "2026-04-09T07:24:12+08:00",
+  "requestCount": 13,
+  "lastResetAt": "2026-04-09T07:24:12+08:00",
+  "servos": {
+    "servo1": 90,
+    "servo2": 96,
+    "servo3": 98,
+    "servo4": 90
+  },
+  "led": {
+    "mode": "solid",
+    "brightness": 90,
+    "color": {
+      "r": 255,
+      "g": 210,
+      "b": 170
+    }
+  },
+  "actions": {
+    "available": [
+      {
+        "name": "dance",
+        "label": "Dance",
+        "loopsSupported": true
+      },
+      {
+        "name": "wiggle",
+        "label": "Wiggle",
+        "loopsSupported": true
+      },
+      {
+        "name": "wave",
+        "label": "Wave",
+        "loopsSupported": false
+      }
+    ],
+    "active": {
+      "running": false,
+      "name": null,
+      "payload": null,
+      "startedAt": null,
+      "stoppedAt": null
+    }
+  },
+  "faults": [],
+  "recentRequests": [
+    {
+      "ts": "2026-04-09T07:24:12+08:00",
+      "method": "GET",
+      "path": "/health",
+      "payload": null,
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 1
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "absolute",
+        "servo1": 90,
+        "servo2": 96,
+        "servo3": 98,
+        "servo4": 90
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 2
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/led",
+      "payload": {
+        "mode": "solid",
+        "brightness": 108,
+        "color": {
+          "r": 255,
+          "g": 214,
+          "b": 176
+        }
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 3
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "absolute",
+        "servo1": 106,
+        "servo2": 96,
+        "servo3": 100,
+        "servo4": 92
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 4
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": 5
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 5
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": -10
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 6
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": 5
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 7
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": 5
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 8
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": -10
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 9
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "relative",
+        "servo4": 5
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 10
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "absolute",
+        "servo1": 102,
+        "servo2": 92,
+        "servo3": 96,
+        "servo4": 100
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 11
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/control",
+      "payload": {
+        "mode": "absolute",
+        "servo1": 90,
+        "servo2": 96,
+        "servo3": 98,
+        "servo4": 90
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 12
+    },
+    {
+      "ts": "2026-04-09T07:24:14+08:00",
+      "method": "POST",
+      "path": "/led",
+      "payload": {
+        "mode": "solid",
+        "brightness": 90,
+        "color": {
+          "r": 255,
+          "g": 210,
+          "b": 170
+        }
+      },
+      "responseStatus": 200,
+      "outcome": "ok",
+      "faultMode": null,
+      "seq": 13
+    }
+  ]
+}

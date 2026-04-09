@@ -411,8 +411,24 @@ def reset() -> Step:
     return {"type": "reset"}
 
 
-def audio(name: str) -> Step:
-    return {"type": "audio", "name": name}
+def audio(
+    name: str | None = None,
+    *,
+    text: str | None = None,
+    voice: str = "tts",
+    wait: bool | None = None,
+    allow_missing: bool = True,
+    fallback_asset: str | None = None,
+) -> Step:
+    step: Step = {"type": "audio", "voice": voice, "allowMissing": allow_missing}
+    if name is not None:
+        step["name"] = name
+    if text is not None:
+        step["text"] = text
+    step["wait"] = bool(text) if wait is None else bool(wait)
+    if fallback_asset:
+        step["fallbackAsset"] = fallback_asset
+    return step
 
 
 def micro_shiver(axis: str = "servo4", amplitude: int = 4, repeats: int = 2, beat_ms: int = 140) -> List[Step]:
@@ -825,7 +841,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
         "title": "跳舞模式",
         "host_line": "当它收到一个超级开心的消息时，它会像真的高兴一样跳起来。",
         "notes": [
-            "TODO: 本地电脑配一首固定的 dance.mp3；当前控制器里只打印 audio TODO。",
+            "运行时现在会真正播放音频；若仓库里没有 dance.mp3，会先尝试系统自带提示音兜底。",
             "TODO: offer 邮件页面作为独立素材准备，不写死在脚本里。",
             "当前动作按 PDF2 为主、参考 PDF3 的手绘页，拆成上摇、下摇、灯光变色、减速和收尾摇头。"
         ],
@@ -867,8 +883,9 @@ SCENES: Dict[str, Dict[str, Any]] = {
             absolute(servo1=90, servo2=96, servo3=98, servo4=98),
             delay(180),
             comment("进入彩色庆祝灯效。"),
+            audio(text="太好了，我们来庆祝一下！", wait=True, voice="tts"),
             led("rainbow_cycle", brightness=210),
-            audio("dance.mp3"),
+            audio("dance.mp3", wait=False, fallback_asset="/System/Library/Sounds/Hero.aiff"),
             action("dance", loops=1),
             delay(380),
             comment("音乐停后慢慢减速，回到正常姿态。"),
@@ -909,6 +926,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
             comment("先目送评委离开的方向。"),
             absolute(servo1=106, servo2=96, servo3=100, servo4=92),
             delay(420),
+            audio(text="谢谢你来看我，下次见。", wait=True, voice="tts"),
             comment("再做两次慢慢点头，像挥手说再见。"),
             nudge(servo4=5),
             delay(180),
@@ -971,6 +989,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
         ],
         "steps": [
             pose("tilt_left"),
+            audio(text="我在呢，慢一点也没关系。", wait=True, voice="tts"),
             led("breathing", brightness=88, color=COMFORT_WARM),
             delay(1700),
             pose("neutral"),
@@ -1006,6 +1025,7 @@ SCENES: Dict[str, Dict[str, Any]] = {
         ],
         "steps": [
             pose("farewell_bow"),
+            audio(text="辛苦了，要不要先休息一下？", wait=True, voice="tts"),
             led("breathing", brightness=70, color=COMFORT_WARM),
             delay(2000),
             pose("neutral"),

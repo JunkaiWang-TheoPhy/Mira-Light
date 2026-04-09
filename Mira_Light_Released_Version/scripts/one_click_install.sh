@@ -11,6 +11,12 @@ if [[ -z "${PYTHON_BIN}" ]]; then
   exit 1
 fi
 
+if ! "${PYTHON_BIN}" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+  echo "Python 3.10+ is required for Mira Light release scripts." >&2
+  "${PYTHON_BIN}" --version >&2 || true
+  exit 1
+fi
+
 echo "[mira-light] repo root: ${REPO_ROOT}"
 
 if [[ ! -d "${VENV_DIR}" ]]; then

@@ -1,0 +1,35 @@
+{
+  "audioPath": "/Users/huhulitong/Documents/GitHub/Mira-Light/runtime/realtime-claw-chat/2026-04-09T09-41-42-482074/turn-002/input.wav",
+  "transcript": "白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白",
+  "rawTranscript": "白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白白",
+  "normalizationApplied": false,
+  "initialPrompt": "这是关于 Mira Light 与 OpenClaw 的中文对话。术语可能包含 Mira。Mira 发音像米拉 / Mee-ra。还可能包含 OpenClaw、Claw、smoke ok、DJI、Doubao。",
+  "modelRepo": "mlx-community/whisper-tiny",
+  "inputDevice": {
+    "index": 3,
+    "name": "DJI MIC MINI",
+    "inputs": 2,
+    "defaultSamplerate": 48000.0
+  },
+  "replyBackend": "api",
+  "replyText": "如果你是要和我道别，那下次想聊天随时再来找我就好。",
+  "rawReplyText": "如果你是要和我道别，那下次想聊天随时再来找我就好。",
+  "emojiStripped": false,
+  "apiMeta": {
+    "provider": "volcengine-coding",
+    "model": "ark-code-latest",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions"
+  },
+  "audioResult": {
+    "ok": true,
+    "command": [
+      "/Users/huhulitong/.local/bin/speaker-hp-say",
+      "如果你是要和我道别，那下次想聊天随时再来找我就好。"
+    ],
+    "description": "speech:say",
+    "stdout": "",
+    "stderr": "",
+    "requestedText": "如果你是要和我道别，那下次想聊天随时再来找我就好。",
+    "spokenText": "如果你是要和我道别，那下次想聊天随时再来找我就好。"
+  }
+}
