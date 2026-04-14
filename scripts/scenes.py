@@ -170,6 +170,17 @@ DEFAULT_POSES: Dict[str, Dict[str, Any]] = {
 WARM_AMBER = {"r": 255, "g": 180, "b": 120}
 SOFT_WARM = {"r": 255, "g": 220, "b": 180}
 COMFORT_WARM = {"r": 255, "g": 170, "b": 110}
+LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40"))
+CELEBRATION_RING_PALETTE = [
+    {"r": 255, "g": 64, "b": 64},
+    {"r": 255, "g": 168, "b": 72},
+    {"r": 255, "g": 232, "b": 92},
+    {"r": 72, "g": 220, "b": 132},
+    {"r": 64, "g": 224, "b": 224},
+    {"r": 64, "g": 128, "b": 255},
+    {"r": 208, "g": 96, "b": 255},
+    {"r": 255, "g": 96, "b": 196},
+]
 
 
 SCENE_META: Dict[str, Dict[str, Any]] = {
@@ -401,7 +412,7 @@ PROFILE_INFO: Dict[str, Any] = {
     "path": str(DEFAULT_PROFILE_PATH),
     "exists": DEFAULT_PROFILE_PATH.is_file(),
     "loaded": False,
-    "ledPixelCount": int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", "40")),
+    "ledPixelCount": LED_PIXEL_COUNT,
     "supportedLedModes": ["off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"],
 }
 
@@ -429,6 +440,18 @@ def led(mode: str, brightness: int | None = None, color: Dict[str, int] | None =
     if color is not None:
         payload["color"] = color
     return {"type": "led", "payload": payload}
+
+
+def led_vector(pixels: List[Dict[str, int]], brightness: int | None = None) -> Step:
+    payload: Dict[str, Any] = {"mode": "vector", "pixels": pixels}
+    if brightness is not None:
+        payload["brightness"] = brightness
+    return {"type": "led", "payload": payload}
+
+
+def celebration_ring_led(brightness: int = 210) -> Step:
+    pixels = [dict(CELEBRATION_RING_PALETTE[index % len(CELEBRATION_RING_PALETTE)]) for index in range(LED_PIXEL_COUNT)]
+    return led_vector(pixels, brightness=brightness)
 
 
 def pose(name: str) -> Step:
@@ -954,9 +977,9 @@ SCENES: Dict[str, Dict[str, Any]] = {
             delay(180),
             absolute(servo1=90, servo2=96, servo3=98, servo4=98),
             delay(180),
-            comment("进入彩色庆祝灯效。"),
+            comment("进入 40 灯彩色灯环庆祝灯效。"),
             audio(text="太好了，我们来庆祝一下！", wait=True, voice="say"),
-            led("rainbow_cycle", brightness=210),
+            celebration_ring_led(brightness=210),
             audio("dance.mp3", wait=False, fallback_asset="/System/Library/Sounds/Hero.aiff"),
             action("dance", loops=1),
             delay(380),

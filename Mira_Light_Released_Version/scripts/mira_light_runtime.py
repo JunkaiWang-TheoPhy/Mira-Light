@@ -7,17 +7,17 @@ This module is the common execution surface for:
 - future OpenClaw triggering
 - the local booth web console
 
-It intentionally keeps the control surface small and grounded in the existing
-ESP32 REST API:
+It intentionally keeps the control surface small and scene-first.
 
-- GET /status
-- GET /led
-- GET /actions
-- POST /control
-- POST /led
-- POST /action
-- POST /action/stop
-- POST /reset
+The bridge-facing API remains HTTP, but the device-facing transport can now be
+either:
+
+- HTTP REST (legacy / mock devices)
+- raw TCP servo frames (`tcp://host:port`, e.g. the RDK X5 bridge at 9527)
+
+For raw TCP endpoints, status / LED / action reads are served from local cached
+state so the rest of the booth stack can stay stable without sending invalid
+HTTP requests to the servo socket.
 """
 
 from __future__ import annotations
@@ -33,17 +33,31 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict
+from urllib.parse import urlparse
 
-from mira_light_audio import AudioCuePlayer
+from bus_servo_adapter import BusServoAdapter
+from bus_servo_transport import (
+    DEFAULT_RDK_X5_HOST,
+    DEFAULT_RDK_X5_PORT,
+    BusServoRuntimeConfig,
+    DryRunBusServoTransport,
+    TcpBusServoTransport,
+)
 from mira_light_signal_contract import (
+    DEFAULT_LED_PIN,
     DEFAULT_LED_PIXEL_COUNT,
     HEAD_CAPACITIVE_FIELD,
+    VALID_LED_MODES,
+    build_led_status_payload,
     coerce_int,
+    make_uniform_pixels,
     normalize_binary_signal,
     normalize_rgb_triplet,
     normalize_vector_pixels,
+    off_pixels,
+    rgb_channels,
 )
-from mira_light_safety import MiraLightSafetyController, SafetyViolation
+from mira_light_audio import AudioCuePlayer
 from scenes import (
     COMFORT_WARM,
     POSES,
@@ -57,6 +71,7 @@ from scenes import (
     comment,
     delay,
     led,
+    nudge,
     pose,
 )
 
@@ -64,12 +79,21 @@ from scenes import (
 DEFAULT_TIMEOUT_SECONDS = 3.0
 SERVO_KEYS = ("servo1", "servo2", "servo3", "servo4")
 VALID_CONTROL_MODES = {"absolute", "relative"}
-VALID_LED_MODES = {"off", "solid", "breathing", "rainbow", "rainbow_cycle", "vector"}
 VALID_SPEAK_VOICES = {"tts", "openclaw", "say", "default", "host", "narration"}
 MAX_RELATIVE_DELTA = 45
 LED_PIXEL_COUNT = int(os.environ.get("MIRA_LIGHT_LED_PIXEL_COUNT", str(DEFAULT_LED_PIXEL_COUNT)))
 MAX_PUBLIC_SPEAK_CHARS = int(os.environ.get("MIRA_LIGHT_MAX_SPEAK_CHARS", "80"))
-DEFAULT_SCENE_BUNDLES_PATH = Path(__file__).resolve().parents[1] / "config" / "release_scene_bundles.json"
+SUPPORTED_TCP_ACTIONS = ("control", "pose", "scene", "tracking", "sensor_cache")
+TCP_LED_UNSUPPORTED_REASON = "raw TCP servo endpoint does not expose a dedicated LED protocol"
+SCENE_START_ALIGN_ENABLED = os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN", "0").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+SCENE_START_ALIGN_TOLERANCE_DEG = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_TOLERANCE_DEG", "3"))
+SCENE_START_ALIGN_MOVE_MS = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_MOVE_MS", "700"))
+SCENE_START_ALIGN_SETTLE_MS = int(os.environ.get("MIRA_LIGHT_SCENE_START_ALIGN_SETTLE_MS", "180"))
 
 
 class SceneStopped(RuntimeError):
@@ -82,51 +106,6 @@ class PayloadValidationError(RuntimeError):
 
 def _coerce_int(value: Any, *, field_name: str) -> int:
     return coerce_int(value, field_name=field_name, error_cls=PayloadValidationError)
-
-
-def _normalize_rgb_triplet(
-    value: Any,
-    *,
-    field_name: str,
-    allow_brightness: bool = False,
-) -> dict[str, int]:
-    if isinstance(value, dict):
-        allowed = {"r", "g", "b"}
-        if allow_brightness:
-            allowed.add("brightness")
-        unknown = sorted(set(value) - allowed)
-        if unknown:
-            raise PayloadValidationError(f"{field_name} has unsupported keys: {', '.join(unknown)}")
-        missing = [channel for channel in ("r", "g", "b") if channel not in value]
-        if missing:
-            raise PayloadValidationError(f"{field_name} is missing channels: {', '.join(missing)}")
-        red = _coerce_int(value["r"], field_name=f"{field_name}.r")
-        green = _coerce_int(value["g"], field_name=f"{field_name}.g")
-        blue = _coerce_int(value["b"], field_name=f"{field_name}.b")
-        brightness = None
-        if allow_brightness and "brightness" in value:
-            brightness = _coerce_int(value["brightness"], field_name=f"{field_name}.brightness")
-    elif isinstance(value, (list, tuple)) and len(value) in {3, 4 if allow_brightness else 3}:
-        red = _coerce_int(value[0], field_name=f"{field_name}[0]")
-        green = _coerce_int(value[1], field_name=f"{field_name}[1]")
-        blue = _coerce_int(value[2], field_name=f"{field_name}[2]")
-        brightness = None
-        if allow_brightness and len(value) == 4:
-            brightness = _coerce_int(value[3], field_name=f"{field_name}[3]")
-    else:
-        if allow_brightness:
-            raise PayloadValidationError(f"{field_name} must be an RGB/RGBA object or 3/4-value vector")
-        raise PayloadValidationError(f"{field_name} must be an RGB object or 3-value vector")
-
-    normalized = {"r": red, "g": green, "b": blue}
-    for channel_name, channel_value in normalized.items():
-        if not 0 <= channel_value <= 255:
-            raise PayloadValidationError(f"{field_name}.{channel_name} must be between 0 and 255")
-    if brightness is not None:
-        if not 0 <= brightness <= 255:
-            raise PayloadValidationError(f"{field_name}.brightness must be between 0 and 255")
-        normalized["brightness"] = brightness
-    return normalized
 
 
 def _load_profile_file(path: Path) -> dict[str, Any]:
@@ -145,24 +124,6 @@ def _load_profile_file(path: Path) -> dict[str, Any]:
     return parsed
 
 
-def _load_scene_bundles(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        return {"defaultBundle": "minimal", "bundles": {}}
-
-    raw = path.read_text(encoding="utf-8").strip()
-    if not raw:
-        return {"defaultBundle": "minimal", "bundles": {}}
-
-    parsed = json.loads(raw)
-    if not isinstance(parsed, dict):
-        raise ValueError(f"Invalid scene bundles file: {path}")
-
-    bundles = parsed.get("bundles")
-    if not isinstance(bundles, dict):
-        parsed["bundles"] = {}
-    return parsed
-
-
 def _save_profile_file(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -171,6 +132,11 @@ def _save_profile_file(path: Path, payload: dict[str, Any]) -> None:
 def _status_to_angles(status_payload: dict[str, Any]) -> dict[str, int]:
     servos = status_payload.get("servos", [])
     result: dict[str, int] = {}
+    if isinstance(servos, dict):
+        for name, angle in servos.items():
+            if isinstance(name, str) and isinstance(angle, (int, float)):
+                result[name] = int(angle)
+        return result
     for item in servos:
         name = item.get("name")
         angle = item.get("angle")
@@ -186,15 +152,226 @@ DIRECTION_YAW = {
 }
 
 TRACKING_FOCUS = {"r": 232, "g": 242, "b": 255}
+DIRECTOR_PRIMARY_SCENES = {
+    "wake_up",
+    "curious_observe",
+    "touch_affection",
+    "cute_probe",
+    "daydream",
+    "standup_reminder",
+    "track_target",
+    "celebrate",
+    "farewell",
+    "sleep",
+}
 
 
 class MiraLightClient:
-    """Thin HTTP client around the current ESP32 REST API."""
+    """Transport-aware client for HTTP lamps or raw TCP servo endpoints."""
 
     def __init__(self, base_url: str, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS, dry_run: bool = False):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
+        self._lock = threading.Lock()
+        self.transport_kind, self.transport_host, self.transport_port = self._resolve_transport_target(self.base_url)
+        self._led_cache = self._build_initial_led_cache()
+        self._status_cache = self._build_initial_status_cache()
+        self._sensors_cache: dict[str, Any] = {HEAD_CAPACITIVE_FIELD: 0}
+        self._actions_cache = self._build_actions_cache()
+        self._last_transport_result: dict[str, Any] | None = None
+        self._bus_servo_adapter: BusServoAdapter | None = None
+        if self.transport_kind == "tcp":
+            runtime_config = BusServoRuntimeConfig(
+                transport="tcp",
+                tcp_host=self.transport_host or DEFAULT_RDK_X5_HOST,
+                tcp_port=self.transport_port or DEFAULT_RDK_X5_PORT,
+                timeout_seconds=self.timeout_seconds,
+            )
+            transport = DryRunBusServoTransport() if self.dry_run else TcpBusServoTransport(
+                host=runtime_config.tcp_host,
+                port=runtime_config.tcp_port,
+                timeout_seconds=runtime_config.timeout_seconds,
+            )
+            self._bus_servo_adapter = BusServoAdapter(
+                runtime_config=runtime_config,
+                transport=transport,
+            )
+            self._bus_servo_adapter.sync_angles(self._current_angles_snapshot())
+
+    @staticmethod
+    def _resolve_transport_target(base_url: str) -> tuple[str, str | None, int | None]:
+        parsed_input = base_url.strip()
+        if "://" not in parsed_input:
+            if "/" not in parsed_input and ":" in parsed_input:
+                parsed_input = f"tcp://{parsed_input}"
+            else:
+                parsed_input = f"http://{parsed_input}"
+        parsed = urlparse(parsed_input)
+        scheme = parsed.scheme.lower()
+        host = parsed.hostname
+        port = parsed.port
+        if scheme == "tcp":
+            return "tcp", host or DEFAULT_RDK_X5_HOST, port or DEFAULT_RDK_X5_PORT
+        if scheme in {"http", "https"} and port == DEFAULT_RDK_X5_PORT and parsed.path in {"", "/"}:
+            return "tcp", host or DEFAULT_RDK_X5_HOST, port
+        return "http", host, port
+
+    def _default_servo_angles(self) -> dict[str, int]:
+        neutral_pose = POSES.get("neutral", {}).get("angles", {})
+        angles: dict[str, int] = {}
+        for servo_name in SERVO_KEYS:
+            pose_angle = neutral_pose.get(servo_name)
+            if isinstance(pose_angle, (int, float)):
+                angles[servo_name] = int(pose_angle)
+                continue
+            calibration = SERVO_CALIBRATION.get(servo_name, {})
+            neutral = calibration.get("neutral")
+            if isinstance(neutral, (int, float)):
+                angles[servo_name] = int(neutral)
+        return angles
+
+    def _build_initial_status_cache(self) -> dict[str, Any]:
+        angles = self._default_servo_angles()
+        return {
+            "transport": self.transport_kind,
+            "baseUrl": self.base_url,
+            "host": self.transport_host,
+            "port": self.transport_port,
+            "online": True if self.dry_run else None,
+            "estimated": self.transport_kind == "tcp",
+            "servos": [
+                {
+                    "name": servo_name,
+                    "angle": int(angles[servo_name]),
+                    "estimated": self.transport_kind == "tcp",
+                }
+                for servo_name in SERVO_KEYS
+                if servo_name in angles
+            ],
+            "sensors": {HEAD_CAPACITIVE_FIELD: 0},
+            "led": self._build_initial_led_cache(),
+            "lastTransportResult": None,
+        }
+
+    def _build_initial_led_cache(self) -> dict[str, Any]:
+        pixels = off_pixels(count=LED_PIXEL_COUNT)
+        return {
+            **build_led_status_payload(
+                mode="off",
+                brightness=0,
+                color={"r": 0, "g": 0, "b": 0},
+                pixels=pixels,
+                led_count=LED_PIXEL_COUNT,
+                pin=DEFAULT_LED_PIN,
+            ),
+            "transport": self.transport_kind,
+            "simulated": self.transport_kind == "tcp",
+            "supported": self.transport_kind != "tcp",
+            "reason": None if self.transport_kind != "tcp" else TCP_LED_UNSUPPORTED_REASON,
+        }
+
+    def _build_led_cache_from_payload(self, payload: Dict[str, Any]) -> dict[str, Any]:
+        mode = str(payload.get("mode", self._led_cache.get("mode", "off")))
+        brightness = int(payload.get("brightness", self._led_cache.get("brightness", 0)))
+        color = deepcopy(payload.get("color", self._led_cache.get("color", {"r": 0, "g": 0, "b": 0})))
+
+        if mode == "vector":
+            raw_pixels = payload.get("pixels", [])
+            pixels = [
+                {
+                    "r": int(pixel["r"]),
+                    "g": int(pixel["g"]),
+                    "b": int(pixel["b"]),
+                    "brightness": int(pixel["brightness"]),
+                }
+                for pixel in raw_pixels
+            ]
+            if pixels:
+                color = rgb_channels(pixels[0])
+                brightness = int(pixels[0]["brightness"])
+        elif mode == "off":
+            pixels = off_pixels(count=LED_PIXEL_COUNT)
+        else:
+            pixels = make_uniform_pixels(count=LED_PIXEL_COUNT, color=color, brightness=brightness)
+
+        return {
+            **build_led_status_payload(
+                mode=mode,
+                brightness=brightness,
+                color=color,
+                pixels=pixels,
+                led_count=LED_PIXEL_COUNT,
+                pin=DEFAULT_LED_PIN,
+            ),
+            "transport": self.transport_kind,
+            "simulated": self.transport_kind == "tcp",
+            "supported": self.transport_kind != "tcp",
+            "reason": None if self.transport_kind != "tcp" else TCP_LED_UNSUPPORTED_REASON,
+        }
+
+    def _build_actions_cache(self) -> dict[str, Any]:
+        if self.transport_kind == "tcp":
+            return {
+                "transport": "tcp",
+                "supported": list(SUPPORTED_TCP_ACTIONS),
+                "simulated": True,
+                "reason": "bridge exposes high-level actions while hardware endpoint only accepts raw servo frames",
+            }
+        return {}
+
+    def _current_angles_snapshot(self) -> dict[str, int]:
+        return {
+            item["name"]: int(item["angle"])
+            for item in self._status_cache.get("servos", [])
+            if isinstance(item.get("name"), str) and isinstance(item.get("angle"), (int, float))
+        }
+
+    def _sync_status_cache(self, angles: dict[str, int], *, transport_result: dict[str, Any] | None = None) -> None:
+        normalized = self._current_angles_snapshot()
+        normalized.update(
+            {
+                servo_name: int(angle)
+                for servo_name, angle in angles.items()
+                if servo_name in SERVO_KEYS
+            }
+        )
+        servos = []
+        for servo_name in SERVO_KEYS:
+            if servo_name not in normalized:
+                continue
+            servos.append(
+                {
+                    "name": servo_name,
+                    "angle": normalized[servo_name],
+                    "estimated": self.transport_kind == "tcp",
+                }
+            )
+        self._status_cache.update(
+            {
+                "transport": self.transport_kind,
+                "baseUrl": self.base_url,
+                "host": self.transport_host,
+                "port": self.transport_port,
+                "online": True,
+                "estimated": self.transport_kind == "tcp",
+                "servos": servos,
+                "sensors": deepcopy(self._sensors_cache),
+                "led": deepcopy(self._led_cache),
+                "lastTransportResult": deepcopy(transport_result),
+            }
+        )
+        self._last_transport_result = deepcopy(transport_result)
+
+    def _tcp_action_stub(self, action: str, payload: Dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "transport": "tcp",
+            "simulated": True,
+            "action": action,
+            "payload": deepcopy(payload) if payload is not None else None,
+            "reason": "raw TCP servo endpoint does not expose action control APIs",
+        }
 
     def _request(self, method: str, path: str, payload: Dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}{path}"
@@ -232,33 +409,87 @@ class MiraLightClient:
             return body
 
     def get_status(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._status_cache["sensors"] = deepcopy(self._sensors_cache)
+                self._status_cache["led"] = deepcopy(self._led_cache)
+                self._status_cache["lastTransportResult"] = deepcopy(self._last_transport_result)
+                return deepcopy(self._status_cache)
         return self._request("GET", "/status")
 
     def get_led(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return deepcopy(self._led_cache)
         return self._request("GET", "/led")
 
     def get_sensors(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return {**deepcopy(self._sensors_cache), "transport": "tcp", "simulated": True}
         return self._request("GET", "/sensors")
 
     def get_actions(self) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                return deepcopy(self._actions_cache)
         return self._request("GET", "/actions")
 
     def set_led(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._led_cache = self._build_led_cache_from_payload(payload)
+                self._status_cache["led"] = deepcopy(self._led_cache)
+                return deepcopy(self._led_cache)
         return self._request("POST", "/led", payload)
 
     def set_sensors(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            with self._lock:
+                self._sensors_cache = deepcopy(payload)
+                self._status_cache["sensors"] = deepcopy(self._sensors_cache)
+                return {"ok": True, **deepcopy(self._sensors_cache), "transport": "tcp", "simulated": True}
         return self._request("POST", "/sensors", payload)
 
-    def control(self, payload: Dict[str, Any]) -> Any:
+    def control(self, payload: Dict[str, Any], *, move_ms: int | None = None) -> Any:
+        if self.transport_kind == "tcp":
+            if self._bus_servo_adapter is None:
+                raise RuntimeError("TCP control requested but servo adapter is not initialized")
+            with self._lock:
+                result = self._bus_servo_adapter.apply_control_payload(
+                    payload,
+                    move_ms=move_ms,
+                    source="mira-light-runtime",
+                )
+                self._sync_status_cache(result.get("angles", {}), transport_result=result.get("transport"))
+                return deepcopy(result)
         return self._request("POST", "/control", payload)
 
     def run_action(self, payload: Dict[str, Any]) -> Any:
+        if self.transport_kind == "tcp":
+            return self._tcp_action_stub("run_action", payload)
         return self._request("POST", "/action", payload)
 
     def stop_action(self) -> Any:
+        if self.transport_kind == "tcp":
+            return self._tcp_action_stub("stop_action")
         return self._request("POST", "/action/stop")
 
     def reset(self) -> Any:
+        if self.transport_kind == "tcp":
+            neutral_angles = self._default_servo_angles()
+            payload = {"mode": "absolute", **neutral_angles}
+            result = self.control(payload)
+            with self._lock:
+                self._led_cache = self._build_initial_led_cache()
+                self._status_cache["led"] = deepcopy(self._led_cache)
+                return {
+                    "ok": True,
+                    "transport": "tcp",
+                    "resetPose": "neutral",
+                    "control": result,
+                    "led": deepcopy(self._led_cache),
+                }
         return self._request("POST", "/reset")
 
 
@@ -273,6 +504,7 @@ class BoothController:
         on_step: Callable[[dict[str, Any]], None] | None = None,
         audio_player: AudioCuePlayer | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
     ):
         self.client = client
         self.emit = emit or print
@@ -280,6 +512,7 @@ class BoothController:
         self.on_step = on_step
         self.audio_player = audio_player
         self.cue_mode = cue_mode
+        self.silent_mode = silent_mode
 
     def _log(self, message: str) -> None:
         self.emit(message)
@@ -316,10 +549,12 @@ class BoothController:
         host_line = scene.get("host_line")
         if host_line:
             self._log(f"[host] {host_line}")
-            if self.cue_mode in {"director", "full"}:
+            if self.cue_mode in {"director", "full"} and not self.silent_mode:
                 self._log(f"[cue-host] {host_line}")
                 self.run_step({"type": "audio", "text": host_line, "voice": "say", "wait": True})
                 self._sleep_ms(140)
+            elif self.cue_mode in {"director", "full"} and self.silent_mode:
+                self._log(f"[cue-host-muted] {host_line}")
 
         for note in scene.get("notes", []):
             self._log(f"[note] {note}")
@@ -417,6 +652,9 @@ class BoothController:
             return
 
         if step_type == "audio":
+            if self.silent_mode:
+                self._log(f"[audio-skip-silent] payload={json.dumps(step, ensure_ascii=False)}")
+                return
             if self.audio_player is None:
                 self._log(f"[skip-audio] payload={json.dumps(step, ensure_ascii=False)}")
                 return
@@ -452,22 +690,6 @@ class MiraLightRuntime:
             "yes",
             "on",
         }
-        scene_bundles_path = Path(
-            os.environ.get("MIRA_LIGHT_SCENE_BUNDLES_PATH", str(DEFAULT_SCENE_BUNDLES_PATH))
-        ).expanduser()
-        self._scene_bundles_config = _load_scene_bundles(scene_bundles_path)
-        self._scene_bundle_name: str | None = None
-        self._scene_bundle_source = "readiness"
-        env_scene_bundle = os.environ.get("MIRA_LIGHT_SCENE_BUNDLE", "").strip()
-        if env_scene_bundle:
-            self._scene_bundle_name = env_scene_bundle
-            self._scene_bundle_source = "env"
-        elif self.show_experimental:
-            self._scene_bundle_name = None
-            self._scene_bundle_source = "show_experimental"
-        else:
-            self._scene_bundle_name = str(self._scene_bundles_config.get("defaultBundle") or "minimal")
-            self._scene_bundle_source = "config_default"
         self.auto_recover_pose = os.environ.get("MIRA_LIGHT_AUTO_RECOVER_POSE", "").strip()
 
         self._log_lock = threading.Lock()
@@ -475,6 +697,7 @@ class MiraLightRuntime:
         self._run_lock = threading.Lock()
         self._stop_event = threading.Event()
         self._logs: deque[dict[str, str]] = deque(maxlen=300)
+        self._client_lock = threading.Lock()
 
         self._running_scene: str | None = None
         self._runner_thread: threading.Thread | None = None
@@ -498,8 +721,8 @@ class MiraLightRuntime:
         self._tracking_target: dict[str, Any] = {}
         self._tracking_servo_state: dict[str, int] = dict(POSES.get("neutral", {}).get("angles", {}))
         self._tracking_led_state: dict[str, Any] = {}
-        self._safety = MiraLightSafetyController(SERVO_CALIBRATION)
-        self._estimated_servo_state: dict[str, int | None] = self._safety.snapshot()
+        self._silent_mode = False
+        self._client = self._build_client()
 
     def set_embodied_memory_client(self, client: Any | None) -> None:
         self.embodied_memory_client = client
@@ -517,12 +740,16 @@ class MiraLightRuntime:
         with self._log_lock:
             return list(self._logs)
 
-    def get_client(self) -> MiraLightClient:
+    def _build_client(self) -> MiraLightClient:
         return MiraLightClient(
             base_url=self.base_url,
             timeout_seconds=self.timeout_seconds,
             dry_run=self.dry_run,
         )
+
+    def get_client(self) -> MiraLightClient:
+        with self._client_lock:
+            return self._client
 
     def _ensure_manual_control_allowed(self, capability: str) -> None:
         with self._state_lock:
@@ -595,7 +822,7 @@ class MiraLightRuntime:
         if not isinstance(payload, dict):
             raise PayloadValidationError("LED payload must be a JSON object")
 
-        allowed_keys = {"mode", "brightness", "color", "pixels"}
+        allowed_keys = {"mode", "brightness", "color", "pixels", "pixelSignals"}
         unknown = sorted(set(payload) - allowed_keys)
         if unknown:
             raise PayloadValidationError(f"Unsupported LED fields: {', '.join(unknown)}")
@@ -617,7 +844,15 @@ class MiraLightRuntime:
         if mode == "vector":
             if "color" in payload:
                 raise PayloadValidationError("color is not allowed when mode=vector; use pixels")
+            if "pixels" in payload and "pixelSignals" in payload:
+                raise PayloadValidationError("Use either pixels or pixelSignals when mode=vector")
+            if "pixelSignals" in payload:
+                raise PayloadValidationError("pixelSignals is only accepted by the mock device; use pixels")
             pixels = payload.get("pixels")
+            if not isinstance(pixels, list):
+                raise PayloadValidationError("pixels must be a list when mode=vector")
+            if len(pixels) != LED_PIXEL_COUNT:
+                raise PayloadValidationError(f"pixels must contain exactly {LED_PIXEL_COUNT} RGB or RGBA entries")
             normalized["pixels"] = normalize_vector_pixels(
                 pixels,
                 pixel_count=LED_PIXEL_COUNT,
@@ -626,8 +861,8 @@ class MiraLightRuntime:
             )
             return normalized
 
-        if "pixels" in payload:
-            raise PayloadValidationError("pixels is only supported when mode=vector")
+        if "pixels" in payload or "pixelSignals" in payload:
+            raise PayloadValidationError("pixels and pixelSignals are only supported when mode=vector")
 
         if mode in {"solid", "breathing"}:
             if "color" not in payload:
@@ -701,7 +936,12 @@ class MiraLightRuntime:
         return {HEAD_CAPACITIVE_FIELD: signal}
 
     def control_joints(self, payload: Dict[str, Any]) -> Any:
-        return self.control_lamp(payload, source="runtime.control")["data"]
+        self._ensure_manual_control_allowed("control joints")
+        normalized = self.validate_control_payload(payload)
+        self.log(f"[runtime] direct joint control {json.dumps(normalized, ensure_ascii=False)}")
+        with self._state_lock:
+            self._last_command = f"control:{normalized['mode']}"
+        return self.get_client().control(normalized)
 
     def set_led_state(self, payload: Dict[str, Any]) -> Any:
         self._ensure_manual_control_allowed("set LED state")
@@ -718,57 +958,6 @@ class MiraLightRuntime:
         with self._state_lock:
             self._last_command = "sensors:update"
         return self.get_client().set_sensors(normalized)
-
-    def _sync_estimated_servo_state(self, payload: Any) -> None:
-        if self._safety.sync_from_status(payload):
-            snapshot = self._safety.snapshot()
-            with self._state_lock:
-                self._estimated_servo_state = snapshot
-            for servo_name, angle in snapshot.items():
-                if isinstance(angle, int):
-                    self._tracking_servo_state[servo_name] = angle
-
-    def _commit_safety_decision(self, decision: Any) -> None:
-        self._safety.commit(decision)
-        snapshot = self._safety.snapshot()
-        with self._state_lock:
-            self._estimated_servo_state = snapshot
-        for servo_name, angle in snapshot.items():
-            if isinstance(angle, int):
-                self._tracking_servo_state[servo_name] = angle
-
-    def _log_safety_clamp(self, decision: Any) -> None:
-        if decision.status == "clamped":
-            self.log(f"[safety-clamp] {json.dumps(decision.to_dict(), ensure_ascii=False)}")
-
-    def apply_pose_with_safety(self, pose_name: str, *, source: str = "runtime.pose") -> dict[str, Any]:
-        if pose_name not in POSES:
-            raise KeyError(f"Unknown pose: {pose_name}")
-
-        decision = self._safety.plan_pose(pose_name, POSES[pose_name]["angles"], source=source)
-        self.log(f"[runtime] apply pose {pose_name}")
-        self._log_safety_clamp(decision)
-        with self._state_lock:
-            self._last_command = f"apply-pose:{pose_name}"
-        data = self.get_client().control(decision.sanitized_payload)
-        self._commit_safety_decision(decision)
-        return {"safety": decision.to_dict(), "data": data}
-
-    def control_lamp(self, payload: Dict[str, Any], *, source: str = "runtime.control") -> dict[str, Any]:
-        self._ensure_manual_control_allowed("control joints")
-        try:
-            decision = self._safety.plan_control(payload, source=source)
-        except SafetyViolation as exc:
-            self.log(f"[safety-reject] {json.dumps(exc.to_dict(), ensure_ascii=False)}")
-            raise
-
-        self.log(f"[runtime] direct joint control {json.dumps(decision.sanitized_payload, ensure_ascii=False)}")
-        self._log_safety_clamp(decision)
-        with self._state_lock:
-            self._last_command = f"control:{decision.mode}"
-        data = self.get_client().control(decision.sanitized_payload)
-        self._commit_safety_decision(decision)
-        return {"safety": decision.to_dict(), "data": data}
 
     def speak_text(self, payload: Dict[str, Any]) -> dict[str, Any]:
         self._ensure_manual_control_allowed("speak")
@@ -814,6 +1003,8 @@ class MiraLightRuntime:
                 if cleaned and cleaned not in POSES:
                     raise RuntimeError(f"Unknown recovery pose: {cleaned}")
                 self.auto_recover_pose = cleaned
+        with self._client_lock:
+            self._client = self._build_client()
         self.log(
             f"[config] base_url={self.base_url} dry_run={self.dry_run} "
             f"auto_recover_pose={self.auto_recover_pose or '-'}"
@@ -821,11 +1012,7 @@ class MiraLightRuntime:
         return self.get_runtime_state()
 
     def is_scene_available(self, scene_name: str) -> bool:
-        if self._scene_bundle_name:
-            bundle = self._scene_bundles_config.get("bundles", {}).get(self._scene_bundle_name, {})
-            scenes = bundle.get("scenes", [])
-            return isinstance(scenes, list) and scene_name in scenes
-        if self.show_experimental:
+        if scene_name in DIRECTOR_PRIMARY_SCENES:
             return True
         readiness = SCENE_META.get(scene_name, {}).get("readiness", "prototype")
         return self.show_experimental or readiness == "ready"
@@ -875,16 +1062,14 @@ class MiraLightRuntime:
                 "lastStatusAt": self._last_status_at,
                 "sceneCount": len(SCENES),
                 "cueMode": self._cue_mode,
+                "silentMode": self._silent_mode,
                 "sceneContext": deepcopy(self._active_scene_context),
                 "lastSceneContext": deepcopy(self._last_scene_context),
                 "lastTrigger": deepcopy(self._last_trigger),
-                "sceneBundle": self._scene_bundle_name,
-                "sceneBundleSource": self._scene_bundle_source,
                 "autoRecoverPose": self.auto_recover_pose,
                 "trackingActive": self._tracking_active,
                 "trackingLastUpdateAt": self._tracking_last_update_at,
                 "trackingTarget": deepcopy(self._tracking_target),
-                "estimatedServoState": deepcopy(self._estimated_servo_state),
             }
 
     def get_status(self) -> Any:
@@ -895,9 +1080,12 @@ class MiraLightRuntime:
                 self._device_online = False
             raise
         with self._state_lock:
-            self._device_online = True
+            if isinstance(data, dict) and "online" in data:
+                online = data.get("online")
+                self._device_online = None if online is None else bool(online)
+            else:
+                self._device_online = True
             self._last_status_at = self._now()
-        self._sync_estimated_servo_state(data)
         return data
 
     def get_led(self) -> Any:
@@ -916,6 +1104,89 @@ class MiraLightRuntime:
             "poses": POSES,
         }
 
+    def _scene_start_target_angles(self, scene_definition: dict[str, Any]) -> dict[str, int] | None:
+        for step in scene_definition.get("steps", []):
+            step_type = step.get("type")
+            if step_type == "pose":
+                pose_name = str(step.get("name") or "").strip()
+                pose_data = POSES.get(pose_name, {})
+                pose_angles = pose_data.get("angles", {})
+                angles = {
+                    servo_name: int(pose_angles[servo_name])
+                    for servo_name in SERVO_KEYS
+                    if isinstance(pose_angles.get(servo_name), (int, float))
+                }
+                return angles or None
+
+            if step_type == "control":
+                payload = step.get("payload", {})
+                if payload.get("mode") != "absolute":
+                    return None
+                angles = {
+                    servo_name: int(payload[servo_name])
+                    for servo_name in SERVO_KEYS
+                    if isinstance(payload.get(servo_name), (int, float))
+                }
+                return angles or None
+
+            if step_type in {"comment", "delay", "led", "audio", "sensor_gate"}:
+                continue
+
+            return None
+        return None
+
+    def _scene_start_misalignment(
+        self,
+        current_angles: dict[str, int],
+        target_angles: dict[str, int],
+    ) -> dict[str, dict[str, int | None]]:
+        mismatches: dict[str, dict[str, int | None]] = {}
+        for servo_name, target in target_angles.items():
+            current = current_angles.get(servo_name)
+            if not isinstance(current, int):
+                mismatches[servo_name] = {"current": None, "target": int(target), "delta": None}
+                continue
+            delta = abs(int(current) - int(target))
+            if delta > SCENE_START_ALIGN_TOLERANCE_DEG:
+                mismatches[servo_name] = {"current": int(current), "target": int(target), "delta": int(delta)}
+        return mismatches
+
+    def _maybe_align_scene_start(self, scene_name: str, scene_definition: dict[str, Any]) -> None:
+        if not SCENE_START_ALIGN_ENABLED:
+            return
+
+        target_angles = self._scene_start_target_angles(scene_definition)
+        if not target_angles:
+            return
+
+        try:
+            status_payload = self.get_status()
+        except Exception as exc:  # noqa: BLE001 - alignment should not make scene startup brittle
+            self.log(f"[pre-align-skip] {scene_name} could not read /status before start: {exc}")
+            return
+
+        if not isinstance(status_payload, dict):
+            self.log(f"[pre-align-skip] {scene_name} status payload is not a JSON object")
+            return
+
+        current_angles = _status_to_angles(status_payload)
+        if not current_angles:
+            self.log(f"[pre-align-skip] {scene_name} status did not include current servo angles")
+            return
+
+        mismatches = self._scene_start_misalignment(current_angles, target_angles)
+        if not mismatches:
+            return
+
+        payload = {"mode": "absolute", **target_angles}
+        self.log(
+            f"[pre-align] {scene_name} -> {json.dumps(payload, ensure_ascii=False)} "
+            f"because current={json.dumps(mismatches, ensure_ascii=False)}"
+        )
+        self.get_client().control(payload, move_ms=SCENE_START_ALIGN_MOVE_MS)
+        if not self.dry_run and SCENE_START_ALIGN_SETTLE_MS > 0:
+            time.sleep(SCENE_START_ALIGN_SETTLE_MS / 1000.0)
+
     def _profile_path(self) -> Path:
         return Path(PROFILE_INFO["path"])
 
@@ -933,11 +1204,167 @@ class MiraLightRuntime:
             return "right"
         return default
 
+    @staticmethod
+    def _opposite_direction(direction: str) -> str:
+        normalized = str(direction or "").strip().lower()
+        if normalized == "left":
+            return "right"
+        if normalized == "right":
+            return "left"
+        return "center"
+
     def _direction_from_context(self, scene_context: dict[str, Any], *, default: str = "right") -> str:
         for key in ("departureDirection", "direction", "horizontalZone", "primaryDirection", "touchSide", "side"):
             if key in scene_context:
                 return self._normalize_direction(scene_context.get(key), default=default)
         return default
+
+    def _clamp_servo_target(self, servo_name: str, target: int, fallback: tuple[int, int]) -> int:
+        low, high = self._servo_rehearsal_range(servo_name, fallback)
+        return max(low, min(high, int(target)))
+
+    def _build_dynamic_curious_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
+        owner_direction_raw = None
+        for key in ("ownerDirection", "ownerFaceDirection", "targetDirection", "targetHorizontalZone"):
+            if key in scene_context:
+                owner_direction_raw = scene_context.get(key)
+                break
+
+        judge_direction = self._normalize_direction(
+            scene_context.get("judgeDirection") or scene_context.get("horizontalZone"),
+            default="center",
+        )
+        owner_direction = self._normalize_direction(owner_direction_raw, default="center")
+
+        owner_face_found_raw = scene_context.get("ownerFaceFound")
+        if isinstance(owner_face_found_raw, bool):
+            owner_face_found = owner_face_found_raw and owner_direction_raw is not None
+        else:
+            owner_detector = str(
+                scene_context.get("ownerDetector")
+                or scene_context.get("detector")
+                or scene_context.get("targetDetector")
+                or ""
+            ).strip().lower()
+            owner_face_found = owner_direction_raw is not None and owner_detector in {"haar_face", "face"}
+
+        fallback_direction = self._opposite_direction(judge_direction)
+        focus_direction = owner_direction if owner_face_found else fallback_direction
+        away_direction = self._opposite_direction(focus_direction) if owner_face_found else focus_direction
+
+        label = {"left": "左侧", "center": "正前方", "right": "右侧"}
+        focus_label = label[focus_direction]
+        judge_label = label[judge_direction]
+
+        search_left_yaw = self._clamp_servo_target("servo1", 80, (72, 110))
+        search_right_yaw = self._clamp_servo_target("servo1", 104, (72, 110))
+        focus_half_yaw = self._clamp_servo_target("servo1", {"left": 84, "center": 92, "right": 100}[focus_direction], (72, 110))
+        focus_full_yaw = self._clamp_servo_target("servo1", {"left": 80, "center": 92, "right": 104}[focus_direction], (72, 110))
+        focus_peek_yaw = self._clamp_servo_target("servo1", {"left": 82, "center": 94, "right": 102}[focus_direction], (72, 110))
+        away_shy_yaw = self._clamp_servo_target("servo1", {"left": 80, "center": 84, "right": 104}[away_direction], (72, 110))
+        away_hold_yaw = self._clamp_servo_target("servo1", {"left": 82, "center": 88, "right": 102}[away_direction], (72, 110))
+        fallback_hold_yaw = self._clamp_servo_target("servo1", {"left": 78, "center": 92, "right": 106}[focus_direction], (72, 110))
+
+        scene = deepcopy(SCENES["curious_observe"])
+        if owner_face_found:
+            scene["notes"] = [
+                f"先小幅环顾并上下找主人的脸，确认后朝{focus_label}做半转、试探和害羞回望。",
+                *scene.get("notes", []),
+            ]
+            scene["steps"] = [
+                pose("neutral"),
+                led("solid", brightness=124, color={"r": 255, "g": 225, "b": 190}),
+                delay(160),
+                comment("先环顾一下，再上下找主人的脸。"),
+                absolute(servo1=search_left_yaw, servo2=94, servo3=96, servo4=86),
+                delay(180),
+                absolute(servo1=search_right_yaw, servo2=98, servo3=100, servo4=96),
+                delay(180),
+                comment(f"找到主人的脸后，先朝{focus_label}半转过去。"),
+                absolute(servo1=focus_half_yaw, servo2=96, servo3=98, servo4=90),
+                delay(220),
+                comment("再轻轻靠近一点，像想确认你是谁。"),
+                absolute(servo1=focus_full_yaw, servo2=98, servo3=102, servo4=90),
+                delay(260),
+                comment("缓慢摇头一次，像在认真辨认。"),
+                nudge(servo1=3 if focus_direction != "right" else 2, servo4=-2),
+                delay(140),
+                nudge(servo1=-6 if focus_direction != "left" else -4, servo4=4),
+                delay(140),
+                nudge(servo1=3 if focus_direction != "right" else 2, servo4=-2),
+                delay(180),
+                comment("再更靠近一点，看着你。"),
+                absolute(servo1=focus_full_yaw, servo2=98, servo3=104, servo4=90),
+                delay(220),
+                comment("转开并低头，表示它有点害羞。"),
+                led("solid", brightness=100, color={"r": 246, "g": 214, "b": 186}),
+                absolute(servo1=away_shy_yaw, servo2=94, servo3=94, servo4=100),
+                delay(320),
+                nudge(servo4=4),
+                delay(120),
+                nudge(servo4=-8),
+                delay(120),
+                nudge(servo4=4),
+                delay(180),
+                comment("又忍不住朝你慢慢探出来。"),
+                led("solid", brightness=124, color={"r": 255, "g": 225, "b": 190}),
+                absolute(servo1=focus_peek_yaw, servo2=98, servo3=106, servo4=92),
+                delay(220),
+                nudge(servo1=3 if focus_direction != "right" else 2),
+                delay(110),
+                nudge(servo1=-6 if focus_direction != "left" else -4),
+                delay(110),
+                nudge(servo1=3 if focus_direction != "right" else 2),
+                delay(160),
+                comment("面对你点头一下。"),
+                absolute(servo1=focus_peek_yaw, servo2=98, servo3=102, servo4=90),
+                nudge(servo4=4),
+                delay(120),
+                nudge(servo4=-8),
+                delay(140),
+                nudge(servo4=4),
+                delay(180),
+                comment("如果你继续靠近，它会再往远离你的方向缩一点。"),
+                absolute(servo1=away_hold_yaw, servo2=94, servo3=98, servo4=102),
+                delay(240),
+                comment("害羞结束后，再慢慢往回和往前靠。"),
+                absolute(servo1=focus_half_yaw, servo2=98, servo3=102, servo4=92),
+            ]
+            return scene
+
+        scene["notes"] = [
+            f"先环顾并上下找主人的脸；如果没找到，就朝评委{judge_label}的反方向{focus_label}回退。",
+            *scene.get("notes", []),
+        ]
+        scene["steps"] = [
+            pose("neutral"),
+            led("solid", brightness=120, color={"r": 255, "g": 223, "b": 188}),
+            delay(160),
+            comment("先环顾一下，再上下找主人的脸。"),
+            absolute(servo1=search_left_yaw, servo2=94, servo3=96, servo4=86),
+            delay(180),
+            absolute(servo1=search_right_yaw, servo2=98, servo3=100, servo4=96),
+            delay(180),
+            absolute(servo1=92, servo2=93, servo3=96, servo4=100),
+            delay(180),
+            comment(f"还没找到主人的脸，就先扭向评委{judge_label}的反方向{focus_label}。"),
+            led("solid", brightness=108, color={"r": 246, "g": 214, "b": 186}),
+            absolute(servo1=fallback_hold_yaw, servo2=94, servo3=96, servo4=98),
+            delay(320),
+            comment("在那个方向停半拍，像是先留出一点安全距离。"),
+            nudge(servo4=3),
+            delay(120),
+            nudge(servo4=-6),
+            delay(120),
+            nudge(servo4=3),
+            delay(180),
+            comment("确认没有新的脸出现后，慢慢回到等待位。"),
+            absolute(servo1=focus_half_yaw, servo2=96, servo3=98, servo4=94),
+            delay(220),
+            pose("neutral"),
+            led("solid", brightness=112, color=SOFT_WARM),
+        ]
+        return scene
 
     def _build_dynamic_farewell_scene(self, scene_context: dict[str, Any]) -> dict[str, Any]:
         direction = self._direction_from_context(scene_context, default="right")
@@ -1048,7 +1475,9 @@ class MiraLightRuntime:
     def _resolve_scene_definition(self, scene_name: str, scene_context: dict[str, Any] | None = None) -> dict[str, Any]:
         resolved_context = deepcopy(scene_context or {})
 
-        if scene_name == "farewell":
+        if scene_name == "curious_observe":
+            scene = self._build_dynamic_curious_scene(resolved_context)
+        elif scene_name == "farewell":
             scene = self._build_dynamic_farewell_scene(resolved_context)
         elif scene_name == "touch_affection":
             scene = self._build_dynamic_touch_scene(resolved_context)
@@ -1244,11 +1673,13 @@ class MiraLightRuntime:
                 "distanceBand": tracking.get("distance_band"),
                 "approachState": tracking.get("approach_state"),
                 "targetClass": tracking.get("target_class"),
+                "targetMode": tracking.get("target_mode"),
                 "targetCount": tracking.get("target_count"),
                 "trackId": tracking.get("track_id"),
                 "detector": tracking.get("detector"),
                 "confidence": tracking.get("confidence"),
                 "selectedLockState": tracking.get("selected_lock_state"),
+                "selectedReason": tracking.get("selected_reason"),
                 "bboxNorm": tracking.get("bbox_norm"),
                 "centerNorm": tracking.get("center_norm"),
                 "controlHint": {
@@ -1273,7 +1704,13 @@ class MiraLightRuntime:
         return self.get_client().reset()
 
     def apply_pose(self, pose_name: str) -> Any:
-        return self.apply_pose_with_safety(pose_name, source="runtime.apply_pose")["data"]
+        if pose_name not in POSES:
+            raise KeyError(f"Unknown pose: {pose_name}")
+        payload = {"mode": "absolute", **POSES[pose_name]["angles"]}
+        self.log(f"[runtime] apply pose {pose_name}")
+        with self._state_lock:
+            self._last_command = f"apply-pose:{pose_name}"
+        return self.get_client().control(payload)
 
     def stop_scene(self) -> dict[str, Any]:
         self.log("[runtime] stop requested")
@@ -1297,23 +1734,14 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         if scene_name not in SCENES:
             raise KeyError(f"Unknown scene: {scene_name}")
         if not allow_unavailable and not self.is_scene_available(scene_name):
-            if self._scene_bundle_name == "minimal":
-                raise RuntimeError(
-                    f"Scene not enabled for minimal mode: {scene_name}. "
-                    "Set MIRA_LIGHT_SHOW_EXPERIMENTAL=1 to run non-ready scenes."
-                )
-            if self._scene_bundle_name:
-                raise RuntimeError(
-                    f"Scene not enabled for bundle {self._scene_bundle_name}: {scene_name}. "
-                    "Change MIRA_LIGHT_SCENE_BUNDLE or enable MIRA_LIGHT_SHOW_EXPERIMENTAL=1."
-                )
             raise RuntimeError(
-                f"Scene not enabled by readiness policy: {scene_name}. "
+                f"Scene not enabled for minimal mode: {scene_name}. "
                 "Set MIRA_LIGHT_SHOW_EXPERIMENTAL=1 to run non-ready scenes."
             )
 
@@ -1333,13 +1761,15 @@ class MiraLightRuntime:
             self._current_step_type = "scene"
             self._last_command = f"run-scene:{scene_name}"
             self._cue_mode = cue_mode
+            self._silent_mode = bool(silent_mode)
             self._active_scene_context = deepcopy(scene_context or {})
             self._tracking_active = False
             self._tracking_target = {}
         scene_definition = self._resolve_scene_definition(scene_name, scene_context=scene_context)
+        self._maybe_align_scene_start(scene_name, scene_definition)
         with self._state_lock:
             self._current_step_total = len(scene_definition.get("steps", []))
-        self.log(f"[runtime] start scene {scene_name} cue_mode={cue_mode}")
+        self.log(f"[runtime] start scene {scene_name} cue_mode={cue_mode} silent_mode={bool(silent_mode)}")
         self._record_scene_session_state(scene_name, "started")
         return scene_definition
 
@@ -1357,6 +1787,7 @@ class MiraLightRuntime:
             self._last_scene_context = active_context
             self._active_scene_context = {}
             self._cue_mode = "scene"
+            self._silent_mode = False
         if error:
             self.log(f"[runtime-error] scene {scene_name}: {error}")
         else:
@@ -1381,12 +1812,14 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         scene_definition = self._prepare_run(
             scene_name,
             scene_context=scene_context,
             cue_mode=cue_mode,
+            silent_mode=silent_mode,
             allow_unavailable=allow_unavailable,
         )
         error_text = None
@@ -1398,6 +1831,7 @@ class MiraLightRuntime:
                 on_step=self._record_step,
                 audio_player=self.audio_player,
                 cue_mode=cue_mode,
+                silent_mode=silent_mode,
             )
             controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
@@ -1409,7 +1843,7 @@ class MiraLightRuntime:
             self._finish_run(scene_name, error_text)
         return self.get_runtime_state()
 
-    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any], cue_mode: str) -> None:
+    def _run_scene_worker(self, scene_name: str, scene_definition: dict[str, Any], cue_mode: str, silent_mode: bool) -> None:
         error_text = None
         try:
             controller = BoothController(
@@ -1419,6 +1853,7 @@ class MiraLightRuntime:
                 on_step=self._record_step,
                 audio_player=self.audio_player,
                 cue_mode=cue_mode,
+                silent_mode=silent_mode,
             )
             controller.run_scene(scene_name, scene_definition=scene_definition)
         except SceneStopped as exc:
@@ -1434,17 +1869,19 @@ class MiraLightRuntime:
         *,
         scene_context: dict[str, Any] | None = None,
         cue_mode: str = "scene",
+        silent_mode: bool = False,
         allow_unavailable: bool = False,
     ) -> dict[str, Any]:
         scene_definition = self._prepare_run(
             scene_name,
             scene_context=scene_context,
             cue_mode=cue_mode,
+            silent_mode=silent_mode,
             allow_unavailable=allow_unavailable,
         )
         worker = threading.Thread(
             target=self._run_scene_worker,
-            args=(scene_name, scene_definition, cue_mode),
+            args=(scene_name, scene_definition, cue_mode, silent_mode),
             daemon=True,
         )
         with self._state_lock:
@@ -1502,6 +1939,7 @@ class MiraLightRuntime:
             scene_name,
             scene_context=scene_context,
             cue_mode=str(event_payload.get("cueMode") or "scene"),
+            silent_mode=bool(event_payload.get("silentMode", False)),
             allow_unavailable=True,
         )
 

@@ -25,7 +25,7 @@ if str(BRIDGE_DIR) not in sys.path:
 from bridge_server import BridgeHTTPServer, BridgeHandler
 import mira_light_runtime as runtime_module
 from mira_light_runtime import BoothController, MiraLightRuntime
-from scenes import POSES
+from scenes import LED_PIXEL_COUNT, POSES, SCENES
 
 
 def request_json(url: str, *, method: str = "GET", payload: dict | None = None) -> tuple[int, dict]:
@@ -75,6 +75,15 @@ class MinimalSmokeTest(unittest.TestCase):
         self.assertTrue(scenes)
         self.assertEqual({item["id"] for item in scenes}, self.PRIMARY_SCENES)
         self.assertTrue(self.PRIMARY_SCENES.issuperset({item["id"] for item in scenes}))
+
+    def test_celebrate_scene_uses_vector_color_ring(self) -> None:
+        led_steps = [step for step in SCENES["celebrate"]["steps"] if step.get("type") == "led"]
+        vector_steps = [step for step in led_steps if step["payload"].get("mode") == "vector"]
+
+        self.assertEqual(len(vector_steps), 1)
+        self.assertEqual(vector_steps[0]["payload"]["brightness"], 210)
+        self.assertEqual(len(vector_steps[0]["payload"]["pixels"]), LED_PIXEL_COUNT)
+        self.assertGreater(len({tuple(sorted(pixel.items())) for pixel in vector_steps[0]["payload"]["pixels"]}), 1)
 
     def test_bridge_supports_minimal_mode(self) -> None:
         runtime = MiraLightRuntime(base_url="http://127.0.0.1:9", dry_run=True)

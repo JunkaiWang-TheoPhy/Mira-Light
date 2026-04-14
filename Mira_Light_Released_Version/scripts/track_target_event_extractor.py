@@ -22,6 +22,13 @@ from pathlib import Path
 import time
 from typing import Any
 
+from face_identity import (
+    crop_bbox_with_padding,
+    extract_face_embedding,
+    load_face_registry,
+    match_face_embedding,
+)
+
 try:
     import cv2  # type: ignore
     import numpy as np  # type: ignore
@@ -51,14 +58,6 @@ class ExtractorState:
     def __post_init__(self) -> None:
         if self.previous_tracks is None:
             self.previous_tracks = {}
-
-
-@dataclass
-class CascadeBundle:
-    frontal_default: Any
-    frontal_alt2: Any | None = None
-    profile: Any | None = None
-    upperbody: Any | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -175,42 +174,6 @@ def parse_args() -> argparse.Namespace:
         help="Disable HOG person detector fallback when face detection misses.",
     )
     parser.add_argument(
-        "--face-min-neighbors",
-        type=int,
-        default=4,
-        help="Base minNeighbors used by the frontal-face cascades.",
-    )
-    parser.add_argument(
-        "--face-min-size",
-        type=int,
-        default=30,
-        help="Minimum face size in pixels for near-field booth portraits.",
-    )
-    parser.add_argument(
-        "--profile-face-min-neighbors",
-        type=int,
-        default=4,
-        help="minNeighbors used by the profile-face cascade.",
-    )
-    parser.add_argument(
-        "--upperbody-min-neighbors",
-        type=int,
-        default=3,
-        help="minNeighbors used by the upper-body cascade.",
-    )
-    parser.add_argument(
-        "--upperbody-min-size",
-        type=int,
-        default=56,
-        help="Minimum upper-body size in pixels for tolerant person counting.",
-    )
-    parser.add_argument(
-        "--standalone-hog-min-confidence",
-        type=float,
-        default=0.72,
-        help="Minimum confidence required before an unanchored HOG box counts as a person.",
-    )
-    parser.add_argument(
         "--hand-cue-min-area-ratio",
         type=float,
         default=0.0015,
@@ -240,6 +203,137 @@ def parse_args() -> argparse.Namespace:
         default=0.55,
         help="Minimum normalized confidence emitted for a hand/arm cue.",
     )
+    parser.add_argument(
+        "--selected-target-max-center-distance",
+        type=float,
+        default=0.16,
+        help="Maximum normalized center distance allowed when recovering the previous target after track-id churn.",
+    )
+    parser.add_argument(
+        "--selected-target-max-size-delta",
+        type=float,
+        default=0.045,
+        help="Maximum |size_norm| delta allowed when recovering the previous target by spatial continuity.",
+    )
+    parser.add_argument(
+        "--selected-target-switch-margin",
+        type=float,
+        default=0.22,
+        help="Required score advantage before automatic selection abandons the current stable target.",
+    )
+    parser.add_argument(
+        "--default-target-mode",
+        choices=["person_follow", "tabletop_follow"],
+        default="person_follow",
+        help="Default target-selection strategy when the operator state does not override it.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-top",
+        type=float,
+        default=0.50,
+        help="Normalized top bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-bottom",
+        type=float,
+        default=0.96,
+        help="Normalized bottom bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-left",
+        type=float,
+        default=0.08,
+        help="Normalized left bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-roi-right",
+        type=float,
+        default=0.92,
+        help="Normalized right bound of the tabletop/object search ROI.",
+    )
+    parser.add_argument(
+        "--tabletop-min-area-ratio",
+        type=float,
+        default=0.004,
+        help="Minimum frame-area ratio for a tabletop object candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-max-area-ratio",
+        type=float,
+        default=0.22,
+        help="Maximum frame-area ratio for a tabletop object candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-min-edge-ratio",
+        type=float,
+        default=0.05,
+        help="Minimum Canny-edge occupancy inside a tabletop candidate bbox.",
+    )
+    parser.add_argument(
+        "--tabletop-min-motion-ratio",
+        type=float,
+        default=0.01,
+        help="Minimum foreground-motion occupancy that boosts a tabletop candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-min-aspect-ratio",
+        type=float,
+        default=0.45,
+        help="Minimum bbox aspect ratio (w/h) for a tabletop candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-max-aspect-ratio",
+        type=float,
+        default=2.2,
+        help="Maximum bbox aspect ratio (w/h) for a tabletop candidate.",
+    )
+    parser.add_argument(
+        "--tabletop-hold-missing-frames",
+        type=int,
+        default=6,
+        help="How many consecutive empty frames to keep the last tabletop target alive before declaring loss.",
+    )
+    parser.add_argument(
+        "--tabletop-switch-margin",
+        type=float,
+        default=0.34,
+        help="Required score advantage before tabletop mode abandons the current stable target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-center-distance",
+        type=float,
+        default=0.22,
+        help="Maximum normalized center distance allowed when recovering the previous tabletop target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-size-delta",
+        type=float,
+        default=0.065,
+        help="Maximum |size_norm| delta allowed when recovering the previous tabletop target.",
+    )
+    parser.add_argument(
+        "--tabletop-max-aspect-delta",
+        type=float,
+        default=0.48,
+        help="Maximum |aspect_ratio| delta allowed when recovering the previous tabletop target.",
+    )
+    parser.add_argument(
+        "--owner-face-registry",
+        type=Path,
+        help="Optional owner-face registry JSON built by register_owner_face.py.",
+    )
+    parser.add_argument(
+        "--owner-match-threshold",
+        type=float,
+        default=0.82,
+        help="Cosine-similarity threshold for treating a detected face as the registered owner.",
+    )
+    parser.add_argument(
+        "--owner-selection-bonus",
+        type=float,
+        default=0.24,
+        help="Selection-score bonus applied when a candidate face/person matches the registered owner.",
+    )
     return parser.parse_args()
 
 
@@ -260,6 +354,55 @@ def find_latest_jpg(captures_dir: Path) -> Path | None:
 def load_image(path: Path) -> np.ndarray | None:
     data = np.frombuffer(path.read_bytes(), dtype=np.uint8)
     return cv2.imdecode(data, cv2.IMREAD_COLOR)
+
+
+def match_owner_faces(
+    frame: np.ndarray,
+    faces: list[tuple[int, int, int, int]],
+    owner_registry: dict[str, Any] | None,
+    *,
+    threshold: float,
+) -> list[dict[str, Any]]:
+    if owner_registry is None:
+        return []
+
+    matches: list[dict[str, Any]] = []
+    frame_width = float(frame.shape[1])
+    frame_height = float(frame.shape[0])
+    for bbox in faces:
+        crop = crop_bbox_with_padding(frame, bbox)
+        embedding = extract_face_embedding(crop) if crop is not None else None
+        match = match_face_embedding(embedding, owner_registry, threshold=threshold)
+        if not match["matched"]:
+            continue
+        x, y, bw, bh = bbox
+        center_x = (x + (bw / 2.0)) / frame_width
+        center_y = (y + (bh / 2.0)) / frame_height
+        matches.append(
+            {
+                "bbox": tuple(int(value) for value in bbox),
+                "owner_id": match["owner_id"],
+                "owner_confidence": round(float(match["confidence"]), 4),
+                "owner_direction": classify_horizontal_zone(center_x),
+                "center_norm": {"x": round(center_x, 4), "y": round(center_y, 4)},
+            }
+        )
+    return matches
+
+
+def select_best_owner_observation(owner_matches: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not owner_matches:
+        return None
+    return max(owner_matches, key=lambda item: float(item.get("owner_confidence") or 0.0))
+
+
+def apply_owner_match_to_track(track: dict[str, Any], owner_match: dict[str, Any], *, selection_bonus: float) -> None:
+    track["owner_face_found"] = True
+    track["owner_id"] = owner_match.get("owner_id")
+    track["owner_confidence"] = round(float(owner_match.get("owner_confidence") or 0.0), 4)
+    track["owner_direction"] = owner_match.get("owner_direction") or track.get("horizontal_zone") or "unknown"
+    track["selection_score"] = round(float(track.get("selection_score", 0.0) or 0.0) + selection_bonus, 4)
+    track["confidence"] = round(min(0.99, float(track.get("confidence", 0.0) or 0.0) + 0.04), 4)
 
 
 def classify_horizontal_zone(x_norm: float | None) -> str:
@@ -335,9 +478,19 @@ def make_control_hint(center_x: float | None, center_y: float | None, distance_b
     }
 
 
-def infer_scene_hint(target_present: bool, distance_band: str, approach_state: str, horizontal_zone: str) -> tuple[str, str]:
+def infer_scene_hint(
+    target_present: bool,
+    distance_band: str,
+    approach_state: str,
+    horizontal_zone: str,
+    *,
+    target_mode: str,
+    target_class: str,
+) -> tuple[str, str]:
     if not target_present:
         return "sleep", "当前没有稳定目标，适合回到休息或等待状态。"
+    if target_mode == "tabletop_follow" or target_class == "object":
+        return "track_target", "桌面目标已进入工作区，适合进入桌面目标跟随。"
     if distance_band == "far":
         return "wake_up", "目标刚进入可见范围，适合先进入唤醒与注意建立。"
     if approach_state == "approaching" or horizontal_zone != "center":
@@ -351,6 +504,7 @@ def make_track_entry(
     bbox: tuple[int, int, int, int],
     detector: str,
     target_class: str,
+    target_mode: str,
     confidence: float,
     frame_width: int,
     frame_height: int,
@@ -373,6 +527,7 @@ def make_track_entry(
     return {
         "track_id": track_id,
         "target_class": target_class,
+        "target_mode": target_mode,
         "detector": detector,
         "confidence": round(confidence, 4),
         "bbox_norm": {
@@ -433,30 +588,206 @@ def assign_track_ids(candidates: list[dict[str, Any]], state: ExtractorState) ->
             "detector": item["detector"],
             "target_class": item["target_class"],
             "size_norm": item["size_norm"],
+            "bbox_norm": dict(item["bbox_norm"]),
         }
         for item in assigned
     }
     return assigned
 
 
+def continuity_center_distance(track: dict[str, Any], reference: dict[str, Any]) -> float | None:
+    center = track.get("center_norm")
+    ref_center = reference.get("center_norm")
+    if not isinstance(center, dict) or not isinstance(ref_center, dict):
+        return None
+    try:
+        dx = float(center.get("x", 0.5)) - float(ref_center.get("x", 0.5))
+        dy = float(center.get("y", 0.5)) - float(ref_center.get("y", 0.5))
+    except (TypeError, ValueError):
+        return None
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def continuity_size_delta(track: dict[str, Any], reference: dict[str, Any]) -> float | None:
+    try:
+        track_size = float(track.get("size_norm"))
+        ref_size = float(reference.get("size_norm"))
+    except (TypeError, ValueError):
+        return None
+    return abs(track_size - ref_size)
+
+
+def continuity_metric_delta(track: dict[str, Any], reference: dict[str, Any], key: str) -> float | None:
+    try:
+        track_value = float(track.get(key))
+        ref_value = float(reference.get(key))
+    except (TypeError, ValueError):
+        return None
+    return abs(track_value - ref_value)
+
+
+def find_continuity_target(
+    tracks: list[dict[str, Any]],
+    reference: dict[str, Any] | None,
+    *,
+    max_center_distance: float,
+    max_size_delta: float,
+) -> tuple[dict[str, Any] | None, float | None, float | None]:
+    if reference is None:
+        return None, None, None
+
+    best_track = None
+    best_center_distance = None
+    best_size_delta = None
+    best_metric = 999.0
+    reference_class = str(reference.get("target_class") or "")
+
+    for item in tracks:
+        if reference_class and str(item.get("target_class") or "") != reference_class:
+            continue
+        center_distance = continuity_center_distance(item, reference)
+        if center_distance is None or center_distance > max_center_distance:
+            continue
+        size_delta = continuity_size_delta(item, reference)
+        if size_delta is not None and size_delta > max_size_delta:
+            continue
+        detector_penalty = 0.0 if str(item.get("detector") or "") == str(reference.get("detector") or "") else 0.03
+        metric = center_distance + ((size_delta or 0.0) * 0.85) + detector_penalty
+        if metric < best_metric:
+            best_metric = metric
+            best_track = item
+            best_center_distance = center_distance
+            best_size_delta = size_delta
+
+    return best_track, best_center_distance, best_size_delta
+
+
+def find_tabletop_continuity_target(
+    tracks: list[dict[str, Any]],
+    reference: dict[str, Any] | None,
+    *,
+    max_center_distance: float,
+    max_size_delta: float,
+    max_aspect_delta: float,
+) -> tuple[dict[str, Any] | None, dict[str, float | None]]:
+    if reference is None:
+        return None, {}
+
+    best_track = None
+    best_metric = 999.0
+    best_diagnostics: dict[str, float | None] = {}
+
+    for item in tracks:
+        if str(item.get("target_mode") or "") != "tabletop_follow":
+            continue
+        center_distance = continuity_center_distance(item, reference)
+        if center_distance is None or center_distance > max_center_distance:
+            continue
+        size_delta = continuity_size_delta(item, reference)
+        if size_delta is not None and size_delta > max_size_delta:
+            continue
+        aspect_delta = continuity_metric_delta(item, reference, "aspect_ratio")
+        if aspect_delta is not None and aspect_delta > max_aspect_delta:
+            continue
+        edge_delta = continuity_metric_delta(item, reference, "edge_ratio")
+        motion_delta = continuity_metric_delta(item, reference, "motion_ratio")
+        metric = center_distance
+        metric += (size_delta or 0.0) * 0.7
+        metric += (aspect_delta or 0.0) * 0.3
+        metric += (edge_delta or 0.0) * 0.25
+        metric += (motion_delta or 0.0) * 0.15
+        if metric < best_metric:
+            best_metric = metric
+            best_track = item
+            best_diagnostics = {
+                "continuity_distance_norm": center_distance,
+                "continuity_size_delta": size_delta,
+                "continuity_aspect_delta": aspect_delta,
+                "continuity_edge_delta": edge_delta,
+                "continuity_motion_delta": motion_delta,
+            }
+
+    return best_track, best_diagnostics
+
+
+def decorate_selected_target(
+    track: dict[str, Any],
+    *,
+    lock_state: str,
+    reason: str,
+    best_score: float | None = None,
+    continuity_distance_norm: float | None = None,
+    continuity_size_delta: float | None = None,
+    continuity_aspect_delta: float | None = None,
+    continuity_edge_delta: float | None = None,
+    continuity_motion_delta: float | None = None,
+) -> dict[str, Any]:
+    selected = dict(track)
+    selected["lock_state"] = lock_state
+    selected["reason"] = reason
+    if best_score is not None:
+        try:
+            margin = max(0.0, float(best_score) - float(track.get("selection_score", 0.0) or 0.0))
+        except (TypeError, ValueError):
+            margin = 0.0
+        selected["score_margin_to_best"] = round(margin, 4)
+    if continuity_distance_norm is not None:
+        selected["continuity_distance_norm"] = round(continuity_distance_norm, 4)
+    if continuity_size_delta is not None:
+        selected["continuity_size_delta"] = round(continuity_size_delta, 4)
+    if continuity_aspect_delta is not None:
+        selected["continuity_aspect_delta"] = round(continuity_aspect_delta, 4)
+    if continuity_edge_delta is not None:
+        selected["continuity_edge_delta"] = round(continuity_edge_delta, 4)
+    if continuity_motion_delta is not None:
+        selected["continuity_motion_delta"] = round(continuity_motion_delta, 4)
+    return selected
+
+
 def choose_selected_target(
     tracks: list[dict[str, Any]],
     state: ExtractorState,
     *,
+    args: argparse.Namespace | None = None,
     operator_state: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not tracks:
         return None
+
+    ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
+    best_track = ranked[0]
+    best_score = float(best_track.get("selection_score", 0.0) or 0.0)
+    last_selected_mode = state.last_selected_target.get("target_mode") if state.last_selected_target else None
+    mode = str(best_track.get("target_mode") or last_selected_mode or "person_follow")
+    is_tabletop = mode == "tabletop_follow"
+    switch_margin = float(
+        getattr(args, "tabletop_switch_margin", 0.34)
+        if is_tabletop
+        else getattr(args, "selected_target_switch_margin", 0.22)
+    )
+    max_center_distance = float(
+        getattr(args, "tabletop_max_center_distance", 0.22)
+        if is_tabletop
+        else getattr(args, "selected_target_max_center_distance", 0.16)
+    )
+    max_size_delta = float(
+        getattr(args, "tabletop_max_size_delta", 0.065)
+        if is_tabletop
+        else getattr(args, "selected_target_max_size_delta", 0.045)
+    )
+    max_aspect_delta = float(getattr(args, "tabletop_max_aspect_delta", 0.48))
 
     operator_lock_track_id = parse_operator_lock_track_id(operator_state)
     if operator_lock_track_id is not None:
         for item in tracks:
             if int(item["track_id"]) == operator_lock_track_id:
                 state.selected_track_id = operator_lock_track_id
-                selected = dict(item)
-                selected["lock_state"] = "operator_locked"
-                selected["reason"] = "director console requested target lock"
-                return selected
+                return decorate_selected_target(
+                    item,
+                    lock_state="operator_locked",
+                    reason="director console requested target lock",
+                    best_score=best_score,
+                )
 
     locked_track = None
     if state.selected_track_id is not None:
@@ -466,22 +797,93 @@ def choose_selected_target(
                 break
 
     if locked_track is not None:
-        selected = dict(locked_track)
-        selected["lock_state"] = "locked"
-        selected["reason"] = "previous selected target still visible"
-        return selected
+        margin = max(0.0, best_score - float(locked_track.get("selection_score", 0.0) or 0.0))
+        if int(best_track["track_id"]) != int(locked_track["track_id"]) and margin > switch_margin:
+            state.selected_track_id = int(best_track["track_id"])
+            return decorate_selected_target(
+                best_track,
+                lock_state="locked",
+                reason=(
+                    f"auto-switched from track {locked_track['track_id']} because "
+                    f"score margin {margin:.2f} exceeded {switch_margin:.2f}"
+                ),
+                best_score=best_score,
+            )
+        return decorate_selected_target(
+            locked_track,
+            lock_state="locked",
+            reason=(
+                "previous selected tabletop target still visible"
+                if str(locked_track.get("target_mode") or "") == "tabletop_follow"
+                else "previous selected target still visible"
+            ),
+            best_score=best_score,
+        )
 
-    ranked = sorted(tracks, key=lambda item: item.get("selection_score", 0.0), reverse=True)
-    selected = dict(ranked[0])
-    if len(tracks) == 1:
-        selected["lock_state"] = "locked"
-        selected["reason"] = "single visible target"
-        state.selected_track_id = int(selected["track_id"])
+    if is_tabletop:
+        continuity_track, continuity_diagnostics = find_tabletop_continuity_target(
+            tracks,
+            state.last_selected_target,
+            max_center_distance=max_center_distance,
+            max_size_delta=max_size_delta,
+            max_aspect_delta=max_aspect_delta,
+        )
+        if continuity_track is not None:
+            margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
+            if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
+                state.selected_track_id = int(continuity_track["track_id"])
+                return decorate_selected_target(
+                    continuity_track,
+                    lock_state="locked",
+                    reason="recovered previous tabletop target by spatial continuity",
+                    best_score=best_score,
+                    continuity_distance_norm=continuity_diagnostics.get("continuity_distance_norm"),
+                    continuity_size_delta=continuity_diagnostics.get("continuity_size_delta"),
+                    continuity_aspect_delta=continuity_diagnostics.get("continuity_aspect_delta"),
+                    continuity_edge_delta=continuity_diagnostics.get("continuity_edge_delta"),
+                    continuity_motion_delta=continuity_diagnostics.get("continuity_motion_delta"),
+                )
     else:
-        selected["lock_state"] = "candidate"
-        selected["reason"] = "highest score among multiple visible targets"
+        continuity_track, continuity_distance, continuity_size = find_continuity_target(
+            tracks,
+            state.last_selected_target,
+            max_center_distance=max_center_distance,
+            max_size_delta=max_size_delta,
+        )
+        if continuity_track is not None:
+            margin = max(0.0, best_score - float(continuity_track.get("selection_score", 0.0) or 0.0))
+            if int(continuity_track["track_id"]) == int(best_track["track_id"]) or margin <= switch_margin:
+                state.selected_track_id = int(continuity_track["track_id"])
+                return decorate_selected_target(
+                    continuity_track,
+                    lock_state="locked",
+                    reason="recovered previous selected target by spatial continuity",
+                    best_score=best_score,
+                    continuity_distance_norm=continuity_distance,
+                    continuity_size_delta=continuity_size,
+                )
+
+    selected = dict(best_track)
+    if len(tracks) == 1:
+        state.selected_track_id = int(selected["track_id"])
+        return decorate_selected_target(
+            selected,
+            lock_state="locked",
+            reason="single visible tabletop target" if is_tabletop else "single visible target",
+            best_score=best_score,
+        )
+    else:
         state.selected_track_id = None
-    return selected
+        return decorate_selected_target(
+            selected,
+            lock_state="candidate",
+            reason=(
+                "highest score among multiple visible tabletop targets"
+                if is_tabletop
+                else "highest score among multiple visible targets"
+            ),
+            best_score=best_score,
+        )
 
 def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int | None:
     if not isinstance(operator_state, dict):
@@ -494,6 +896,15 @@ def parse_operator_lock_track_id(operator_state: dict[str, Any] | None) -> int |
     except (TypeError, ValueError):
         return None
     return value if value > 0 else None
+
+
+def resolve_target_mode(operator_state: dict[str, Any] | None, args: argparse.Namespace) -> str:
+    raw = ""
+    if isinstance(operator_state, dict):
+        raw = str(operator_state.get("targetMode") or "").strip().lower()
+    if raw in {"person_follow", "tabletop_follow"}:
+        return raw
+    return str(getattr(args, "default_target_mode", "person_follow"))
 
 
 def load_operator_state(path: Path | None) -> dict[str, Any]:
@@ -522,15 +933,108 @@ def hold_selected_target(state: ExtractorState, args: argparse.Namespace) -> dic
         return None
     if not state.last_target_present:
         return None
-    if state.missing_frame_count > args.hold_missing_frames:
+    target_mode = str(state.last_selected_target.get("target_mode") or "person_follow")
+    hold_limit = args.tabletop_hold_missing_frames if target_mode == "tabletop_follow" else args.hold_missing_frames
+    if state.missing_frame_count > hold_limit:
         return None
 
     held = dict(state.last_selected_target)
-    held["confidence"] = round(max(0.35, float(held.get("confidence") or 0.0) * 0.84), 4)
+    confidence_decay = 0.90 if target_mode == "tabletop_follow" else 0.84
+    held["confidence"] = round(max(0.35, float(held.get("confidence") or 0.0) * confidence_decay), 4)
     held["lock_state"] = "held"
-    held["reason"] = f"short occlusion hold ({state.missing_frame_count}/{args.hold_missing_frames})"
+    hold_label = "tabletop occlusion hold" if target_mode == "tabletop_follow" else "short occlusion hold"
+    held["reason"] = f"{hold_label} ({state.missing_frame_count}/{hold_limit})"
     held["approach_state"] = "stable"
+    held["score_margin_to_best"] = 0.0
     return held
+
+
+def detect_tabletop_object_candidates(
+    frame: np.ndarray,
+    fg_mask: np.ndarray,
+    *,
+    args: argparse.Namespace,
+    previous_size_norm: float | None,
+) -> list[dict[str, Any]]:
+    h, w = frame.shape[:2]
+    roi_left = int(round(clamp(args.tabletop_roi_left, 0.0, 1.0) * w))
+    roi_right = int(round(clamp(args.tabletop_roi_right, 0.0, 1.0) * w))
+    roi_top = int(round(clamp(args.tabletop_roi_top, 0.0, 1.0) * h))
+    roi_bottom = int(round(clamp(args.tabletop_roi_bottom, 0.0, 1.0) * h))
+    roi_left = max(0, min(roi_left, w - 1))
+    roi_right = max(roi_left + 1, min(roi_right, w))
+    roi_top = max(0, min(roi_top, h - 1))
+    roi_bottom = max(roi_top + 1, min(roi_bottom, h))
+
+    roi = frame[roi_top:roi_bottom, roi_left:roi_right]
+    fg_roi = fg_mask[roi_top:roi_bottom, roi_left:roi_right]
+    if roi.size == 0 or fg_roi.size == 0:
+        return []
+
+    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray_roi, 60, 150)
+    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
+    motion = cv2.threshold(fg_roi, 127, 255, cv2.THRESH_BINARY)[1]
+    combined = cv2.bitwise_or(edges, motion)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    candidates: list[dict[str, Any]] = []
+    frame_area = float(w * h)
+    for contour in contours:
+        area = float(cv2.contourArea(contour))
+        if area <= 0:
+            continue
+        x, y, bw, bh = cv2.boundingRect(contour)
+        bbox_area = float(max(1, bw * bh))
+        area_ratio = bbox_area / frame_area
+        if area_ratio < args.tabletop_min_area_ratio or area_ratio > args.tabletop_max_area_ratio:
+            continue
+        aspect_ratio = bw / float(max(1, bh))
+        if aspect_ratio < args.tabletop_min_aspect_ratio or aspect_ratio > args.tabletop_max_aspect_ratio:
+            continue
+        edge_ratio = float(cv2.countNonZero(edges[y : y + bh, x : x + bw])) / bbox_area
+        motion_ratio = float(cv2.countNonZero(motion[y : y + bh, x : x + bw])) / bbox_area
+        fill_ratio = area / bbox_area
+        if edge_ratio < args.tabletop_min_edge_ratio:
+            continue
+        if fill_ratio < 0.18:
+            continue
+
+        edge_score = min(edge_ratio / max(args.tabletop_min_edge_ratio * 2.2, 1e-6), 1.0)
+        motion_score = min(motion_ratio / max(args.tabletop_min_motion_ratio * 3.0, 1e-6), 1.0)
+        size_score = min(area_ratio / max(args.tabletop_min_area_ratio * 6.0, 1e-6), 1.0)
+        confidence = round(min(0.97, 0.34 + (edge_score * 0.28) + (motion_score * 0.16) + (size_score * 0.14) + (fill_ratio * 0.16)), 4)
+        if motion_ratio < args.tabletop_min_motion_ratio and confidence < 0.62:
+            continue
+
+        bbox = (x + roi_left, y + roi_top, bw, bh)
+        entry = make_track_entry(
+            track_id=0,
+            bbox=bbox,
+            detector="tabletop_object",
+            target_class="object",
+            target_mode="tabletop_follow",
+            confidence=confidence,
+            frame_width=w,
+            frame_height=h,
+            previous_size_norm=previous_size_norm,
+        )
+        entry["roi_mode"] = "tabletop"
+        object_lock_strength = 0.0
+        object_lock_strength += float(entry["selection_score"])
+        object_lock_strength += min(edge_ratio * 0.9, 0.18)
+        object_lock_strength += min(motion_ratio * 0.6, 0.10)
+        object_lock_strength += min(fill_ratio * 0.18, 0.08)
+        entry["selection_score"] = round(object_lock_strength + 0.12, 4)
+        entry["edge_ratio"] = round(edge_ratio, 4)
+        entry["motion_ratio"] = round(motion_ratio, 4)
+        entry["aspect_ratio"] = round(aspect_ratio, 4)
+        entry["fill_ratio"] = round(fill_ratio, 4)
+        entry["object_lock_strength"] = round(object_lock_strength, 4)
+        candidates.append(entry)
+
+    return candidates
 
 
 def detect_people(frame: np.ndarray, hog: Any, *, min_confidence: float) -> list[tuple[tuple[int, int, int, int], float]]:
@@ -564,369 +1068,14 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def bbox_iou(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> float:
-    ax, ay, aw, ah = a
-    bx, by, bw, bh = b
-    left = max(ax, bx)
-    top = max(ay, by)
-    right = min(ax + aw, bx + bw)
-    bottom = min(ay + ah, by + bh)
-    if right <= left or bottom <= top:
-        return 0.0
-    intersection = float((right - left) * (bottom - top))
-    union = float(max(1, aw * ah) + max(1, bw * bh) - intersection)
-    return intersection / union
-
-
-def clip_bbox(
-    bbox: tuple[int, int, int, int],
-    *,
-    frame_width: int,
-    frame_height: int,
-) -> tuple[int, int, int, int] | None:
-    x, y, bw, bh = bbox
-    left = max(0, int(round(x)))
-    top = max(0, int(round(y)))
-    right = min(frame_width, int(round(x + bw)))
-    bottom = min(frame_height, int(round(y + bh)))
-    if right <= left or bottom <= top:
-        return None
-    return (left, top, right - left, bottom - top)
-
-
-def expand_face_bbox(
-    bbox: tuple[int, int, int, int],
-    *,
-    frame_width: int,
-    frame_height: int,
-) -> tuple[int, int, int, int] | None:
-    x, y, bw, bh = bbox
-    expanded = (
-        x - (bw * 0.55),
-        y - (bh * 0.35),
-        bw * 2.1,
-        bh * 3.3,
-    )
-    return clip_bbox(expanded, frame_width=frame_width, frame_height=frame_height)
-
-
-def merge_ranked_boxes(
-    detections: list[tuple[tuple[int, int, int, int], float]],
-    *,
-    iou_threshold: float,
-) -> list[tuple[tuple[int, int, int, int], float]]:
-    merged: list[tuple[tuple[int, int, int, int], float]] = []
-    for bbox, score in sorted(detections, key=lambda item: item[1], reverse=True):
-        if any(bbox_iou(bbox, existing_bbox) >= iou_threshold for existing_bbox, _ in merged):
-            continue
-        merged.append((bbox, score))
-    return merged
-
-
-def detect_faces(gray: np.ndarray, cascades: CascadeBundle, args: argparse.Namespace) -> list[tuple[tuple[int, int, int, int], float]]:
-    min_face = max(18, int(args.face_min_size))
-    detections: list[tuple[tuple[int, int, int, int], float]] = []
-
-    frontal_specs = [
-        (cascades.frontal_default, 0.92, max(3, int(args.face_min_neighbors))),
-        (cascades.frontal_alt2, 0.84, max(2, int(args.face_min_neighbors) - 1)),
-    ]
-    for cascade, confidence, min_neighbors in frontal_specs:
-        if cascade is None:
-            continue
-        faces = cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.08,
-            minNeighbors=min_neighbors,
-            minSize=(min_face, min_face),
-        )
-        detections.extend((tuple(int(value) for value in box), confidence) for box in faces)
-
-    if cascades.profile is not None:
-        profile_neighbors = max(2, int(args.profile_face_min_neighbors))
-        profile_faces = cascades.profile.detectMultiScale(
-            gray,
-            scaleFactor=1.08,
-            minNeighbors=profile_neighbors,
-            minSize=(min_face, min_face),
-        )
-        detections.extend((tuple(int(value) for value in box), 0.8) for box in profile_faces)
-
-        flipped = cv2.flip(gray, 1)
-        mirrored_faces = cascades.profile.detectMultiScale(
-            flipped,
-            scaleFactor=1.08,
-            minNeighbors=profile_neighbors,
-            minSize=(min_face, min_face),
-        )
-        frame_width = gray.shape[1]
-        for x, y, bw, bh in mirrored_faces:
-            mirrored_x = frame_width - int(x) - int(bw)
-            detections.append(((mirrored_x, int(y), int(bw), int(bh)), 0.8))
-
-    return merge_ranked_boxes(detections, iou_threshold=0.24)
-
-
-def detect_upper_bodies(
-    gray: np.ndarray,
-    cascades: CascadeBundle,
-    args: argparse.Namespace,
-) -> list[tuple[tuple[int, int, int, int], float]]:
-    if cascades.upperbody is None:
-        return []
-    min_size = max(32, int(args.upperbody_min_size))
-    bodies = cascades.upperbody.detectMultiScale(
+def detect_faces(gray: np.ndarray, cascade: cv2.CascadeClassifier) -> list[tuple[int, int, int, int]]:
+    faces = cascade.detectMultiScale(
         gray,
-        scaleFactor=1.06,
-        minNeighbors=max(2, int(args.upperbody_min_neighbors)),
-        minSize=(min_size, min_size),
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(40, 40),
     )
-    detections: list[tuple[tuple[int, int, int, int], float]] = []
-    for x, y, bw, bh in bodies:
-        aspect = float(bh) / max(1.0, float(bw))
-        if aspect < 0.8 or aspect > 3.4:
-            continue
-        detections.append(((int(x), int(y), int(bw), int(bh)), 0.72))
-    return merge_ranked_boxes(detections, iou_threshold=0.28)
-
-
-def is_plausible_standalone_hog(
-    bbox: tuple[int, int, int, int],
-    *,
-    frame_width: int,
-    frame_height: int,
-    confidence: float,
-    min_confidence: float,
-) -> bool:
-    if confidence < min_confidence:
-        return False
-    x, y, bw, bh = bbox
-    center_y = (y + (bh / 2.0)) / max(1.0, float(frame_height))
-    width_norm = bw / max(1.0, float(frame_width))
-    height_norm = bh / max(1.0, float(frame_height))
-    aspect = float(bh) / max(1.0, float(bw))
-    if center_y < 0.30:
-        return False
-    if width_norm < 0.10 or height_norm < 0.18:
-        return False
-    if aspect < 1.05 or aspect > 3.8:
-        return False
-    return True
-
-
-def same_person_candidate(a: dict[str, Any], b: dict[str, Any], *, frame_width: int, frame_height: int) -> bool:
-    bbox_a = denormalize_bbox(a.get("bbox_norm"), frame_width=frame_width, frame_height=frame_height)
-    bbox_b = denormalize_bbox(b.get("bbox_norm"), frame_width=frame_width, frame_height=frame_height)
-    if bbox_a is None or bbox_b is None:
-        return False
-    if bbox_iou(bbox_a, bbox_b) >= 0.18:
-        return True
-
-    center_a = a.get("center_norm") if isinstance(a.get("center_norm"), dict) else {}
-    center_b = b.get("center_norm") if isinstance(b.get("center_norm"), dict) else {}
-    try:
-        ax = float(center_a.get("x", 0.5))
-        ay = float(center_a.get("y", 0.5))
-        bx = float(center_b.get("x", 0.5))
-        by = float(center_b.get("y", 0.5))
-    except (TypeError, ValueError):
-        return False
-
-    support_a = a.get("cue_support") if isinstance(a.get("cue_support"), dict) else {}
-    support_b = b.get("cue_support") if isinstance(b.get("cue_support"), dict) else {}
-    face_only_a = bool(support_a.get("face")) and not bool(support_a.get("upperbody")) and not bool(support_a.get("hog"))
-    face_only_b = bool(support_b.get("face")) and not bool(support_b.get("upperbody")) and not bool(support_b.get("hog"))
-    if face_only_a and face_only_b and abs(ax - bx) <= 0.16 and abs(ay - by) <= 0.5:
-        return True
-    if abs(ax - bx) <= 0.11 and abs(ay - by) <= 0.42 and (face_only_a or face_only_b):
-        return True
-    return False
-
-
-def build_person_candidates(
-    *,
-    face_detections: list[tuple[tuple[int, int, int, int], float]],
-    upperbody_detections: list[tuple[tuple[int, int, int, int], float]],
-    hog_detections: list[tuple[tuple[int, int, int, int], float]],
-    frame_width: int,
-    frame_height: int,
-    previous_size_norm: float | None,
-    standalone_hog_min_confidence: float,
-) -> list[dict[str, Any]]:
-    anchors: list[dict[str, Any]] = []
-    frame_area = float(max(1, frame_width * frame_height))
-
-    for bbox, confidence in face_detections:
-        expanded = expand_face_bbox(bbox, frame_width=frame_width, frame_height=frame_height)
-        if expanded is None:
-            continue
-        face_center_x = (bbox[0] + (bbox[2] / 2.0)) / frame_width
-        face_center_y = (bbox[1] + (bbox[3] / 2.0)) / frame_height
-        merged = False
-        for anchor in anchors:
-            if not anchor["has_face"]:
-                continue
-            existing_face_center_x, existing_face_center_y = anchor["face_center"]
-            if abs(face_center_x - existing_face_center_x) > 0.1:
-                continue
-            if abs(face_center_y - existing_face_center_y) > 0.3:
-                continue
-            if bbox_iou(expanded, anchor["bbox"]) < 0.05 and face_center_y <= existing_face_center_y:
-                continue
-            anchor["bbox"] = clip_bbox(
-                (
-                    min(anchor["bbox"][0], expanded[0]),
-                    min(anchor["bbox"][1], expanded[1]),
-                    max(anchor["bbox"][0] + anchor["bbox"][2], expanded[0] + expanded[2]) - min(anchor["bbox"][0], expanded[0]),
-                    max(anchor["bbox"][1] + anchor["bbox"][3], expanded[1] + expanded[3]) - min(anchor["bbox"][1], expanded[1]),
-                ),
-                frame_width=frame_width,
-                frame_height=frame_height,
-            ) or anchor["bbox"]
-            anchor["confidence"] = max(anchor["confidence"], confidence)
-            anchor["face_hits"] += 1
-            anchor["face_area"] = max(anchor["face_area"], float(max(1, bbox[2] * bbox[3])))
-            anchor["face_center"] = (
-                (existing_face_center_x + face_center_x) / 2.0,
-                (existing_face_center_y + face_center_y) / 2.0,
-            )
-            merged = True
-            break
-        if merged:
-            continue
-        anchors.append(
-            {
-                "bbox": expanded,
-                "confidence": confidence,
-                "has_face": True,
-                "face_hits": 1,
-                "face_area": float(max(1, bbox[2] * bbox[3])),
-                "face_center": (face_center_x, face_center_y),
-                "has_upperbody": False,
-                "has_hog": False,
-            }
-        )
-
-    for bbox, confidence in upperbody_detections:
-        merged = False
-        for anchor in anchors:
-            if bbox_iou(bbox, anchor["bbox"]) >= 0.12:
-                anchor["bbox"] = clip_bbox(
-                    (
-                        min(anchor["bbox"][0], bbox[0]),
-                        min(anchor["bbox"][1], bbox[1]),
-                        max(anchor["bbox"][0] + anchor["bbox"][2], bbox[0] + bbox[2]) - min(anchor["bbox"][0], bbox[0]),
-                        max(anchor["bbox"][1] + anchor["bbox"][3], bbox[1] + bbox[3]) - min(anchor["bbox"][1], bbox[1]),
-                    ),
-                    frame_width=frame_width,
-                    frame_height=frame_height,
-                ) or anchor["bbox"]
-                anchor["confidence"] = max(anchor["confidence"], confidence)
-                anchor["has_upperbody"] = True
-                merged = True
-                break
-        if not merged:
-            anchors.append(
-                {
-                    "bbox": bbox,
-                    "confidence": confidence,
-                    "has_face": False,
-                    "face_hits": 0,
-                    "face_area": 0.0,
-                    "face_center": (0.5, 0.5),
-                    "has_upperbody": True,
-                    "has_hog": False,
-                }
-            )
-
-    for bbox, confidence in hog_detections:
-        matched = False
-        for anchor in anchors:
-            if bbox_iou(bbox, anchor["bbox"]) >= 0.1:
-                anchor["bbox"] = clip_bbox(
-                    (
-                        min(anchor["bbox"][0], bbox[0]),
-                        min(anchor["bbox"][1], bbox[1]),
-                        max(anchor["bbox"][0] + anchor["bbox"][2], bbox[0] + bbox[2]) - min(anchor["bbox"][0], bbox[0]),
-                        max(anchor["bbox"][1] + anchor["bbox"][3], bbox[1] + bbox[3]) - min(anchor["bbox"][1], bbox[1]),
-                    ),
-                    frame_width=frame_width,
-                    frame_height=frame_height,
-                ) or anchor["bbox"]
-                anchor["confidence"] = max(anchor["confidence"], min(0.96, confidence + 0.04))
-                anchor["has_hog"] = True
-                matched = True
-                break
-        if not matched and is_plausible_standalone_hog(
-            bbox,
-            frame_width=frame_width,
-            frame_height=frame_height,
-            confidence=confidence,
-            min_confidence=standalone_hog_min_confidence,
-        ):
-            anchors.append(
-                {
-                    "bbox": bbox,
-                    "confidence": confidence,
-                    "has_face": False,
-                    "face_hits": 0,
-                    "face_area": 0.0,
-                    "face_center": (0.5, 0.5),
-                    "has_upperbody": False,
-                    "has_hog": True,
-                }
-            )
-
-    candidates: list[dict[str, Any]] = []
-    for anchor in anchors:
-        bbox = anchor["bbox"]
-        confidence = float(anchor["confidence"])
-        face_area_ratio = float(anchor.get("face_area") or 0.0) / frame_area
-        bbox_top_norm = bbox[1] / max(1.0, float(frame_height))
-        bbox_size_norm = (bbox[2] * bbox[3]) / frame_area
-        if (
-            anchor["has_face"]
-            and not anchor["has_upperbody"]
-            and not anchor["has_hog"]
-            and anchor["face_hits"] <= 1
-            and face_area_ratio < 0.0018
-            and bbox_top_norm < 0.24
-            and bbox_size_norm < 0.018
-        ):
-            continue
-        if anchor["has_face"]:
-            detector = "haar_face"
-            confidence = min(0.98, confidence + (0.03 if anchor["has_upperbody"] else 0.0) + (0.02 if anchor["has_hog"] else 0.0))
-        else:
-            detector = "hog_person"
-            confidence = min(0.94, confidence + (0.04 if anchor["has_upperbody"] else 0.0))
-
-        candidates.append(
-            make_track_entry(
-                track_id=0,
-                bbox=bbox,
-                detector=detector,
-                target_class="person",
-                confidence=confidence,
-                frame_width=frame_width,
-                frame_height=frame_height,
-                previous_size_norm=previous_size_norm,
-            )
-        )
-        candidates[-1]["cue_support"] = {
-            "face": bool(anchor["has_face"]),
-            "upperbody": bool(anchor["has_upperbody"]),
-            "hog": bool(anchor["has_hog"]),
-        }
-        candidates[-1]["face_hits"] = int(anchor["face_hits"])
-
-    ranked = sorted(candidates, key=lambda item: item.get("selection_score", 0.0), reverse=True)
-    filtered: list[dict[str, Any]] = []
-    for item in ranked:
-        if any(same_person_candidate(item, existing, frame_width=frame_width, frame_height=frame_height) for existing in filtered):
-            continue
-        filtered.append(item)
-    return filtered
+    return [tuple(int(value) for value in box) for box in faces]
 
 
 def compute_foreground_mask(frame: np.ndarray, subtractor: cv2.BackgroundSubtractor) -> np.ndarray:
@@ -1138,11 +1287,13 @@ def build_event(
     confidence: float,
     state: ExtractorState,
     args: argparse.Namespace,
+    target_mode: str = "person_follow",
     target_count: int = 0,
     tracks: list[dict[str, Any]] | None = None,
     selected_target: dict[str, Any] | None = None,
     multi_target_payload: dict[str, Any] | None = None,
     interaction_hint: dict[str, Any] | None = None,
+    owner_observation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     h, w = frame.shape[:2]
     size_norm = None
@@ -1217,7 +1368,14 @@ def build_event(
     if target_count >= 2 and selected_lock_state != "locked":
         scene_name, scene_reason = "multi_person_demo", "同一帧检测到两个稳定目标，适合进入多人反应。"
     else:
-        scene_name, scene_reason = infer_scene_hint(target_present, distance_band, approach_state, horizontal_zone)
+        scene_name, scene_reason = infer_scene_hint(
+            target_present,
+            distance_band,
+            approach_state,
+            horizontal_zone,
+            target_mode=target_mode,
+            target_class=target_class,
+        )
 
     frame_age_ms = max(0.0, (time.time() - path.stat().st_mtime) * 1000.0)
     event = {
@@ -1228,6 +1386,7 @@ def build_event(
             "pipeline": "saved_jpeg_watch",
             "camera_mode": "single_camera_2d",
             "distance_mode": "monocular_heuristic",
+            "target_mode": target_mode,
         },
         "frame": {
             "path": str(path.resolve()),
@@ -1241,6 +1400,7 @@ def build_event(
             "target_count": target_count if target_count > 0 else (1 if target_present else 0),
             "track_id": None if selected_target is None else selected_target.get("track_id"),
             "target_class": target_class if target_present else "none",
+            "target_mode": target_mode,
             "detector": detector,
             "confidence": round(confidence if target_present else 0.0, 4),
             "bbox_norm": bbox_norm,
@@ -1250,6 +1410,10 @@ def build_event(
             "size_norm": None if size_norm is None else round(size_norm, 6),
             "distance_band": distance_band,
             "approach_state": approach_state,
+            "owner_face_found": False,
+            "owner_id": None,
+            "owner_confidence": None,
+            "owner_direction": "unknown",
         },
         "scene_hint": {
             "name": scene_name,
@@ -1264,12 +1428,27 @@ def build_event(
     }
     if tracks is not None:
         event["tracks"] = tracks
+    owner_source = None
+    if selected_target is not None and bool(selected_target.get("owner_face_found")):
+        owner_source = selected_target
+    elif owner_observation is not None:
+        owner_source = owner_observation
+    if owner_source is not None:
+        event["tracking"]["owner_face_found"] = True
+        event["tracking"]["owner_id"] = owner_source.get("owner_id")
+        event["tracking"]["owner_confidence"] = owner_source.get("owner_confidence")
+        event["tracking"]["owner_direction"] = owner_source.get("owner_direction") or owner_source.get("horizontal_zone") or "unknown"
     if selected_target is not None:
+        event["tracking"]["selected_lock_state"] = selected_target.get("lock_state")
+        event["tracking"]["selected_reason"] = selected_target.get("reason")
+        event["tracking"]["roi_mode"] = selected_target.get("roi_mode")
+        event["tracking"]["object_lock_strength"] = selected_target.get("object_lock_strength")
         event["selected_target"] = {
             "track_id": selected_target.get("track_id"),
             "lock_state": selected_target.get("lock_state"),
             "reason": selected_target.get("reason"),
             "target_class": selected_target.get("target_class"),
+            "target_mode": selected_target.get("target_mode"),
             "detector": selected_target.get("detector"),
             "confidence": selected_target.get("confidence"),
             "bbox_norm": selected_target.get("bbox_norm"),
@@ -1280,7 +1459,24 @@ def build_event(
             "distance_band": selected_target.get("distance_band"),
             "approach_state": selected_target.get("approach_state"),
             "selection_score": selected_target.get("selection_score"),
+            "score_margin_to_best": selected_target.get("score_margin_to_best"),
+            "continuity_distance_norm": selected_target.get("continuity_distance_norm"),
+            "continuity_size_delta": selected_target.get("continuity_size_delta"),
+            "continuity_aspect_delta": selected_target.get("continuity_aspect_delta"),
+            "continuity_edge_delta": selected_target.get("continuity_edge_delta"),
+            "continuity_motion_delta": selected_target.get("continuity_motion_delta"),
+            "roi_mode": selected_target.get("roi_mode"),
+            "edge_ratio": selected_target.get("edge_ratio"),
+            "motion_ratio": selected_target.get("motion_ratio"),
+            "aspect_ratio": selected_target.get("aspect_ratio"),
+            "fill_ratio": selected_target.get("fill_ratio"),
+            "object_lock_strength": selected_target.get("object_lock_strength"),
         }
+        if "owner_face_found" in selected_target:
+            event["selected_target"]["owner_face_found"] = bool(selected_target.get("owner_face_found"))
+            event["selected_target"]["owner_id"] = selected_target.get("owner_id")
+            event["selected_target"]["owner_confidence"] = selected_target.get("owner_confidence")
+            event["selected_target"]["owner_direction"] = selected_target.get("owner_direction")
     if multi_target_payload:
         event["payload"] = multi_target_payload
     if interaction_hint is not None:
@@ -1301,8 +1497,9 @@ def process_frame(
     path: Path,
     state: ExtractorState,
     subtractor: cv2.BackgroundSubtractor,
-    cascades: CascadeBundle,
+    cascade: cv2.CascadeClassifier,
     hog: Any,
+    owner_registry: dict[str, Any] | None,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     frame = load_image(path)
@@ -1311,51 +1508,175 @@ def process_frame(
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     operator_state = load_operator_state(args.operator_state_file)
+    target_mode = resolve_target_mode(operator_state, args)
     fg_mask = compute_foreground_mask(frame, subtractor)
     state.bg_warmup_count += 1
 
-    person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
-    faces = detect_faces(gray, cascades, args)
-    upper_bodies = detect_upper_bodies(gray, cascades, args)
-    candidates = build_person_candidates(
-        face_detections=faces,
-        upperbody_detections=upper_bodies,
-        hog_detections=person_detections,
-        frame_width=frame.shape[1],
-        frame_height=frame.shape[0],
-        previous_size_norm=state.last_size_norm,
-        standalone_hog_min_confidence=args.standalone_hog_min_confidence,
-    )
-    if not candidates:
-        motion_bbox, warmup_count = detect_motion_from_mask(
+    candidates: list[dict[str, Any]] = []
+    owner_observation = None
+    if target_mode == "tabletop_follow":
+        candidates = detect_tabletop_object_candidates(
             frame,
             fg_mask,
-            min_area_ratio=args.min_motion_area_ratio,
-            warmup_count=state.bg_warmup_count,
-            warmup_frames=args.warmup_frames,
+            args=args,
+            previous_size_norm=state.last_size_norm,
         )
-        state.bg_warmup_count = warmup_count
-        if motion_bbox is not None:
-            candidates.append(
-                make_track_entry(
+    else:
+        person_detections = detect_people(frame, hog, min_confidence=args.hog_min_confidence) if args.enable_hog_person else []
+        faces = detect_faces(gray, cascade)
+        owner_matches = match_owner_faces(
+            frame,
+            faces,
+            owner_registry,
+            threshold=float(getattr(args, "owner_match_threshold", 0.82)),
+        )
+        owner_observation = select_best_owner_observation(owner_matches)
+        owner_matches_by_bbox = {
+            tuple(int(value) for value in item["bbox"]): item
+            for item in owner_matches
+        }
+        if person_detections:
+            for bbox, weight in person_detections:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=bbox,
+                        detector="hog_person",
+                        target_class="person",
+                        target_mode="person_follow",
+                        confidence=weight,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
+
+            # Face detections are used as confidence hints when they land inside a person box.
+            for face_bbox in faces:
+                fx, fy, fw, fh = face_bbox
+                face_cx = fx + (fw / 2.0)
+                face_cy = fy + (fh / 2.0)
+                owner_match = owner_matches_by_bbox.get(tuple(int(value) for value in face_bbox))
+                for item in candidates:
+                    bx = item["bbox_norm"]["x"] * frame.shape[1]
+                    by = item["bbox_norm"]["y"] * frame.shape[0]
+                    bw = item["bbox_norm"]["w"] * frame.shape[1]
+                    bh = item["bbox_norm"]["h"] * frame.shape[0]
+                    if bx <= face_cx <= bx + bw and by <= face_cy <= by + bh:
+                        item["confidence"] = round(min(0.98, float(item["confidence"]) + 0.08), 4)
+                        item["selection_score"] = round(float(item["selection_score"]) + 0.12, 4)
+                        if owner_match is not None:
+                            apply_owner_match_to_track(
+                                item,
+                                owner_match,
+                                selection_bonus=float(getattr(args, "owner_selection_bonus", 0.24)),
+                            )
+                        break
+        elif faces:
+            confidence = 0.92 if len(faces) >= 2 else 0.90
+            for bbox in faces:
+                entry = make_track_entry(
                     track_id=0,
-                    bbox=motion_bbox,
-                    detector="background_motion",
-                    target_class="motion_blob",
-                    confidence=0.55,
+                    bbox=bbox,
+                    detector="haar_face",
+                    target_class="person",
+                    target_mode="person_follow",
+                    confidence=confidence,
                     frame_width=frame.shape[1],
                     frame_height=frame.shape[0],
                     previous_size_norm=state.last_size_norm,
                 )
+                owner_match = owner_matches_by_bbox.get(tuple(int(value) for value in bbox))
+                if owner_match is not None:
+                    apply_owner_match_to_track(
+                        entry,
+                        owner_match,
+                        selection_bonus=float(getattr(args, "owner_selection_bonus", 0.24)),
+                    )
+                candidates.append(entry)
+        elif args.enable_hog_person:
+            people = detect_people(frame, hog, min_confidence=args.hog_min_confidence)
+            for bbox, confidence in people:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=bbox,
+                        detector="hog_person",
+                        target_class="person",
+                        target_mode="person_follow",
+                        confidence=confidence,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
+        else:
+            motion_bbox, warmup_count = detect_motion_from_mask(
+                frame,
+                fg_mask,
+                min_area_ratio=args.min_motion_area_ratio,
+                warmup_count=state.bg_warmup_count,
+                warmup_frames=args.warmup_frames,
             )
+            state.bg_warmup_count = warmup_count
+            if motion_bbox is not None:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=motion_bbox,
+                        detector="background_motion",
+                        target_class="motion_blob",
+                        target_mode="person_follow",
+                        confidence=0.55,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
+
+        if not candidates and args.enable_hog_person:
+            motion_bbox, warmup_count = detect_motion_from_mask(
+                frame,
+                fg_mask,
+                min_area_ratio=args.min_motion_area_ratio,
+                warmup_count=state.bg_warmup_count,
+                warmup_frames=args.warmup_frames,
+            )
+            state.bg_warmup_count = warmup_count
+            if motion_bbox is not None:
+                candidates.append(
+                    make_track_entry(
+                        track_id=0,
+                        bbox=motion_bbox,
+                        detector="background_motion",
+                        target_class="motion_blob",
+                        target_mode="person_follow",
+                        confidence=0.55,
+                        frame_width=frame.shape[1],
+                        frame_height=frame.shape[0],
+                        previous_size_norm=state.last_size_norm,
+                    )
+                )
 
     candidates = [item for item in candidates if within_engagement_zone(item, args)]
+    owner_candidate_observations = [
+        {
+            "owner_id": item.get("owner_id"),
+            "owner_confidence": item.get("owner_confidence"),
+            "owner_direction": item.get("owner_direction") or item.get("horizontal_zone"),
+            "horizontal_zone": item.get("horizontal_zone"),
+        }
+        for item in candidates
+        if bool(item.get("owner_face_found"))
+    ]
+    owner_observation = select_best_owner_observation(owner_candidate_observations)
 
     tracks = assign_track_ids(candidates, state)
-    selected_target = choose_selected_target(tracks, state, operator_state=operator_state)
+    selected_target = choose_selected_target(tracks, state, args=args, operator_state=operator_state)
     bbox = None
     detector = "none"
     target_class = "none"
+    active_target_mode = target_mode
     confidence = 0.0
     target_count = len(tracks)
     multi_target_payload = None
@@ -1365,6 +1686,7 @@ def process_frame(
         state.last_selected_target = dict(selected_target)
         detector = str(selected_target["detector"])
         target_class = str(selected_target["target_class"])
+        active_target_mode = str(selected_target.get("target_mode") or target_mode)
         confidence = float(selected_target["confidence"])
         bbox_norm = selected_target["bbox_norm"]
         if isinstance(bbox_norm, dict):
@@ -1383,6 +1705,7 @@ def process_frame(
         else:
             detector = str(selected_target["detector"])
             target_class = str(selected_target["target_class"])
+            active_target_mode = str(selected_target.get("target_mode") or target_mode)
             confidence = float(selected_target["confidence"])
             bbox_norm = selected_target.get("bbox_norm")
             if isinstance(bbox_norm, dict):
@@ -1421,11 +1744,13 @@ def process_frame(
         confidence=confidence,
         state=state,
         args=args,
+        target_mode=active_target_mode,
         target_count=target_count,
         tracks=tracks,
         selected_target=selected_target,
         multi_target_payload=multi_target_payload,
         interaction_hint=interaction_hint,
+        owner_observation=owner_observation,
     )
 
     state.last_frame_path = path
@@ -1448,31 +1773,18 @@ def main() -> int:
     captures_dir = args.captures_dir.expanduser().resolve()
     latest_event_out = args.latest_event_out.expanduser().resolve() if args.latest_event_out else None
     events_jsonl = args.events_jsonl.expanduser().resolve() if args.events_jsonl else None
+    owner_registry_path = args.owner_face_registry.expanduser().resolve() if args.owner_face_registry else None
 
-    frontal_default = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    if frontal_default.empty():
+    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    if cascade.empty():
         raise SystemExit("OpenCV haarcascade_frontalface_default.xml is unavailable.")
-    frontal_alt2 = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml")
-    if frontal_alt2.empty():
-        frontal_alt2 = None
-    profile = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_profileface.xml")
-    if profile.empty():
-        profile = None
-    upperbody = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_upperbody.xml")
-    if upperbody.empty():
-        upperbody = None
-    cascades = CascadeBundle(
-        frontal_default=frontal_default,
-        frontal_alt2=frontal_alt2,
-        profile=profile,
-        upperbody=upperbody,
-    )
 
     hog = None
     if args.enable_hog_person:
         hog = cv2.HOGDescriptor()
         hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
+    owner_registry = load_face_registry(owner_registry_path)
     subtractor = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=32, detectShadows=False)
     state = ExtractorState()
 
@@ -1481,11 +1793,18 @@ def main() -> int:
         LOGGER.info("Latest event output: %s", latest_event_out)
     if events_jsonl:
         LOGGER.info("JSONL event log: %s", events_jsonl)
+    if owner_registry is not None:
+        LOGGER.info(
+            "Owner-face registry loaded: %s (owner=%s samples=%s)",
+            owner_registry_path,
+            owner_registry.get("owner_id"),
+            owner_registry.get("sample_count"),
+        )
 
     while True:
         latest = find_latest_jpg(captures_dir)
         if latest is not None and latest != state.last_frame_path:
-            event = process_frame(latest, state, subtractor, cascades, hog, args)
+            event = process_frame(latest, state, subtractor, cascade, hog, owner_registry, args)
             print(json.dumps(event, ensure_ascii=False))
             write_event_outputs(event, latest_event_out, events_jsonl)
 

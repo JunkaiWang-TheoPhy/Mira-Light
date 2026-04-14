@@ -6,14 +6,18 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import platform
+import selectors
 import shutil
 import subprocess
 import sys
+import time
 
 from download_llama_cpp_model import MODEL_PRESETS, default_model_root, resolve_entry_filename
 
 
 DEFAULT_PROMPT = "请用中文用两句话介绍你自己，并说明你可以如何帮助 Mira Light。"
+DEFAULT_TIMEOUT_SECONDS = 60.0
+DEFAULT_MAX_OUTPUT_BYTES = 16384
 
 
 def resolve_model_dir(args: argparse.Namespace) -> Path:
@@ -44,30 +48,88 @@ def resolve_model_file(args: argparse.Namespace, model_dir: Path) -> Path:
     return model_dir / default_entry
 
 
-def find_llama_binary(binary_name: str) -> str:
-    direct = shutil.which(binary_name)
-    if direct:
-        return direct
+def find_llama_binary(*binary_names: str) -> tuple[str, str]:
+    for binary_name in binary_names:
+        direct = shutil.which(binary_name)
+        if direct:
+            return direct, binary_name
 
-    brew_prefix = shutil.which("brew")
-    if brew_prefix:
-        try:
-            prefix = subprocess.check_output([brew_prefix, "--prefix"], text=True).strip()
-        except subprocess.SubprocessError:
-            prefix = ""
-        if prefix:
-            candidate = Path(prefix) / "bin" / binary_name
-            if candidate.is_file():
-                return str(candidate)
+        brew_prefix = shutil.which("brew")
+        if brew_prefix:
+            try:
+                prefix = subprocess.check_output([brew_prefix, "--prefix"], text=True).strip()
+            except subprocess.SubprocessError:
+                prefix = ""
+            if prefix:
+                candidate = Path(prefix) / "bin" / binary_name
+                if candidate.is_file():
+                    return str(candidate), binary_name
 
-    fallback_root = Path.home() / ".openclaw" / "mira-light-llama.cpp" / "build" / "bin" / binary_name
-    if fallback_root.is_file():
-        return str(fallback_root)
+        fallback_root = Path.home() / ".openclaw" / "mira-light-llama.cpp" / "build" / "bin" / binary_name
+        if fallback_root.is_file():
+            return str(fallback_root), binary_name
 
+    binary_text = ", ".join(binary_names)
     raise SystemExit(
-        f"{binary_name} was not found.\n"
+        f"No llama.cpp binary was found ({binary_text}).\n"
         "Run `bash scripts/setup_llama_cpp_env.sh` first."
     )
+
+
+def run_bounded_command(
+    command: list[str],
+    *,
+    timeout_seconds: float,
+    max_output_bytes: int,
+) -> tuple[int, str, str, str | None]:
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert process.stdout is not None
+    assert process.stderr is not None
+
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ, data="stdout")
+    selector.register(process.stderr, selectors.EVENT_READ, data="stderr")
+
+    captured = {"stdout": bytearray(), "stderr": bytearray()}
+    failure_reason: str | None = None
+    deadline = time.monotonic() + timeout_seconds
+
+    while selector.get_map():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            failure_reason = f"timed out after {timeout_seconds:.1f}s"
+            process.kill()
+            remaining = 0.1
+
+        events = selector.select(timeout=min(remaining, 0.2))
+        if not events and process.poll() is not None:
+            events = [(key, None) for key in list(selector.get_map().values())]
+
+        for key, _ in events:
+            stream = key.fileobj
+            chunk = stream.read1(4096) if hasattr(stream, "read1") else stream.read(4096)
+            if not chunk:
+                selector.unregister(stream)
+                continue
+
+            target = captured[str(key.data)]
+            remaining_bytes = max_output_bytes - len(target)
+            if remaining_bytes > 0:
+                target.extend(chunk[:remaining_bytes])
+            if len(chunk) > remaining_bytes and failure_reason is None:
+                failure_reason = f"{key.data} exceeded {max_output_bytes} bytes"
+                process.kill()
+
+    returncode = process.wait()
+    stdout_text = captured["stdout"].decode("utf-8", errors="replace")
+    stderr_text = captured["stderr"].decode("utf-8", errors="replace")
+    return returncode, stdout_text, stderr_text, failure_reason
 
 
 def default_gpu_layers() -> int:
@@ -85,6 +147,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-tokens", type=int, default=96, help="Maximum tokens for the smoke response.")
     parser.add_argument("--threads", type=int, default=8, help="CPU threads for llama.cpp.")
     parser.add_argument("--n-gpu-layers", type=int, default=default_gpu_layers(), help="GPU layers for llama.cpp.")
+    parser.add_argument("--timeout-seconds", type=float, default=DEFAULT_TIMEOUT_SECONDS, help="Hard timeout for the local llama.cpp process.")
+    parser.add_argument("--max-output-bytes", type=int, default=DEFAULT_MAX_OUTPUT_BYTES, help="Maximum stdout or stderr bytes to capture before aborting.")
     return parser
 
 
@@ -107,9 +171,9 @@ def main() -> int:
             "Run the downloader again or pass --model-file explicitly."
         )
 
-    llama_cli = find_llama_binary("llama-cli")
+    llama_binary, llama_binary_name = find_llama_binary("llama-completion", "llama-cli")
     command = [
-        llama_cli,
+        llama_binary,
         "-m",
         str(model_file),
         "-p",
@@ -120,15 +184,27 @@ def main() -> int:
         str(args.threads),
         "-ngl",
         str(args.n_gpu_layers),
-        "--no-display-prompt",
     ]
+    if llama_binary_name == "llama-cli":
+        command.append("--no-display-prompt")
 
-    print(f"[smoke] llama-cli: {llama_cli}")
+    print(f"[smoke] binary: {llama_binary_name} ({llama_binary})")
     print(f"[smoke] model: {model_file}")
     print(f"[smoke] gpu layers: {args.n_gpu_layers}")
     print("[smoke] generating...\n")
-    result = subprocess.run(command, check=False)
-    return result.returncode
+    returncode, stdout_text, stderr_text, failure_reason = run_bounded_command(
+        command,
+        timeout_seconds=args.timeout_seconds,
+        max_output_bytes=args.max_output_bytes,
+    )
+    if stdout_text:
+        print(stdout_text, end="" if stdout_text.endswith("\n") else "\n")
+    if stderr_text:
+        print(stderr_text, file=sys.stderr, end="" if stderr_text.endswith("\n") else "\n")
+    if failure_reason:
+        print(f"[smoke] aborted: {failure_reason}", file=sys.stderr)
+        return 124
+    return returncode
 
 
 if __name__ == "__main__":

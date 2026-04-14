@@ -4,6 +4,7 @@ import unittest
 
 import sys
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,7 @@ from vision_runtime_bridge import BridgeState, handle_event
 class FakeRuntime:
     def __init__(self) -> None:
         self.started_scenes: list[str] = []
+        self.started_scene_contexts: list[Any] = []
         self.tracking_events: list[dict] = []
         self.triggered_events: list[dict] = []
         self.dry_run = True
@@ -29,10 +31,11 @@ class FakeRuntime:
             "trackingActive": False,
         }
 
-    def start_scene(self, scene_name: str) -> None:
+    def start_scene(self, scene_name: str, scene_context: Any = None) -> None:
         self.started_scenes.append(scene_name)
+        self.started_scene_contexts.append(scene_context)
 
-    def trigger_event(self, event_name: str, payload: dict | None = None) -> dict:
+    def trigger_event(self, event_name: str, payload: Any = None) -> dict:
         self.triggered_events.append({"event": event_name, "payload": payload or {}})
         scene_name = {
             "farewell_detected": "farewell",
@@ -78,8 +81,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
             "hand_avoid_extended_max_center_y": 0.86,
             "hand_avoid_extended_min_confidence": 0.90,
             "hand_avoid_min_lateral_offset": 0.18,
-            "scene_allowed_detectors": "haar_face",
-            "tracking_allowed_detectors": "haar_face,background_motion",
+            "scene_allowed_detectors": "haar_face,tabletop_object",
+            "tracking_allowed_detectors": "haar_face,background_motion,tabletop_object",
             "touch_allowed_detectors": "haar_face,hog_person",
             "touch_allow_person_fallback": False,
             "log_json": False,
@@ -130,6 +133,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertFalse(runtime.started_scenes)
         self.assertEqual(len(runtime.tracking_events), 1)
         self.assertEqual(runtime.tracking_events[0]["source"], "vision")
+        self.assertEqual(bridge_state.last_decision["action"], "apply_tracking")
+        self.assertEqual(bridge_state.last_decision["candidateScene"], "track_target")
 
     def test_target_lost_triggers_dynamic_farewell_event(self) -> None:
         runtime = FakeRuntime()
@@ -155,6 +160,64 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertEqual(runtime.triggered_events[0]["payload"]["primaryDirection"], "left")
         self.assertEqual(runtime.triggered_events[0]["payload"]["secondaryDirection"], "right")
         self.assertIn("multi_person_demo", runtime.started_scenes)
+
+    def test_curious_observe_scene_receives_face_search_context(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(scene_cooldown_ms=0)
+        event = {
+            "event_type": "target_updated",
+            "scene_hint": {"name": "curious_observe", "reason": "near target lingering in front"},
+            "tracking": {
+                "target_present": True,
+                "target_class": "person",
+                "detector": "haar_face",
+                "horizontal_zone": "left",
+                "vertical_zone": "middle",
+                "distance_band": "mid",
+                "confidence": 0.93,
+            },
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertEqual(runtime.started_scenes[0], "curious_observe")
+        self.assertEqual(runtime.started_scene_contexts[0]["ownerDirection"], "left")
+        self.assertTrue(runtime.started_scene_contexts[0]["ownerFaceFound"])
+        self.assertEqual(runtime.started_scene_contexts[0]["judgeDirection"], "left")
+
+    def test_curious_observe_context_respects_owner_match_even_for_person_detector(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(
+            scene_cooldown_ms=0,
+            scene_allowed_detectors="haar_face,hog_person,tabletop_object",
+            tracking_allowed_detectors="haar_face,hog_person,background_motion,tabletop_object",
+        )
+        event = {
+            "event_type": "target_updated",
+            "scene_hint": {"name": "curious_observe", "reason": "owner matched inside person box"},
+            "tracking": {
+                "target_present": True,
+                "target_class": "person",
+                "detector": "hog_person",
+                "horizontal_zone": "right",
+                "vertical_zone": "middle",
+                "distance_band": "mid",
+                "confidence": 0.88,
+                "owner_face_found": True,
+                "owner_id": "owner_main",
+                "owner_confidence": 0.91,
+                "owner_direction": "right",
+            },
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertEqual(runtime.started_scenes[0], "curious_observe")
+        self.assertTrue(runtime.started_scene_contexts[0]["ownerFaceFound"])
+        self.assertEqual(runtime.started_scene_contexts[0]["ownerDirection"], "right")
+        self.assertEqual(runtime.started_scene_contexts[0]["ownerId"], "owner_main")
 
     def test_low_confidence_motion_blob_does_not_trigger_scene(self) -> None:
         runtime = FakeRuntime()
@@ -184,6 +247,8 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
 
         self.assertFalse(runtime.started_scenes)
         self.assertFalse(runtime.tracking_events)
+        self.assertEqual(bridge_state.last_decision["action"], "blocked")
+        self.assertIn("background_motion", bridge_state.last_decision["sceneGateReason"])
 
     def test_locked_selected_target_prefers_tracking_over_multi_person_demo(self) -> None:
         runtime = FakeRuntime()
@@ -261,6 +326,43 @@ class VisionRuntimeBridgeTest(unittest.TestCase):
         self.assertFalse(runtime.started_scenes)
         self.assertEqual(len(runtime.tracking_events), 1)
         self.assertEqual(runtime.tracking_events[0]["event"]["tracking"]["track_id"], 4)
+
+    def test_tabletop_target_seen_prefers_track_target_over_wake_up(self) -> None:
+        runtime = FakeRuntime()
+        bridge_state = BridgeState()
+        args = self.make_args(scene_cooldown_ms=0)
+        event = {
+            "event_type": "target_seen",
+            "scene_hint": {"name": "track_target", "reason": "tabletop object detected"},
+            "tracking": {
+                "target_present": True,
+                "target_count": 1,
+                "track_id": 21,
+                "target_class": "object",
+                "target_mode": "tabletop_follow",
+                "detector": "tabletop_object",
+                "horizontal_zone": "left",
+                "vertical_zone": "lower",
+                "distance_band": "mid",
+                "approach_state": "stable",
+                "size_norm": 0.048,
+                "confidence": 0.82,
+                "center_norm": {"x": 0.28, "y": 0.72},
+            },
+            "control_hint": {
+                "yaw_error_norm": -0.44,
+                "pitch_error_norm": -0.44,
+                "lift_intent": 0.28,
+                "reach_intent": 0.55,
+            },
+        }
+
+        handle_event(event, runtime, bridge_state, args, None)
+
+        self.assertFalse(runtime.started_scenes)
+        self.assertEqual(len(runtime.tracking_events), 1)
+        self.assertEqual(bridge_state.last_decision["candidateScene"], "track_target")
+        self.assertEqual(bridge_state.last_decision["action"], "apply_tracking")
 
     def test_near_single_target_triggers_hand_near_touch_scene(self) -> None:
         runtime = FakeRuntime()

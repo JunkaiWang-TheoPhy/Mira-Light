@@ -244,6 +244,32 @@
             "stable",
             "unknown"
           ]
+        },
+        "owner_face_found": {
+          "type": "boolean"
+        },
+        "owner_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "owner_direction": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right",
+            "unknown"
+          ]
         }
       }
     },
@@ -500,6 +526,32 @@
         },
         "selection_score": {
           "type": "number"
+        },
+        "owner_face_found": {
+          "type": "boolean"
+        },
+        "owner_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "owner_direction": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right",
+            "unknown"
+          ]
         }
       }
     },

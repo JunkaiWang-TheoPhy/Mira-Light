@@ -56,6 +56,7 @@ class BridgeState:
     last_touch_direction: str | None = None
     last_hand_avoid_direction: str | None = None
     scene_counts: dict[str, int] = field(default_factory=dict)
+    last_decision: dict[str, Any] = field(default_factory=dict)
 
 
 SCENE_PRIORITY: dict[str, int] = {
@@ -88,7 +89,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-url",
-        default=os.environ.get("MIRA_LIGHT_BASE_URL", "http://172.20.10.3"),
+        default=os.environ.get("MIRA_LIGHT_BASE_URL", "tcp://192.168.31.10:9527"),
         help="Lamp base URL passed to MiraLightRuntime.",
     )
     parser.add_argument(
@@ -228,12 +229,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scene-allowed-detectors",
-        default="haar_face,hog_person",
+        default="haar_face,hog_person,tabletop_object",
         help="Comma-separated detector allowlist for scene starts.",
     )
     parser.add_argument(
         "--tracking-allowed-detectors",
-        default="haar_face,hog_person,background_motion",
+        default="haar_face,hog_person,background_motion,tabletop_object",
         help="Comma-separated detector allowlist for live tracking updates.",
     )
     parser.add_argument(
@@ -351,9 +352,56 @@ def write_state_file(path: Path, runtime: MiraLightRuntime, bridge: BridgeState,
             "lastHandAvoidDirection": bridge.last_hand_avoid_direction,
             "sceneCounts": bridge.scene_counts,
         },
+        "lastDecision": bridge.last_decision,
         "lastVisionEvent": last_event,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def record_last_decision(
+    bridge_state: BridgeState,
+    *,
+    event: dict[str, Any],
+    candidate_scene: str,
+    candidate_reason: str,
+    scene_allowed: bool,
+    scene_allowed_reason: str,
+    scene_gate_passed: bool,
+    scene_gate_reason: str,
+    tracking_gate_passed: bool,
+    tracking_gate_reason: str,
+    touch_allowed: bool,
+    touch_reason: str,
+    hand_avoid_allowed: bool,
+    hand_avoid_reason: str,
+    action: str,
+    action_reason: str,
+    selected_target: dict[str, Any] | None,
+) -> None:
+    bridge_state.last_decision = {
+        "updatedAt": now_iso(),
+        "eventType": str(event.get("event_type") or "unknown"),
+        "candidateScene": candidate_scene,
+        "candidateReason": candidate_reason,
+        "sceneAllowed": scene_allowed,
+        "sceneAllowedReason": scene_allowed_reason,
+        "sceneGatePassed": scene_gate_passed,
+        "sceneGateReason": scene_gate_reason,
+        "sceneGateStreak": bridge_state.scene_gate_streak,
+        "trackingGatePassed": tracking_gate_passed,
+        "trackingGateReason": tracking_gate_reason,
+        "trackingGateStreak": bridge_state.tracking_gate_streak,
+        "touchAllowed": touch_allowed,
+        "touchReason": touch_reason,
+        "touchGateStreak": bridge_state.touch_gate_streak,
+        "handAvoidAllowed": hand_avoid_allowed,
+        "handAvoidReason": hand_avoid_reason,
+        "selectedTrackId": None if selected_target is None else selected_target.get("track_id"),
+        "selectedLockState": None if selected_target is None else selected_target.get("lock_state"),
+        "selectedReason": None if selected_target is None else selected_target.get("reason"),
+        "action": action,
+        "actionReason": action_reason,
+    }
 
 
 def should_start_scene(
@@ -414,7 +462,7 @@ def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[s
         return effective, None
 
     lock_state = str(selected.get("lock_state") or "candidate")
-    if lock_state not in {"candidate", "locked", "held", "operator_locked"}:
+    if lock_state not in {"candidate", "locked", "held", "operator_locked", "tracked"}:
         return effective, None
 
     effective.update(
@@ -422,6 +470,7 @@ def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[s
             "track_id": selected.get("track_id"),
             "target_present": True,
             "target_class": selected.get("target_class", tracking.get("target_class", "unknown")),
+            "target_mode": selected.get("target_mode", tracking.get("target_mode", "person_follow")),
             "detector": selected.get("detector", tracking.get("detector", "none")),
             "confidence": selected.get("confidence", tracking.get("confidence", 0.0)),
             "bbox_norm": selected.get("bbox_norm", tracking.get("bbox_norm")),
@@ -432,6 +481,7 @@ def extract_tracking_view(event: dict[str, Any]) -> tuple[dict[str, Any], dict[s
             "distance_band": selected.get("distance_band", tracking.get("distance_band", "unknown")),
             "approach_state": selected.get("approach_state", tracking.get("approach_state", "unknown")),
             "selected_lock_state": lock_state,
+            "selected_reason": selected.get("reason"),
         }
     )
     return effective, selected
@@ -477,6 +527,57 @@ def extract_multi_person_payload(event: dict[str, Any]) -> dict[str, Any]:
         "cueMode": "scene",
         "source": "vision-bridge",
     }
+
+
+def extract_curious_observe_context(
+    event: dict[str, Any],
+    tracking: dict[str, Any],
+    selected: dict[str, Any] | None,
+) -> dict[str, Any]:
+    effective = selected if selected is not None else tracking
+    detector = str(
+        effective.get("detector")
+        or tracking.get("detector")
+        or ""
+    ).strip().lower()
+    judge_direction = normalize_direction(
+        effective.get("horizontal_zone") if isinstance(effective, dict) else None,
+        default="center",
+    )
+    owner_face_found = bool(tracking.get("owner_face_found"))
+    owner_direction = normalize_direction(
+        tracking.get("owner_direction"),
+        default=judge_direction,
+    )
+    if not owner_face_found:
+        owner_face_found = bool(tracking.get("target_present")) and detector in {"haar_face", "face"}
+        owner_direction = judge_direction
+
+    context = {
+        "judgeDirection": judge_direction,
+        "ownerFaceFound": owner_face_found,
+        "cueMode": "scene",
+        "source": "vision-bridge",
+    }
+    if owner_face_found:
+        context["ownerDirection"] = owner_direction
+        context["ownerDetector"] = detector
+        if tracking.get("owner_id") is not None:
+            context["ownerId"] = tracking.get("owner_id")
+        if tracking.get("owner_confidence") is not None:
+            context["ownerConfidence"] = tracking.get("owner_confidence")
+
+    vertical_zone = effective.get("vertical_zone") if isinstance(effective, dict) else None
+    if vertical_zone:
+        context["targetVerticalZone"] = vertical_zone
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+    if "ownerFaceFound" in payload:
+        context["ownerFaceFound"] = bool(payload.get("ownerFaceFound"))
+    if "ownerDirection" in payload:
+        context["ownerDirection"] = normalize_direction(payload.get("ownerDirection"), default=judge_direction)
+    if "judgeDirection" in payload:
+        context["judgeDirection"] = normalize_direction(payload.get("judgeDirection"), default=judge_direction)
+    return context
 
 
 def resolve_touch_side(tracking: dict[str, Any], selected: dict[str, Any] | None) -> str:
@@ -691,6 +792,7 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
     tracking, selected = extract_tracking_view(event)
     payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
     target_present = bool(tracking.get("target_present"))
+    target_mode = str(tracking.get("target_mode") or "person_follow")
     scene_hint = (event.get("scene_hint") or {}).get("name", "none")
     event_type = event.get("event_type", "no_target")
     target_count = int(tracking.get("target_count") or payload.get("targetCount") or 0)
@@ -706,6 +808,8 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
         horizontal_zone = normalize_direction(tracking.get("horizontal_zone"))
         if horizontal_zone != "unknown":
             bridge_state.last_horizontal_zone = horizontal_zone
+        if target_mode == "tabletop_follow":
+            return "track_target", "tabletop target present"
         if event_type == "target_seen":
             return "wake_up", "target_seen transition"
         if scene_hint in {"curious_observe", "track_target"}:
@@ -732,8 +836,16 @@ def resolve_candidate_scene(event: dict[str, Any], bridge_state: BridgeState, no
     return "none", "no target and no prior target state"
 
 
-def apply_scene(scene_name: str, runtime: MiraLightRuntime, bridge_state: BridgeState, now_mono: float, args: argparse.Namespace) -> None:
-    runtime.start_scene(scene_name)
+def apply_scene(
+    scene_name: str,
+    runtime: MiraLightRuntime,
+    bridge_state: BridgeState,
+    now_mono: float,
+    args: argparse.Namespace,
+    *,
+    scene_context: dict[str, Any] | None = None,
+) -> None:
+    runtime.start_scene(scene_name, scene_context=scene_context)
     bridge_state.last_scene_started = scene_name
     bridge_state.last_scene_started_at_monotonic = now_mono
     bridge_state.scene_counts[scene_name] = bridge_state.scene_counts.get(scene_name, 0) + 1
@@ -940,6 +1052,9 @@ def handle_event(
         side=hand_avoid_payload.get("side") if hand_avoid_payload else None,
     )
 
+    action = "noop"
+    action_reason = allowed_reason
+
     if hand_avoid_allowed:
         hand_avoid_scene_allowed, hand_avoid_scene_reason = should_start_scene(
             "hand_avoid",
@@ -955,6 +1070,8 @@ def handle_event(
             reason=hand_avoid_scene_reason,
         )
         if hand_avoid_scene_allowed:
+            action = "trigger:hand_avoid_detected"
+            action_reason = hand_avoid_scene_reason
             apply_trigger_event(
                 runtime,
                 bridge_state,
@@ -976,7 +1093,28 @@ def handle_event(
                 allowed_reason=hand_avoid_scene_reason,
                 args=args,
             )
+            record_last_decision(
+                bridge_state,
+                event=event,
+                candidate_scene="hand_avoid",
+                candidate_reason=hand_avoid_reason,
+                scene_allowed=True,
+                scene_allowed_reason=hand_avoid_scene_reason,
+                scene_gate_passed=scene_gate_passed,
+                scene_gate_reason=scene_gate_reason,
+                tracking_gate_passed=tracking_gate_passed,
+                tracking_gate_reason=tracking_gate_reason,
+                touch_allowed=touch_allowed,
+                touch_reason=touch_reason,
+                hand_avoid_allowed=True,
+                hand_avoid_reason=hand_avoid_reason,
+                action=action,
+                action_reason=action_reason,
+                selected_target=selected_target,
+            )
             return
+        action = "blocked"
+        action_reason = hand_avoid_scene_reason
 
     if touch_allowed:
         touch_scene_allowed, touch_scene_reason = should_start_scene(
@@ -993,6 +1131,8 @@ def handle_event(
             reason=touch_scene_reason,
         )
         if touch_scene_allowed:
+            action = "trigger:hand_near"
+            action_reason = touch_scene_reason
             apply_trigger_event(
                 runtime,
                 bridge_state,
@@ -1015,7 +1155,28 @@ def handle_event(
                 allowed_reason=touch_scene_reason,
                 args=args,
             )
+            record_last_decision(
+                bridge_state,
+                event=event,
+                candidate_scene="touch_affection",
+                candidate_reason=touch_reason,
+                scene_allowed=True,
+                scene_allowed_reason=touch_scene_reason,
+                scene_gate_passed=scene_gate_passed,
+                scene_gate_reason=scene_gate_reason,
+                tracking_gate_passed=tracking_gate_passed,
+                tracking_gate_reason=tracking_gate_reason,
+                touch_allowed=True,
+                touch_reason=touch_reason,
+                hand_avoid_allowed=hand_avoid_allowed,
+                hand_avoid_reason=hand_avoid_reason,
+                action=action,
+                action_reason=action_reason,
+                selected_target=selected_target,
+            )
             return
+        action = "blocked"
+        action_reason = touch_scene_reason
 
     if not target_present and runtime_state.get("trackingActive"):
         runtime.apply_tracking_event(runtime_event, source="vision-clear")
@@ -1023,6 +1184,8 @@ def handle_event(
     if candidate_scene == "track_target" and target_present:
         if not tracking_gate_passed:
             gate_reason = f"tracking gate blocked: {tracking_gate_reason}"
+            action = "blocked"
+            action_reason = tracking_gate_reason
             log(
                 args,
                 "tracking gate blocked",
@@ -1039,6 +1202,25 @@ def handle_event(
                 allowed_reason=tracking_gate_reason,
                 args=args,
             )
+            record_last_decision(
+                bridge_state,
+                event=event,
+                candidate_scene=candidate_scene,
+                candidate_reason=f"{candidate_reason}; {gate_reason}",
+                scene_allowed=False,
+                scene_allowed_reason=tracking_gate_reason,
+                scene_gate_passed=scene_gate_passed,
+                scene_gate_reason=scene_gate_reason,
+                tracking_gate_passed=False,
+                tracking_gate_reason=tracking_gate_reason,
+                touch_allowed=touch_allowed,
+                touch_reason=touch_reason,
+                hand_avoid_allowed=hand_avoid_allowed,
+                hand_avoid_reason=hand_avoid_reason,
+                action=action,
+                action_reason=action_reason,
+                selected_target=selected_target,
+            )
             bridge_state.last_target_present = target_present
             return
         if bridge_state.tracking_gate_streak < args.tracking_persistence_frames:
@@ -1046,6 +1228,8 @@ def handle_event(
                 "tracking gate warming up: "
                 f"{bridge_state.tracking_gate_streak}/{args.tracking_persistence_frames}"
             )
+            action = "blocked"
+            action_reason = streak_reason
             log(args, "tracking gate warming up", reason=streak_reason)
             record_tracking_session_state(
                 memory_client,
@@ -1055,6 +1239,25 @@ def handle_event(
                 allowed=False,
                 allowed_reason=streak_reason,
                 args=args,
+            )
+            record_last_decision(
+                bridge_state,
+                event=event,
+                candidate_scene=candidate_scene,
+                candidate_reason=f"{candidate_reason}; {streak_reason}",
+                scene_allowed=False,
+                scene_allowed_reason=streak_reason,
+                scene_gate_passed=scene_gate_passed,
+                scene_gate_reason=scene_gate_reason,
+                tracking_gate_passed=tracking_gate_passed,
+                tracking_gate_reason=tracking_gate_reason,
+                touch_allowed=touch_allowed,
+                touch_reason=touch_reason,
+                hand_avoid_allowed=hand_avoid_allowed,
+                hand_avoid_reason=hand_avoid_reason,
+                action=action,
+                action_reason=action_reason,
+                selected_target=selected_target,
             )
             bridge_state.last_target_present = target_present
             return
@@ -1073,8 +1276,15 @@ def handle_event(
             distance_band=tracking.get("distance_band"),
         )
         if allowed:
+            action = "apply_tracking"
+            action_reason = allowed_reason
             apply_tracking(runtime, bridge_state, runtime_event, now_mono, args)
+        else:
+            action = "blocked"
+            action_reason = allowed_reason
     elif candidate_scene == "farewell" and allowed:
+        action = "trigger:farewell_detected"
+        action_reason = allowed_reason
         direction = resolve_departure_direction(event, bridge_state)
         apply_trigger_event(
             runtime,
@@ -1086,6 +1296,8 @@ def handle_event(
             args=args,
         )
     elif candidate_scene == "multi_person_demo" and allowed:
+        action = "trigger:multi_person_detected"
+        action_reason = allowed_reason
         apply_trigger_event(
             runtime,
             bridge_state,
@@ -1095,8 +1307,24 @@ def handle_event(
             now_mono=now_mono,
             args=args,
         )
+    elif candidate_scene == "curious_observe" and allowed:
+        action = "start_scene:curious_observe"
+        action_reason = allowed_reason
+        apply_scene(
+            candidate_scene,
+            runtime,
+            bridge_state,
+            now_mono,
+            args,
+            scene_context=extract_curious_observe_context(event, tracking, selected_target),
+        )
     elif allowed:
+        action = f"start_scene:{candidate_scene}"
+        action_reason = allowed_reason
         apply_scene(candidate_scene, runtime, bridge_state, now_mono, args)
+    else:
+        action = "blocked"
+        action_reason = allowed_reason
 
     record_tracking_session_state(
         memory_client,
@@ -1106,6 +1334,25 @@ def handle_event(
         allowed=allowed,
         allowed_reason=allowed_reason,
         args=args,
+    )
+    record_last_decision(
+        bridge_state,
+        event=event,
+        candidate_scene=candidate_scene,
+        candidate_reason=candidate_reason,
+        scene_allowed=allowed,
+        scene_allowed_reason=allowed_reason,
+        scene_gate_passed=scene_gate_passed,
+        scene_gate_reason=scene_gate_reason,
+        tracking_gate_passed=tracking_gate_passed,
+        tracking_gate_reason=tracking_gate_reason,
+        touch_allowed=touch_allowed,
+        touch_reason=touch_reason,
+        hand_avoid_allowed=hand_avoid_allowed,
+        hand_avoid_reason=hand_avoid_reason,
+        action=action,
+        action_reason=action_reason,
+        selected_target=selected_target,
     )
 
     bridge_state.last_target_present = target_present
