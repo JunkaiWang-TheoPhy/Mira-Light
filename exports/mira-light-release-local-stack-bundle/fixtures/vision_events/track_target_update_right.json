@@ -1,0 +1,23 @@
+{
+  "event_type": "target_updated",
+  "scene_hint": {
+    "name": "track_target",
+    "reason": "target is moving to the right"
+  },
+  "tracking": {
+    "target_present": true,
+    "target_count": 1,
+    "detector": "haar_face",
+    "target_class": "person",
+    "horizontal_zone": "right",
+    "vertical_zone": "middle",
+    "distance_band": "mid",
+    "confidence": 0.9
+  },
+  "control_hint": {
+    "yaw_error_norm": 0.42,
+    "pitch_error_norm": -0.18,
+    "lift_intent": 0.6,
+    "reach_intent": 0.55
+  }
+}

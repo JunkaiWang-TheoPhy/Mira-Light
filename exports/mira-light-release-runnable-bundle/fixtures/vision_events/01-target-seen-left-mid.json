@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "target_seen",
+  "timestamp": "2026-04-09T11:30:00+08:00",
+  "source": {
+    "pipeline": "saved_jpeg_watch",
+    "camera_mode": "single_camera_2d",
+    "distance_mode": "monocular_heuristic"
+  },
+  "frame": {
+    "path": "fixtures/vision_events/frame-0001.jpg",
+    "width": 640,
+    "height": 480,
+    "seq": "0001",
+    "capture_ts": null
+  },
+  "tracking": {
+    "target_present": true,
+    "target_class": "person",
+    "detector": "haar_face",
+    "confidence": 0.93,
+    "bbox_norm": {
+      "x": 0.14,
+      "y": 0.20,
+      "w": 0.18,
+      "h": 0.28
+    },
+    "center_norm": {
+      "x": 0.23,
+      "y": 0.34
+    },
+    "horizontal_zone": "left",
+    "vertical_zone": "middle",
+    "size_norm": 0.0504,
+    "distance_band": "mid",
+    "approach_state": "approaching"
+  },
+  "scene_hint": {
+    "name": "track_target",
+    "reason": "目标刚进入画面，后续可能进入跟随观察。"
+  },
+  "control_hint": {
+    "yaw_error_norm": -0.54,
+    "pitch_error_norm": 0.18,
+    "lift_intent": 0.46,
+    "reach_intent": 0.58
+  },
+  "raw_measurements": {
+    "frame_age_ms": 84.2,
+    "bbox_area_px": 15480,
+    "size_delta_norm": 0.018
+  }
+}

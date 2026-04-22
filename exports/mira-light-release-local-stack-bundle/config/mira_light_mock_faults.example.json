@@ -1,0 +1,31 @@
+{
+  "replace": true,
+  "rules": [
+    {
+      "method": "GET",
+      "path": "/status",
+      "mode": "http_error",
+      "status": 503,
+      "times": 1,
+      "body": {
+        "ok": false,
+        "error": "Injected mock status outage"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/led",
+      "mode": "invalid_json",
+      "status": 200,
+      "times": 1,
+      "body": "{invalid-json"
+    },
+    {
+      "method": "POST",
+      "path": "/control",
+      "mode": "timeout",
+      "delayMs": 500,
+      "times": 1
+    }
+  ]
+}

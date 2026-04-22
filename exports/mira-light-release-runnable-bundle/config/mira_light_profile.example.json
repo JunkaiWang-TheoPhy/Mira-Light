@@ -1,0 +1,49 @@
+{
+  "servoCalibration": {
+    "servo1": {
+      "label": "base_yaw",
+      "verified": false,
+      "neutral": 90,
+      "hard_range": [0, 180],
+      "rehearsal_range": [72, 110],
+      "notes": "Replace with real measured values after calibration."
+    },
+    "servo2": {
+      "label": "lower_arm_lift",
+      "verified": false,
+      "neutral": 96,
+      "hard_range": [0, 180],
+      "rehearsal_range": [78, 112],
+      "notes": "Replace with real measured values after calibration."
+    },
+    "servo3": {
+      "label": "upper_arm_pitch",
+      "verified": false,
+      "neutral": 98,
+      "hard_range": [0, 180],
+      "rehearsal_range": [80, 120],
+      "notes": "Replace with real measured values after calibration."
+    },
+    "servo4": {
+      "label": "head_tilt",
+      "verified": false,
+      "neutral": 90,
+      "hard_range": [0, 180],
+      "rehearsal_range": [80, 104],
+      "notes": "Replace with real measured values after calibration."
+    }
+  },
+  "poses": {
+    "neutral": {
+      "verified": false,
+      "angles": {
+        "servo1": 90,
+        "servo2": 96,
+        "servo3": 98,
+        "servo4": 90
+      },
+      "notes": "Copy this file to config/mira_light_profile.local.json and update from real hardware."
+    }
+  }
+}
+

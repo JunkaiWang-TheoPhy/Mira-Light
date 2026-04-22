@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mira Light Offer Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="ambient-panel">
+        <div class="mail-window">
+          <div class="window-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <header class="mail-header">
+            <div>
+              <p class="eyebrow">Offer Demo</p>
+              <h1 id="candidate-title">Mira Light</h1>
+              <p class="subhead">恭喜，你拿到了展位体验设计实习 offer。</p>
+            </div>
+            <div class="status-chip">Celebration Cue Ready</div>
+          </header>
+          <section class="mail-meta">
+            <div>
+              <span>From</span>
+              <strong>Booth Demo Team</strong>
+            </div>
+            <div>
+              <span>Subject</span>
+              <strong>We would love to build the future with you</strong>
+            </div>
+            <div>
+              <span>Received</span>
+              <strong id="received-time">2026-04-09 10:00</strong>
+            </div>
+          </section>
+          <section class="mail-body">
+            <p>
+              你的现场表达、互动节奏和体验判断都非常出色。我们想邀请你加入
+              <strong>Mira Light Booth Lab</strong>，
+              一起把“会表达情绪的台灯”打磨成真正能打动人的产品。
+            </p>
+            <ul class="highlights">
+              <li>角色：体验设计实习生</li>
+              <li>方向：Embodied AI / Booth Interaction</li>
+              <li>地点：Shanghai Demo Studio</li>
+            </ul>
+            <div class="cta-row">
+              <button id="celebrate-btn" class="primary-button" type="button">播放庆祝氛围</button>
+              <a class="secondary-link" href="#notes">查看导演备注</a>
+            </div>
+          </section>
+        </div>
+        <aside class="director-card" id="notes">
+          <p class="eyebrow">Director Note</p>
+          <h2>如何配合 `celebrate` 使用</h2>
+          <ol>
+            <li>先在大屏或这页上展示 offer 邮件。</li>
+            <li>主持人念出“收到一个超级开心的消息”。</li>
+            <li>再触发 `celebrate` 场景。</li>
+          </ol>
+          <p class="small-note">
+            这页故意做得像邮件而不是像宣传海报，因为它更容易让评委立刻理解“为什么灯忽然开心了”。
+          </p>
+        </aside>
+      </section>
+      <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
