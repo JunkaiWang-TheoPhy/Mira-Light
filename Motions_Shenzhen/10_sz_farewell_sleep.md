@@ -10,6 +10,20 @@
 - `operator_cue`: “当你离开的时候，它不会突然结束，而会先目送你，再慢慢回到休息状态。”
 - `success_signal`: 评委能清楚看懂这是一个有情绪的结束动作：先看着你离开，再依依不舍地低下来，最后睡去。
 
+## 当前端侧种子
+
+这个场景仍然是强种子场景。
+
+可直接借用：
+
+- `four_servo_pose_delay_2_return_12_head_turn_once.py`
+- `four_servo_pose_delay_2_return_12_head_turn.py`
+- `sleep_motion.py`
+- `sleep_motion_with_03_return.py`
+- `servo_2_nod_1900_2200.py`
+
+所以它当前主要缺的是链式封装和离场方向的上下文注入，不缺底层动作素材。
+
 ## 为什么深圳版要把 `farewell` 和 `sleep` 合并
 
 默认主包里：

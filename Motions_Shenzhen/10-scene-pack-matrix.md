@@ -17,6 +17,52 @@
 | 9 | `sz_multi_guest_choice` | 它会在两个人之间犹豫并作选择 | `dynamic_builder` | `primaryDirection`, `secondaryDirection`, `selectionReason`, `confidence` |
 | 10 | `sz_farewell_sleep` | 它能完成目送到入睡的完整收尾 | `chain_scene` | `departureDirection`, `lingerMs`, `sleepDelayMs`, `guestId` |
 
+## 当前实施范围
+
+### 本轮先做
+
+- `1. sz_presence_wake`
+- `2. sz_cautious_intro`
+- `3. sz_hand_nuzzle`
+- `7. sz_sigh_comfort`
+- `8. sz_voice_affect_response`
+- `9. sz_multi_guest_choice`
+- `10. sz_farewell_sleep`
+
+### 本轮不做
+
+- `4. sz_hand_boundary`
+- `5. sz_standup_nudge`
+- `6. sz_tabletop_follow`
+
+## 这次范围收缩后的意义
+
+这轮目标不再是一次性铺满 10 个方向，而是先做一条更聚焦的演示链：
+
+1. 来人 -> 醒来
+2. 试探认人
+3. 靠近与亲近
+4. 情绪感知 / 语言反馈
+5. 多人时的活物感
+6. 送别与入睡
+
+也就是说，这轮更像一条“主秀剧情线”，而不是完整功能覆盖。
+
+## 按最新端侧文件重估后的板端种子强度
+
+| 场景 | 板端种子强度 | 当前状态判断 |
+| --- | --- | --- |
+| `sz_presence_wake` | 强 | 已有抬起、缓慢归姿和灯头 `WAKE` 能力，主要缺正式整合 |
+| `sz_cautious_intro` | 中强 | 新增了前倾、躲闪、点头、摇头种子，可做完整试探链 |
+| `sz_hand_nuzzle` | 弱 | 仍缺直接“蹭手”脚本，只能借前倾和灯效 |
+| `sz_hand_boundary` | 中 | `dodge` 新脚本已形成核心种子 |
+| `sz_standup_nudge` | 中 | 有前倾、点头、摇头，但还缺现成“三拍蹭蹭” |
+| `sz_tabletop_follow` | 弱 | 依然缺端侧视觉闭环到关节更新 |
+| `sz_sigh_comfort` | 中 | 灯头暖光和慢点头已经够做第一版 |
+| `sz_voice_affect_response` | 中 | `nod` / `shake` / `dodge` 加灯效，已能支撑分支化表达 |
+| `sz_multi_guest_choice` | 中 | 有摇头和 head-turn 种子，但还缺完整双目标逻辑 |
+| `sz_farewell_sleep` | 强 | 目送、点头、回正、睡眠都已有成熟材料 |
+
 ## 为什么不用现有 release 的 10 主场景直接照搬
 
 因为深圳现场更需要的是“感知可信度”，不是“动作数量”。

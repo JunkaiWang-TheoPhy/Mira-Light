@@ -2,11 +2,12 @@
 
 这个目录不是现有 `Motions/` 的简单复制，而是一套面向深圳现场的全新 scene pack 规格文档。
 
-它的目标不是先写 choreography，而是先把下面三件事讲清楚：
+它的目标不是先写 choreography，而是先把下面四件事讲清楚：
 
 1. 深圳现场到底要证明什么
 2. 哪 10 个交互最值得占用导演台主按钮
-3. 这些交互未来应该怎样接到现有 `scene -> runtime -> director console` 链路
+3. 端侧真实协议层到底长什么样
+4. 这些交互未来应该怎样接到现有 `scene -> runtime -> director console` 链路
 
 ## 这套 Shenzhen pack 的核心判断
 
@@ -41,6 +42,34 @@
 8. `sz_voice_affect_response`
 9. `sz_multi_guest_choice`
 10. `sz_farewell_sleep`
+
+## 当前实施范围
+
+当前这轮明确先做：
+
+- `1. sz_presence_wake`
+- `2. sz_cautious_intro`
+- `3. sz_hand_nuzzle`
+- `7. sz_sigh_comfort`
+- `8. sz_voice_affect_response`
+- `9. sz_multi_guest_choice`
+- `10. sz_farewell_sleep`
+
+当前明确暂不做：
+
+- `4. sz_hand_boundary`
+- `5. sz_standup_nudge`
+- `6. sz_tabletop_follow`
+
+这意味着当前深圳版不是完整 10 宫格同时推进，而是先围绕：
+
+- 开场欢迎
+- 认人与亲近
+- 情绪接住
+- 多人活物感
+- 送别收尾
+
+形成一条更聚焦的主秀链。
 
 ## 为什么是这 10 个
 
@@ -88,7 +117,27 @@
 - `operator_cue`
 - `success_signal`
 
-### 2. choreography 真值层
+### 2. 端侧协议真值层
+
+当前已经在 `reference_rdk_x5_board/` 里明确落地。
+
+它负责说明：
+
+- UART1 二进制总线舵机协议
+- UART3 灯头文本协议
+- PWM 直控实验路径属于旁路，不属于主动作链
+
+### 3. 端侧 Python 动作编排层
+
+当前也已经在 `reference_rdk_x5_board/` 里明确落地。
+
+它负责说明：
+
+- 板端动作脚本真正接受哪些参数
+- staged motion 是怎么拆成阶段和触发条件的
+- 当前新增的 7 个脚本补强了哪些动作种子
+
+### 4. choreography 真值层
 
 未来不应该写在 `Motions_Shenzhen/` 里，而应该新增：
 
@@ -101,7 +150,7 @@
 - Shenzhen 版姿态骨架
 - Shenzhen 版动作编排
 
-### 3. runtime 动态生成层
+### 5. runtime 动态生成层
 
 未来应该在 runtime 中增加 Shenzhen 版 builder。
 
@@ -111,7 +160,7 @@
 - 把事件 payload 转成 scene context
 - 区分 `static`、`dynamic_builder`、`hybrid`、`event_scene`、`chain_scene`
 
-### 4. motion manifest 层
+### 6. motion manifest 层
 
 未来才是：
 
@@ -144,10 +193,10 @@
 
 - [10-scene-pack-matrix.md](./10-scene-pack-matrix.md)
   10 个交互的总表
+- [11-board-seed-alignment.md](./11-board-seed-alignment.md)
+  10 个深圳交互与板端现有脚本种子的对齐表
 - [console-integration-plan.md](./console-integration-plan.md)
   深圳场景包如何接入当前主控台
-- [reference_default_pack/README.md](./reference_default_pack/README.md)
-  从默认 `Motions/` 复制进来的参考层，包含可复用的 `scene_script.py` 与测试文档
 - [reference_rdk_x5_board/README.md](./reference_rdk_x5_board/README.md)
   从远程地瓜开发板 `/home/sunrise` 拉回来的板端参考层，包含真实动作脚本、协议文档和 UART 工具
 - [01_sz_presence_wake.md](./01_sz_presence_wake.md)
@@ -165,7 +214,7 @@
 
 1. `README.md`
 2. `10-scene-pack-matrix.md`
-3. `reference_default_pack/README.md`
+3. `11-board-seed-alignment.md`
 4. `reference_rdk_x5_board/README.md`
 5. `console-integration-plan.md`
 6. 10 个场景规格书
@@ -174,4 +223,4 @@
 
 `Motions_Shenzhen/` 不应该是“又一个动作目录”，而应该先成为：
 
-> 深圳现场 scene pack 的产品规格层、导演层和主控台接入设计层。
+> 深圳现场 scene pack 的产品规格层、端侧真值层和主控台接入设计层。

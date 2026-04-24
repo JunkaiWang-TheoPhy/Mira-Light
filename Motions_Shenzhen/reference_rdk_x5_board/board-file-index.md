@@ -27,6 +27,26 @@
 - `send_uart1_servo_cmd.py`
 - `bus_servo_protocol.py`
 
+最新版端侧新增的关键脚本：
+
+- `four_servo_pose_2048_2048_2048_2780_separate.py`
+- `servo_12_slow_to_1800_2750.py`
+- `servo_1_2_dodge_1848_1808.py`
+- `servo_1_2_lean_forward_2148_1848.py`
+- `servo_1_3_slow_1800_2750.py`
+- `servo_2_nod_1900_2200.py`
+- `servo_3_shake_2100_2000.py`
+
+这些文件让板端从“大动作脚本集合”进一步演进成了“可组合微动作种子集合”。
+
+## 0. 协议层和编排层文档
+
+在真正看目录文件前，建议先读：
+
+- [end-side-protocol-layer.md](./end-side-protocol-layer.md)
+- [python-motion-orchestration-layer.md](./python-motion-orchestration-layer.md)
+- [latest-board-diff-2026-04-25.md](./latest-board-diff-2026-04-25.md)
+
 ## 2. 灯头 UART 控制脚本
 
 目录：
@@ -111,6 +131,13 @@
 2. `board_docs/`
 3. `led_uart_scripts/`
 4. `camera_streaming/`
+
+如果只看“最新版新增价值”，优先顺序建议是：
+
+1. `servo_1_2_dodge_1848_1808.py`
+2. `servo_1_2_lean_forward_2148_1848.py`
+3. `servo_2_nod_1900_2200.py`
+4. `servo_3_shake_2100_2000.py`
 
 ## 一句话总结
 

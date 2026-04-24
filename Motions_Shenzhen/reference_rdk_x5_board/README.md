@@ -34,6 +34,12 @@
 
 ## 当前目录结构
 
+- [end-side-protocol-layer.md](./end-side-protocol-layer.md)
+  端侧真实协议层说明
+- [python-motion-orchestration-layer.md](./python-motion-orchestration-layer.md)
+  端侧 Python 动作编排层说明
+- [latest-board-diff-2026-04-25.md](./latest-board-diff-2026-04-25.md)
+  与昨日快照相比的最新差异
 - [board-file-index.md](./board-file-index.md)
   板端文件总索引
 - [board_docs/README.md](./board_docs/README.md)
@@ -65,6 +71,7 @@
 - 板上现成能跑的舵机动作脚本
 - 板上真实使用的串口协议文档
 - 板上真实联调过的 LED/UART/RTSP 工具
+- 板端新增的微动作种子脚本
 
 也就是说：
 
