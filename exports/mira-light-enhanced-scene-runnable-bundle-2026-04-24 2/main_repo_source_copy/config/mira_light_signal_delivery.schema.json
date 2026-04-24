@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mira-light.local/schemas/mira_light_signal_delivery.schema.json",
+  "title": "Mira Light Signal Delivery Contract",
+  "description": "Unified contract for Mira Light LED, sensor, and status payloads.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/led_write_request"
+    },
+    {
+      "$ref": "#/$defs/sensor_write_request"
+    },
+    {
+      "$ref": "#/$defs/status_payload"
+    }
+  ],
+  "$defs": {
+    "u8": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "rgb_color": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "r",
+        "g",
+        "b"
+      ],
+      "properties": {
+        "r": {
+          "$ref": "#/$defs/u8"
+        },
+        "g": {
+          "$ref": "#/$defs/u8"
+        },
+        "b": {
+          "$ref": "#/$defs/u8"
+        }
+      }
+    },
+    "rgba_color": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/rgb_color"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "brightness": {
+              "$ref": "#/$defs/u8"
+            }
+          }
+        }
+      ]
+    },
+    "rgb_vector": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/u8"
+        },
+        {
+          "$ref": "#/$defs/u8"
+        },
+        {
+          "$ref": "#/$defs/u8"
+        }
+      ]
+    },
+    "rgba_vector": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/u8"
+        },
+        {
+          "$ref": "#/$defs/u8"
+        },
+        {
+          "$ref": "#/$defs/u8"
+        },
+        {
+          "$ref": "#/$defs/u8"
+        }
+      ]
+    },
+    "pixel_input": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/rgb_color"
+        },
+        {
+          "$ref": "#/$defs/rgba_color"
+        },
+        {
+          "$ref": "#/$defs/rgb_vector"
+        },
+        {
+          "$ref": "#/$defs/rgba_vector"
+        }
+      ]
+    },
+    "pixel_signal": {
+      "$ref": "#/$defs/rgba_vector"
+    },
+    "pixel_input_array_40": {
+      "type": "array",
+      "minItems": 40,
+      "maxItems": 40,
+      "items": {
+        "$ref": "#/$defs/pixel_input"
+      }
+    },
+    "pixel_signal_array_40": {
+      "type": "array",
+      "minItems": 40,
+      "maxItems": 40,
+      "items": {
+        "$ref": "#/$defs/pixel_signal"
+      }
+    },
+    "led_write_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "solid",
+            "breathing",
+            "rainbow",
+            "rainbow_cycle",
+            "vector"
+          ]
+        },
+        "brightness": {
+          "$ref": "#/$defs/u8"
+        },
+        "color": {
+          "$ref": "#/$defs/rgb_color"
+        },
+        "pixels": {
+          "$ref": "#/$defs/pixel_input_array_40"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "vector"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "pixels"
+            ],
+            "not": {
+              "required": [
+                "color"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "solid",
+                  "breathing"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "color"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "off",
+                  "rainbow",
+                  "rainbow_cycle"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "color"
+                  ]
+                },
+                {
+                  "required": [
+                    "pixels"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "sensor_write_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headCapacitive"
+      ],
+      "properties": {
+        "headCapacitive": {
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ]
+        }
+      }
+    },
+    "servo_status": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "name",
+        "angle"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "angle": {
+          "type": "integer"
+        }
+      }
+    },
+    "led_state": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "mode",
+        "brightness",
+        "color",
+        "led_count",
+        "pixelSignals"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "solid",
+            "breathing",
+            "rainbow",
+            "rainbow_cycle",
+            "vector"
+          ]
+        },
+        "brightness": {
+          "$ref": "#/$defs/u8"
+        },
+        "color": {
+          "$ref": "#/$defs/rgb_color"
+        },
+        "led_count": {
+          "type": "integer",
+          "const": 40
+        },
+        "pixelSignals": {
+          "$ref": "#/$defs/pixel_signal_array_40"
+        },
+        "pixels": {
+          "type": "array",
+          "minItems": 40,
+          "maxItems": 40,
+          "items": {
+            "$ref": "#/$defs/rgb_color"
+          }
+        }
+      }
+    },
+    "sensors_state": {
+      "$ref": "#/$defs/sensor_write_request"
+    },
+    "status_payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "servos",
+        "sensors",
+        "led"
+      ],
+      "properties": {
+        "servos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/servo_status"
+          }
+        },
+        "sensors": {
+          "$ref": "#/$defs/sensors_state"
+        },
+        "led": {
+          "$ref": "#/$defs/led_state"
+        }
+      }
+    }
+  }
+}

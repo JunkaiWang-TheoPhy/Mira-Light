@@ -1,0 +1,21 @@
+{
+  "id": "mira-light-bridge",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "bridgeBaseUrl": {
+        "type": "string",
+        "default": "http://127.0.0.1:9783"
+      },
+      "bridgeToken": {
+        "type": "string"
+      },
+      "requestTimeoutMs": {
+        "type": "number",
+        "default": 5000
+      }
+    }
+  }
+}
+

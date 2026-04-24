@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "target_lost",
+  "timestamp": "2026-04-09T11:30:05+08:00",
+  "source": {
+    "pipeline": "saved_jpeg_watch",
+    "camera_mode": "single_camera_2d",
+    "distance_mode": "monocular_heuristic"
+  },
+  "frame": {
+    "path": "fixtures/vision_events/frame-0003.jpg",
+    "width": 640,
+    "height": 480,
+    "seq": "0003",
+    "capture_ts": null
+  },
+  "tracking": {
+    "target_present": false,
+    "target_class": "none",
+    "detector": "haar_face",
+    "confidence": 0.0,
+    "bbox_norm": null,
+    "center_norm": null,
+    "horizontal_zone": "unknown",
+    "vertical_zone": "unknown",
+    "size_norm": null,
+    "distance_band": "unknown",
+    "approach_state": "receding"
+  },
+  "scene_hint": {
+    "name": "sleep",
+    "reason": "目标刚离开画面，但还应该先等待 grace period。"
+  },
+  "control_hint": {
+    "yaw_error_norm": 0.0,
+    "pitch_error_norm": 0.0,
+    "lift_intent": 0.0,
+    "reach_intent": 0.0
+  },
+  "raw_measurements": {
+    "frame_age_ms": 58.8,
+    "bbox_area_px": 0,
+    "size_delta_norm": -0.0459
+  }
+}

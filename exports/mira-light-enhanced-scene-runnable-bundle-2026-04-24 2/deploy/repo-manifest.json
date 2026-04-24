@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "mira-light-release-repo",
+  "repoRoot": ".",
+  "manifestPath": "deploy/repo-manifest.json",
+  "envTemplatePath": "deploy/repo.env.example",
+  "defaultOneClickInstall": "bash scripts/one_click_install.sh",
+  "defaultCommands": {
+    "bootstrap": "npm run bootstrap",
+    "preflight": "npm run preflight",
+    "preflightOnline": "npm run preflight:online",
+    "doctor": "npm run doctor",
+    "doctorOnline": "npm run doctor:online",
+    "start": "npm run start",
+    "startLocalStack": "npm run start:stack",
+    "startConsole": "npm run start:console",
+    "startBridge": "npm run start:bridge",
+    "startReceiver": "npm run start:receiver",
+    "smokeHttp": "npm run smoke:http",
+    "installOpenClaw": "npm run install:openclaw",
+    "removeOpenClaw": "npm run remove:openclaw",
+    "verifyOpenClaw": "npm run verify:openclaw",
+    "test": "npm run test"
+  },
+  "components": {
+    "localStack": {
+      "entry": "scripts/start_local_stack.sh"
+    },
+    "directorConsole": {
+      "entry": "scripts/start_director_console.sh",
+      "defaultUrl": "http://127.0.0.1:8765/"
+    },
+    "bridge": {
+      "entry": "tools/mira_light_bridge/start_bridge.sh",
+      "healthUrl": "http://127.0.0.1:9783/health"
+    },
+    "simpleReceiver": {
+      "entry": "scripts/start_simple_lamp_receiver.sh",
+      "healthUrl": "http://127.0.0.1:9784/health"
+    },
+    "openClawPlugin": {
+      "installScript": "scripts/install_local_openclaw_mira_light.py",
+      "verifyScript": "scripts/verify_local_openclaw_mira_light.py"
+    }
+  }
+}

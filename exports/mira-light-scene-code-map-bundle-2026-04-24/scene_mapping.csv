@@ -1,0 +1,12 @@
+scene_id,title,scene_meta_path,scene_steps_path,runtime_extension_path,motion_script_path,mode,trigger_methods
+wake_up,起床,scripts/scenes.py:187,scripts/scenes.py:574,,Motions/01_wake_up/scene_script.py:14,static,"terminal booth_controller; director console /api/run/wake_up; bridge /v1/mira-light/run-scene; vision target_seen -> wake_up"
+curious_observe,好奇你是谁,scripts/scenes.py:198,scripts/scenes.py:623,scripts/mira_light_runtime.py:1226,Motions/02_curious_observe/scene_script.py:14,dynamic_builder,"terminal/director/bridge run-scene; vision scene_hint=curious_observe; runtime scene_context builder"
+touch_affection,摸一摸,scripts/scenes.py:209,scripts/scenes.py:689,scripts/mira_light_runtime.py:1408,Motions/03_touch_affection/scene_script.py:14,dynamic_builder,"terminal/director/bridge run-scene; trigger_event touch_detected/hand_near; vision hand cue can trigger"
+cute_probe,卖萌,scripts/scenes.py:231,scripts/scenes.py:757,,Motions/04_cute_probe/scene_script.py:14,static,"terminal/director/bridge run-scene"
+daydream,发呆,scripts/scenes.py:242,scripts/scenes.py:799,,Motions/05_daydream/scene_script.py:14,static,"terminal/director/bridge run-scene"
+standup_reminder,久坐检测：蹭蹭,scripts/scenes.py:253,scripts/scenes.py:837,,Motions/06_standup_reminder/scene_script.py:14,static,"terminal/director/bridge run-scene"
+track_target,追踪,scripts/scenes.py:264,scripts/scenes.py:900,scripts/mira_light_runtime.py:1602,Motions/07_track_target/scene_script.py:14,hybrid,"run-scene fallback choreography; main live path vision_runtime_bridge -> apply_tracking_event"
+celebrate,跳舞模式,scripts/scenes.py:275,scripts/scenes.py:935,,Motions/08_celebrate/scene_script.py:14,static,"terminal/director/bridge run-scene"
+farewell,挥手送别,scripts/scenes.py:286,scripts/scenes.py:1007,scripts/mira_light_runtime.py:1369,Motions/09_farewell/scene_script.py:14,dynamic_builder,"terminal/director/bridge run-scene; trigger_event farewell_detected; vision target_lost can route here"
+sleep,睡觉,scripts/scenes.py:297,scripts/scenes.py:1045,,Motions/10_sleep/scene_script.py:14,static,"terminal/director/bridge run-scene; vision missing-target timeout -> sleep"
+

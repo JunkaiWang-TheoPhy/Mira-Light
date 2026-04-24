@@ -1,0 +1,145 @@
+{
+  "generated_at": "2026-04-24",
+  "bundle": "mira-light-scene-code-map-bundle-2026-04-24",
+  "runtime_entrypoints": {
+    "start_scene": "scripts/mira_light_runtime.py:1866",
+    "trigger_event": "scripts/mira_light_runtime.py:1892",
+    "apply_tracking_event": "scripts/mira_light_runtime.py:1602",
+    "booth_controller": "scripts/booth_controller.py:45",
+    "console_run_api": "scripts/console_server.py:417",
+    "bridge_run_scene_api": "tools/mira_light_bridge/bridge_server.py:310"
+  },
+  "scenes": [
+    {
+      "scene_id": "wake_up",
+      "title": "起床",
+      "scene_meta_path": "scripts/scenes.py:187",
+      "scene_steps_path": "scripts/scenes.py:574",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/01_wake_up/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal booth_controller",
+        "director console /api/run/wake_up",
+        "bridge /v1/mira-light/run-scene",
+        "vision target_seen -> wake_up"
+      ]
+    },
+    {
+      "scene_id": "curious_observe",
+      "title": "好奇你是谁",
+      "scene_meta_path": "scripts/scenes.py:198",
+      "scene_steps_path": "scripts/scenes.py:623",
+      "runtime_extension_path": "scripts/mira_light_runtime.py:1226",
+      "motion_script_path": "Motions/02_curious_observe/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene",
+        "vision scene_hint=curious_observe",
+        "runtime scene_context builder"
+      ]
+    },
+    {
+      "scene_id": "touch_affection",
+      "title": "摸一摸",
+      "scene_meta_path": "scripts/scenes.py:209",
+      "scene_steps_path": "scripts/scenes.py:689",
+      "runtime_extension_path": "scripts/mira_light_runtime.py:1408",
+      "motion_script_path": "Motions/03_touch_affection/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene",
+        "trigger_event touch_detected/hand_near",
+        "vision hand cue can trigger"
+      ]
+    },
+    {
+      "scene_id": "cute_probe",
+      "title": "卖萌",
+      "scene_meta_path": "scripts/scenes.py:231",
+      "scene_steps_path": "scripts/scenes.py:757",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/04_cute_probe/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene"
+      ]
+    },
+    {
+      "scene_id": "daydream",
+      "title": "发呆",
+      "scene_meta_path": "scripts/scenes.py:242",
+      "scene_steps_path": "scripts/scenes.py:799",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/05_daydream/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene"
+      ]
+    },
+    {
+      "scene_id": "standup_reminder",
+      "title": "久坐检测：蹭蹭",
+      "scene_meta_path": "scripts/scenes.py:253",
+      "scene_steps_path": "scripts/scenes.py:837",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/06_standup_reminder/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene"
+      ]
+    },
+    {
+      "scene_id": "track_target",
+      "title": "追踪",
+      "scene_meta_path": "scripts/scenes.py:264",
+      "scene_steps_path": "scripts/scenes.py:900",
+      "runtime_extension_path": "scripts/mira_light_runtime.py:1602",
+      "motion_script_path": "Motions/07_track_target/scene_script.py:14",
+      "mode": "hybrid",
+      "trigger_methods": [
+        "run-scene fallback choreography",
+        "vision_runtime_bridge -> apply_tracking_event"
+      ]
+    },
+    {
+      "scene_id": "celebrate",
+      "title": "跳舞模式",
+      "scene_meta_path": "scripts/scenes.py:275",
+      "scene_steps_path": "scripts/scenes.py:935",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/08_celebrate/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene"
+      ]
+    },
+    {
+      "scene_id": "farewell",
+      "title": "挥手送别",
+      "scene_meta_path": "scripts/scenes.py:286",
+      "scene_steps_path": "scripts/scenes.py:1007",
+      "runtime_extension_path": "scripts/mira_light_runtime.py:1369",
+      "motion_script_path": "Motions/09_farewell/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene",
+        "trigger_event farewell_detected",
+        "vision target_lost can route here"
+      ]
+    },
+    {
+      "scene_id": "sleep",
+      "title": "睡觉",
+      "scene_meta_path": "scripts/scenes.py:297",
+      "scene_steps_path": "scripts/scenes.py:1045",
+      "runtime_extension_path": null,
+      "motion_script_path": "Motions/10_sleep/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "terminal/director/bridge run-scene",
+        "vision missing-target timeout -> sleep"
+      ]
+    }
+  ]
+}

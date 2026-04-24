@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "no_target",
+  "timestamp": "2026-04-09T11:30:10+08:00",
+  "source": {
+    "pipeline": "saved_jpeg_watch",
+    "camera_mode": "single_camera_2d",
+    "distance_mode": "monocular_heuristic"
+  },
+  "frame": {
+    "path": "fixtures/vision_events/frame-0004.jpg",
+    "width": 640,
+    "height": 480,
+    "seq": "0004",
+    "capture_ts": null
+  },
+  "tracking": {
+    "target_present": false,
+    "target_class": "none",
+    "detector": "background_motion",
+    "confidence": 0.0,
+    "bbox_norm": null,
+    "center_norm": null,
+    "horizontal_zone": "unknown",
+    "vertical_zone": "unknown",
+    "size_norm": null,
+    "distance_band": "unknown",
+    "approach_state": "stable"
+  },
+  "scene_hint": {
+    "name": "none",
+    "reason": "当前画面无目标，等待 runtime 根据 grace period 决定是否入睡。"
+  },
+  "control_hint": {
+    "yaw_error_norm": 0.0,
+    "pitch_error_norm": 0.0,
+    "lift_intent": 0.0,
+    "reach_intent": 0.0
+  },
+  "raw_measurements": {
+    "frame_age_ms": 44.1,
+    "bbox_area_px": 0,
+    "size_delta_norm": null
+  }
+}

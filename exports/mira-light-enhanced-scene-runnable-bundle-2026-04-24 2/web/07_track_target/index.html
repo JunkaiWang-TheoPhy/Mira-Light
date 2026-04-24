@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mira Light | 07 Track Target</title>
+    <link rel="stylesheet" href="../scene_showcase.css" />
+  </head>
+  <body data-tone="vision">
+    <main class="page">
+      <section class="hero panel">
+        <p class="eyebrow">Scene Showcase</p>
+        <h1>07 追踪（展示感知能力）</h1>
+        <p class="sub">这一页对应“追踪”场景。当前代码实现的是展位排练用 surrogate choreography：让观众先看懂“它在跟”，但它还不是最终的真实视觉闭环。</p>
+      </section>
+
+      <section class="workspace">
+        <section class="column">
+          <article class="panel panel-body">
+            <div class="panel-head">
+              <div>
+                <h2>当前已实现的节奏</h2>
+                <p>先做出左 -> 中 -> 右 -> 停 -> 再跟的追踪节奏，用来排练展位表演语言。</p>
+              </div>
+            </div>
+            <ol class="step-list">
+              <li>书在左侧时，灯头压低看向左边桌面。</li>
+              <li>目标往中间移动时，灯头跟回中间。</li>
+              <li>目标继续到右侧时，灯头继续跟到右边。</li>
+              <li>评委停下来时，Mira 也停住。</li>
+              <li>评委再次移动时，Mira 再次跟上。</li>
+              <li>收尾回到中性工作位。</li>
+            </ol>
+          </article>
+
+          <article class="panel panel-body">
+            <div class="panel-head">
+              <div>
+                <h2>还没完成的能力</h2>
+                <p>这个场景最大的缺口是“感知闭环”，不是 choreography 本身。</p>
+              </div>
+            </div>
+            <div class="grid-cards">
+              <div class="mini-card"><span>当前版本</span><strong>Surrogate choreography</strong></div>
+              <div class="mini-card"><span>未完成</span><strong>目标检测与坐标映射</strong></div>
+              <div class="mini-card"><span>验收关键</span><strong>目标停下时灯也停</strong></div>
+              <div class="mini-card"><span>依赖</span><strong>摄像头 / 跟踪链路</strong></div>
+            </div>
+          </article>
+        </section>
+
+        <aside class="column">
+          <article class="panel panel-body">
+            <div class="panel-head">
+              <div>
+                <h2>运行状态</h2>
+                <p>当前可触发的是排练版场景，而不是真实视觉闭环版。</p>
+              </div>
+              <div class="pill-row">
+                <span class="pill"><span>Web</span><strong id="web-phase">idle</strong></span>
+                <span class="pill"><span>Lamp</span><strong id="lamp-phase">checking</strong></span>
+              </div>
+            </div>
+            <div class="controls">
+              <button id="trigger-scene" class="primary" type="button">Trigger Scene</button>
+              <button id="refresh-runtime" type="button">Refresh Runtime</button>
+              <button id="stop-scene" class="warning" type="button">Stop Scene</button>
+            </div>
+          </article>
+
+          <article class="panel panel-body">
+            <div class="panel-head">
+              <div>
+                <h2>Runtime 摘要</h2>
+                <p>用于确认当前是否正在执行排练版追踪场景。</p>
+              </div>
+            </div>
+            <div class="status-grid">
+              <div class="status-row"><span>Runtime scene</span><strong id="runtime-scene">-</strong></div>
+              <div class="status-row"><span>Runtime step</span><strong id="runtime-step">-</strong></div>
+              <div class="status-row"><span>Last note</span><strong id="runtime-note">页面待命中</strong></div>
+            </div>
+          </article>
+        </aside>
+      </section>
+    </main>
+    <script>
+      window.SCENE_SHOWCASE_CONFIG = {
+        sceneId: "track_target",
+        readyNote: "当前触发的是排练版 track_target，不是真实视觉闭环。"
+      };
+    </script>
+    <script src="../scene_showcase.js" defer></script>
+  </body>
+</html>

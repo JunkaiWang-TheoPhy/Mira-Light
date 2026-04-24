@@ -1,0 +1,173 @@
+{
+  "generated_at": "2026-04-24",
+  "bundle": "mira-light-enhanced-scene-runnable-bundle-2026-04-24",
+  "readme": "README.md",
+  "notes": [
+    "release layer stays runnable by default",
+    "main_repo_source_copy is for source reading and diffing",
+    "Motions and an optional enhanced console are included"
+  ],
+  "runtime_entrypoints": {
+    "booth_controller": "scripts/booth_controller.py",
+    "runtime_start_scene": "scripts/mira_light_runtime.py",
+    "runtime_trigger_event": "scripts/mira_light_runtime.py",
+    "runtime_apply_tracking_event": "scripts/mira_light_runtime.py",
+    "release_console": "scripts/console_server.py",
+    "enhanced_console": "scripts/console_server_with_motion_scripts.py",
+    "bridge": "tools/mira_light_bridge/bridge_server.py"
+  },
+  "scenes": [
+    {
+      "scene_id": "wake_up",
+      "title": "起床",
+      "release_scene_meta": "scripts/scenes.py:187",
+      "release_scene_steps": "scripts/scenes.py:574",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:187",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:574",
+      "runtime_extension": null,
+      "motion_script": "Motions/01_wake_up/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "booth_controller",
+        "director console /api/run/wake_up",
+        "bridge run-scene",
+        "vision target_seen -> wake_up"
+      ]
+    },
+    {
+      "scene_id": "curious_observe",
+      "title": "好奇你是谁",
+      "release_scene_meta": "scripts/scenes.py:198",
+      "release_scene_steps": "scripts/scenes.py:623",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:198",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:623",
+      "runtime_extension": "scripts/mira_light_runtime.py:1226",
+      "motion_script": "Motions/02_curious_observe/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "run-scene",
+        "vision scene_hint=curious_observe",
+        "runtime scene_context builder"
+      ]
+    },
+    {
+      "scene_id": "touch_affection",
+      "title": "摸一摸",
+      "release_scene_meta": "scripts/scenes.py:209",
+      "release_scene_steps": "scripts/scenes.py:689",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:209",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:689",
+      "runtime_extension": "scripts/mira_light_runtime.py:1408",
+      "motion_script": "Motions/03_touch_affection/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "run-scene",
+        "trigger_event hand_near/touch_detected",
+        "vision hand cue"
+      ]
+    },
+    {
+      "scene_id": "cute_probe",
+      "title": "卖萌",
+      "release_scene_meta": "scripts/scenes.py:231",
+      "release_scene_steps": "scripts/scenes.py:757",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:231",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:757",
+      "runtime_extension": null,
+      "motion_script": "Motions/04_cute_probe/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "run-scene"
+      ]
+    },
+    {
+      "scene_id": "daydream",
+      "title": "发呆",
+      "release_scene_meta": "scripts/scenes.py:242",
+      "release_scene_steps": "scripts/scenes.py:799",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:242",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:799",
+      "runtime_extension": null,
+      "motion_script": "Motions/05_daydream/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "run-scene"
+      ]
+    },
+    {
+      "scene_id": "standup_reminder",
+      "title": "久坐检测：蹭蹭",
+      "release_scene_meta": "scripts/scenes.py:253",
+      "release_scene_steps": "scripts/scenes.py:837",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:253",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:837",
+      "runtime_extension": null,
+      "motion_script": "Motions/06_standup_reminder/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "run-scene"
+      ]
+    },
+    {
+      "scene_id": "track_target",
+      "title": "追踪",
+      "release_scene_meta": "scripts/scenes.py:264",
+      "release_scene_steps": "scripts/scenes.py:900",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:264",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:900",
+      "runtime_extension": "scripts/mira_light_runtime.py:1602",
+      "motion_script": "Motions/07_track_target/scene_script.py:14",
+      "mode": "hybrid",
+      "trigger_methods": [
+        "fallback run-scene",
+        "vision_runtime_bridge -> apply_tracking_event"
+      ]
+    },
+    {
+      "scene_id": "celebrate",
+      "title": "跳舞模式",
+      "release_scene_meta": "scripts/scenes.py:275",
+      "release_scene_steps": "scripts/scenes.py:935",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:275",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:935",
+      "runtime_extension": null,
+      "motion_script": "Motions/08_celebrate/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "run-scene"
+      ]
+    },
+    {
+      "scene_id": "farewell",
+      "title": "挥手送别",
+      "release_scene_meta": "scripts/scenes.py:286",
+      "release_scene_steps": "scripts/scenes.py:1007",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:286",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:1007",
+      "runtime_extension": "scripts/mira_light_runtime.py:1369",
+      "motion_script": "Motions/09_farewell/scene_script.py:14",
+      "mode": "dynamic_builder",
+      "trigger_methods": [
+        "run-scene",
+        "trigger_event farewell_detected",
+        "vision target_lost -> farewell"
+      ]
+    },
+    {
+      "scene_id": "sleep",
+      "title": "睡觉",
+      "release_scene_meta": "scripts/scenes.py:297",
+      "release_scene_steps": "scripts/scenes.py:1045",
+      "source_copy_scene_meta": "main_repo_source_copy/scripts/scenes.py:297",
+      "source_copy_scene_steps": "main_repo_source_copy/scripts/scenes.py:1045",
+      "runtime_extension": null,
+      "motion_script": "Motions/10_sleep/scene_script.py:14",
+      "mode": "static",
+      "trigger_methods": [
+        "run-scene",
+        "vision missing-target timeout -> sleep"
+      ]
+    }
+  ]
+}
+
