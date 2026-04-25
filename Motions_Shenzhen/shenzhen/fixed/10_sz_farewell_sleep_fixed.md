@@ -4,6 +4,22 @@
 
 先做一版能稳定演出的“送别 -> 收回 -> 入睡”固定收尾场景。
 
+## 配套蓝图
+
+如果需要更具体到“脚本该怎么分段写”，继续看：
+
+- [10_sz_farewell_sleep_script_blueprint.md](./10_sz_farewell_sleep_script_blueprint.md)
+- [10_sz_sleep_script_blueprint.md](./10_sz_sleep_script_blueprint.md)
+
+这两份文档分别把：
+
+- `06_20260425_043829_01.mp4`
+- `Mira Light 展位交互方案 副本.pdf` 第 6 条
+- `07_20260425_043829_02.mp4`
+- `Mira Light 展位交互方案 副本.pdf` 第 7 条
+
+压成了送别段和睡觉段各自的固定动作优先脚本设计草案。
+
 ## 固定版实现原则
 
 - 先固定一个离场方向版本

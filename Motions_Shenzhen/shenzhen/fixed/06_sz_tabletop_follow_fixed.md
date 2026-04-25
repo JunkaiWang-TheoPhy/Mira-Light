@@ -7,6 +7,19 @@
 - 它只是主秀中的 fallback
 - 不是最终 live tracking
 
+## 配套蓝图
+
+如果需要更具体到“脚本该怎么分段写”，继续看：
+
+- [06_sz_tabletop_follow_script_blueprint.md](./06_sz_tabletop_follow_script_blueprint.md)
+
+那份文档把：
+
+- `04_20260425_043825_01.mp4`
+- `Mira Light 展位交互方案 副本.pdf` 第 4 条
+
+压成了一份固定动作优先的脚本设计草案。
+
 ## 固定版实现原则
 
 - 不假装是真正跟随

@@ -9,6 +9,19 @@
 
 的固定版开场。
 
+## 配套蓝图
+
+如果需要更具体到“每一段应该怎么落脚本”，继续看：
+
+- [01_sz_presence_wake_script_blueprint.md](./01_sz_presence_wake_script_blueprint.md)
+
+那份文档已经把：
+
+- `Mira Light 展位交互方案 副本.pdf` 第一条
+- `01_20260425_043820_01.mp4`
+
+压成了一份可执行脚本设计。
+
 ## 固定版实现原则
 
 - 先用灯光表达“醒来”

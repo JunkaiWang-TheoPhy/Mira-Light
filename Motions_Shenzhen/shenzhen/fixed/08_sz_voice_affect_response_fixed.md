@@ -4,6 +4,19 @@
 
 先做一版“导演台可选分支”的语音情绪反馈，不依赖实时 ASR/意图识别。
 
+## 配套蓝图
+
+如果需要更具体到“开心 / praise 这类正向反应脚本该怎么分段写”，继续看：
+
+- [08_sz_happy_reaction_script_blueprint.md](./08_sz_happy_reaction_script_blueprint.md)
+
+那份文档把：
+
+- `08_20260425_043832_01.mp4`
+- `Mira Light 展位交互方案 副本.pdf` 后半段补充交互里的“开心”
+
+压成了一份固定动作优先的脚本设计草案。
+
 ## 固定版实现原则
 
 - 不让系统自己判断 intent

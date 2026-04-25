@@ -43,23 +43,31 @@
 ## 10 个场景
 
 1. [01_sz_presence_wake_fixed.md](./01_sz_presence_wake_fixed.md)
+1a. [01_sz_presence_wake_script_blueprint.md](./01_sz_presence_wake_script_blueprint.md)
 2. [02_sz_cautious_intro_fixed.md](./02_sz_cautious_intro_fixed.md)
+2a. [02_sz_cautious_intro_script_blueprint.md](./02_sz_cautious_intro_script_blueprint.md)
 3. [03_sz_hand_nuzzle_fixed.md](./03_sz_hand_nuzzle_fixed.md)
+3a. [03_sz_hand_nuzzle_script_blueprint.md](./03_sz_hand_nuzzle_script_blueprint.md)
 4. [04_sz_hand_boundary_fixed.md](./04_sz_hand_boundary_fixed.md)
 5. [05_sz_standup_nudge_fixed.md](./05_sz_standup_nudge_fixed.md)
+5b. [05_pdf_offer_celebrate_script_blueprint.md](./05_pdf_offer_celebrate_script_blueprint.md)
 6. [06_sz_tabletop_follow_fixed.md](./06_sz_tabletop_follow_fixed.md)
+6a. [06_sz_tabletop_follow_script_blueprint.md](./06_sz_tabletop_follow_script_blueprint.md)
 7. [07_sz_sigh_comfort_fixed.md](./07_sz_sigh_comfort_fixed.md)
 8. [08_sz_voice_affect_response_fixed.md](./08_sz_voice_affect_response_fixed.md)
+8a. [08_sz_happy_reaction_script_blueprint.md](./08_sz_happy_reaction_script_blueprint.md)
 9. [09_sz_multi_guest_choice_fixed.md](./09_sz_multi_guest_choice_fixed.md)
 10. [10_sz_farewell_sleep_fixed.md](./10_sz_farewell_sleep_fixed.md)
+10a. [10_sz_farewell_sleep_script_blueprint.md](./10_sz_farewell_sleep_script_blueprint.md)
+10b. [10_sz_sleep_script_blueprint.md](./10_sz_sleep_script_blueprint.md)
 
 ## 推荐阅读顺序
 
 1. 本文档
-2. `01 / 02 / 10`
-3. `04 / 07 / 08`
-4. `03 / 05 / 09`
-5. `06`
+2. `01 / 01a / 02 / 02a / 03 / 03a / 10 / 10a / 10b`
+3. `04 / 07 / 08 / 08a`
+4. `05 / 05b / 09`
+5. `06 / 06a`
 
 原因很简单：
 
