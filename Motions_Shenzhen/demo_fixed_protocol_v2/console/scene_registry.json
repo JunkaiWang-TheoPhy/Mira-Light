@@ -1,0 +1,182 @@
+{
+  "title": "Mira Light Shenzhen Demo Console",
+  "version": "2026-04-25-v2",
+  "boardDefaults": {
+    "host": "82.157.174.100",
+    "port": 6000,
+    "user": "root"
+  },
+  "scenes": [
+    {
+      "id": "01_presence_wake",
+      "number": "01",
+      "title": "起床",
+      "subtitle": "检测到有人来，慢慢醒来并看向左侧评委",
+      "script": "01_presence_wake_demo.py",
+      "risk": "motion-high",
+      "defaultArgs": ["--final-look", "judge-left"],
+      "operatorCue": "请评委靠近展台，主持人说：它发现有人来了。",
+      "successSignal": "灯先微亮，灯臂抬起伸懒腰，回到正常高度后抖两下，最后左转看评委。",
+      "fallbackBehavior": "如果起始睡姿不安全，用 --skip-start-sleep 直接从半醒姿态开始。"
+    },
+    {
+      "id": "02_cautious_intro",
+      "number": "02",
+      "title": "好奇你是谁",
+      "subtitle": "害羞、靠近、躲一下，再重新探出来",
+      "script": "02_cautious_intro_demo.py",
+      "risk": "motion-medium",
+      "defaultArgs": [],
+      "operatorCue": "主持人引导评委站在左侧，让 Mira 像小动物一样试探对方。",
+      "successSignal": "先看向左侧评委，轻微靠近和摇头，随后退缩低头，再重新探出并点头。",
+      "fallbackBehavior": "如果空间太窄，加 --skip-final-peek 跳过最后探出动作。"
+    },
+    {
+      "id": "03_hand_nuzzle",
+      "number": "03",
+      "title": "摸一摸",
+      "subtitle": "评委伸手，灯头靠过去像猫一样蹭手",
+      "script": "03_hand_nuzzle_demo.py",
+      "risk": "motion-high",
+      "defaultArgs": ["--variant", "03", "--rub-cycles", "2"],
+      "operatorCue": "主持人说：你可以轻轻摸摸它。确认手在安全位置后再执行。",
+      "successSignal": "灯光变暖，灯头靠近手掌，下探后做上下和左右小幅蹭动，最后自然回到等待位。",
+      "fallbackBehavior": "如果手离得远，使用 --variant 04 作为短版目标接近动作。"
+    },
+    {
+      "id": "04_offer_celebrate",
+      "number": "04",
+      "title": "Offer 庆祝",
+      "subtitle": "收到好消息后跳舞，彩灯庆祝，再慢慢降速",
+      "script": "04_offer_celebrate_demo.py",
+      "risk": "motion-high",
+      "defaultArgs": ["--party-light", "spin", "--hold-seconds", "1.4"],
+      "operatorCue": "打开 offer 邮件或讲到好消息时执行，蓝牙音箱可以同步放音乐。",
+      "successSignal": "姿态向上进入兴奋状态，上下左右摇摆，灯光进入 party 效果，最后减速回正常姿态。",
+      "fallbackBehavior": "如果灯效太刺激，把 --party-light 改为 rainbow。"
+    },
+    {
+      "id": "05_farewell",
+      "number": "05",
+      "title": "送别",
+      "subtitle": "评委离开时目送、点头拜拜、低头不舍",
+      "script": "05_farewell_demo.py",
+      "risk": "motion-medium",
+      "defaultArgs": ["--nod-cycles", "2"],
+      "operatorCue": "请评委向左侧离开或挥手，主持人说：它有点舍不得你走。",
+      "successSignal": "Mira 看向左侧离场方向，慢慢点头两下，低头停住，又回看一眼。",
+      "fallbackBehavior": "如果现场节奏很快，把 --linger-seconds 设为 0.3。"
+    },
+    {
+      "id": "06_sleep",
+      "number": "06",
+      "title": "睡觉",
+      "subtitle": "评委走远后舒展一下，再慢慢蜷缩回睡觉",
+      "script": "06_sleep_demo.py",
+      "risk": "motion-high",
+      "defaultArgs": ["--rest-seconds", "1.5"],
+      "operatorCue": "作为一轮演示结尾执行，先确认灯头下方没有手和物体。",
+      "successSignal": "先从清醒姿态慢慢降低，做小伸展，然后进入睡觉折叠，灯光降到微光。",
+      "fallbackBehavior": "需要彻底收场时加 --lights-off；只想先看第一段时加 --lead-sleep-only。"
+    },
+    {
+      "id": "07_tabletop_follow",
+      "number": "07",
+      "title": "桌面追踪",
+      "subtitle": "固定演示桌面目标从近侧移动到远侧并停住",
+      "script": "07_tabletop_follow_demo.py",
+      "risk": "motion-medium",
+      "defaultArgs": ["--correction-cycles", "2", "--final-pose", "target"],
+      "operatorCue": "主持人请评委移动桌上的书或物体，同时说明这是固定演示版 tracking 路径。",
+      "successSignal": "Mira 低头进入桌面关注位，连续跟到 far side，停住并做局部修正，最后保持目标相关姿态。",
+      "fallbackBehavior": "如果下一幕还在桌面上继续，使用 --final-pose tabletop。"
+    }
+  ],
+  "quickActions": [
+    {
+      "id": "led_off",
+      "title": "灯光关闭",
+      "risk": "light-only",
+      "commands": [
+        {
+          "label": "turn light off",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py off"
+        }
+      ]
+    },
+    {
+      "id": "led_warm",
+      "title": "暖光待机",
+      "risk": "light-only",
+      "commands": [
+        {
+          "label": "warm standby light",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 105"
+        }
+      ]
+    },
+    {
+      "id": "led_white",
+      "title": "白光照明",
+      "risk": "light-only",
+      "commands": [
+        {
+          "label": "white tabletop light",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 255 255 120"
+        }
+      ]
+    },
+    {
+      "id": "ping_servos",
+      "title": "Ping 舵机",
+      "risk": "read-only",
+      "commands": [
+        {
+          "label": "ping all servos",
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py ping-all"
+        }
+      ]
+    },
+    {
+      "id": "read_positions",
+      "title": "读取舵机位置",
+      "risk": "read-only",
+      "commands": [
+        {
+          "label": "read all servo positions",
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py read-pos-all"
+        }
+      ]
+    },
+    {
+      "id": "normal_pose",
+      "title": "回正常位",
+      "risk": "motion-medium",
+      "commands": [
+        {
+          "label": "return neutral pose",
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 140 90 90 140"
+        },
+        {
+          "label": "warm neutral light",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 100"
+        }
+      ]
+    },
+    {
+      "id": "sleep_fold",
+      "title": "归位睡觉",
+      "risk": "motion-high",
+      "commands": [
+        {
+          "label": "fold into sleep",
+          "command": "python3 /home/sunrise/Desktop/sleep_motion_with_03_return.py --speeds 1000 160 680 1000 --delay-ratio 0.68 --return03-ratio 0.25 --return-0 2048 --return-3 2130"
+        },
+        {
+          "label": "dim sleep light",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 180 120 20"
+        }
+      ]
+    }
+  ]
+}

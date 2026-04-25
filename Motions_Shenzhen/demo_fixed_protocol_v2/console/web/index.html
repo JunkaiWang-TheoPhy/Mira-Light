@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mira Light Shenzhen Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Shenzhen Fixed Protocol</p>
+          <h1>Mira Light 深圳演示主控台</h1>
+          <p class="subcopy">基于旧版 Director Console 的本地 HTTP 模式，原生适配 7 个固定动作任务。默认预览不动机器，执行时才通过 SSH 发到地瓜开发板。</p>
+        </div>
+        <div class="hero-card">
+          <span>BOARD</span>
+          <strong id="board-summary">-</strong>
+          <small id="password-summary">password: -</small>
+        </div>
+      </header>
+
+      <section class="top-grid">
+        <article class="panel connection-panel">
+          <div class="panel-title">
+            <h2>连接</h2>
+            <p>密码只发给本地控制台后端，不写入仓库。</p>
+          </div>
+          <div class="fields">
+            <label>
+              Host
+              <input id="host" type="text" />
+            </label>
+            <label>
+              Port
+              <input id="port" type="number" />
+            </label>
+            <label>
+              User
+              <input id="user" type="text" />
+            </label>
+            <label>
+              Password
+              <input id="password" type="password" placeholder="可留空；也可用环境变量" />
+            </label>
+          </div>
+        </article>
+
+        <article class="panel status-panel">
+          <div class="panel-title">
+            <h2>状态</h2>
+            <p>最近一次预览或执行结果。</p>
+          </div>
+          <div class="status-row">
+            <span>RUNNING</span>
+            <strong id="running">-</strong>
+          </div>
+          <div class="status-row">
+            <span>CURRENT</span>
+            <strong id="current">-</strong>
+          </div>
+          <div class="status-row">
+            <span>LAST CODE</span>
+            <strong id="last-code">-</strong>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title row-title">
+          <div>
+            <h2>七个固定场景</h2>
+            <p>每个场景都能先预览 shell，再执行真机。评委默认在左侧的动作已经写进对应脚本。</p>
+          </div>
+          <button id="refresh" type="button">刷新状态</button>
+        </div>
+        <div id="scene-grid" class="scene-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>安全与救场</h2>
+          <p>灯光和只读检查优先；机械动作按钮已标出风险。</p>
+        </div>
+        <div id="quick-grid" class="quick-grid"></div>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="panel-title row-title">
+          <div>
+            <h2>命令与日志</h2>
+            <p id="output-title">等待操作</p>
+          </div>
+          <button id="clear-output" type="button">清空</button>
+        </div>
+        <pre id="output"></pre>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
