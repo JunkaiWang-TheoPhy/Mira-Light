@@ -9,37 +9,40 @@ def build_steps(*, lights_off: bool, lead_sleep_only: bool, rest_seconds: float)
     steps: list[RemoteStep] = [
         RemoteStep(
             "enter attentive end pose",
-            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2180 1980 2240 --speeds 160 90 90 120",
+            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2180 1980 2240 --speeds 320 180 180 240",
         ),
         RemoteStep("soft warm pre-sleep light", "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 95"),
         RemoteStep("hold attentive before sleep", "sleep 0.7"),
         RemoteStep(
             "settle through mid pose",
-            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2100 2380 2200 --speeds 140 80 130 110",
+            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2100 2380 2200 --speeds 280 160 260 220",
         ),
         RemoteStep("hold mid transition", "sleep 0.6"),
         RemoteStep(
             "lower and extend slowly",
-            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 1980 2780 2180 --speeds 130 70 120 100",
+            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2005 2680 2180 --speeds 260 140 230 200",
         ),
         RemoteStep("dim while lowering", "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 205 155 70"),
         RemoteStep("hold low extension", "sleep 0.5"),
         RemoteStep(
             "small relax stretch before curling",
-            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2070 2580 2240 --speeds 120 70 100 90",
+            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2080 2500 2240 --speeds 240 140 190 180",
         ),
         RemoteStep("pause after stretch", "sleep 0.45"),
         RemoteStep(
-            "begin staged sleep curl",
-            "python3 /home/sunrise/Desktop/sleep_motion.py --speeds 1000 160 680 1000 --delay-ratio 0.68 --hold-0 2048 --hold-3 2130",
+            "begin timed sleep curl",
+            "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2080 2912 2130 --speeds 2000 320 1240 2000",
         ),
     ]
     if not lead_sleep_only:
-        steps.append(
-            RemoteStep(
-                "finish full sleep fold",
-                "python3 /home/sunrise/Desktop/sleep_motion_with_03_return.py --speeds 1000 160 680 1000 --delay-ratio 0.68 --return03-ratio 0.25 --return-0 2048 --return-3 2130",
-            )
+        steps.extend(
+            [
+                RemoteStep("timed fold delay", "sleep 0.23"),
+                RemoteStep(
+                    "finish timed sleep fold",
+                    "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 1821 2912 2130 --speeds 2000 320 1240 2000",
+                ),
+            ]
         )
     steps.extend(
         [

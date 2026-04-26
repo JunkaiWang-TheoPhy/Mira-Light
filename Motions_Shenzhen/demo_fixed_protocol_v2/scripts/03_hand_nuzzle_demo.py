@@ -5,6 +5,60 @@ from __future__ import annotations
 from common import RemoteStep, build_parser, exit_from_plan
 
 
+def pose(label: str, positions: tuple[int, int, int, int], speeds: tuple[int, int, int, int]) -> RemoteStep:
+    pos = " ".join(str(value) for value in positions)
+    speed = " ".join(str(value) for value in speeds)
+    return RemoteStep(
+        label,
+        f"python3 /home/sunrise/Desktop/four_servo_control.py pose {pos} --speeds {speed}",
+    )
+
+
+def hold(label: str, seconds: float) -> RemoteStep:
+    return RemoteStep(label, f"sleep {seconds:g}")
+
+
+def build_micro_nuzzle_steps(*, cycles: int) -> list[RemoteStep]:
+    steps: list[RemoteStep] = []
+    for idx in range(cycles):
+        cycle = idx + 1
+        steps.extend(
+            [
+                pose(
+                    f"micro nuzzle {cycle} - soft press under palm",
+                    (2048, 2160, 1825, 2130),
+                    (55, 45, 35, 55),
+                ),
+                hold(f"micro nuzzle {cycle} - press hold", 0.12),
+                pose(
+                    f"micro nuzzle {cycle} - release pressure",
+                    (2048, 2150, 1855, 2130),
+                    (55, 45, 35, 55),
+                ),
+                hold(f"micro nuzzle {cycle} - release hold", 0.1),
+                pose(
+                    f"micro nuzzle {cycle} - small side brush left",
+                    (2048, 2150, 1850, 2165),
+                    (50, 40, 35, 45),
+                ),
+                hold(f"micro nuzzle {cycle} - left hold", 0.1),
+                pose(
+                    f"micro nuzzle {cycle} - small side brush right",
+                    (2048, 2150, 1850, 2095),
+                    (50, 40, 35, 45),
+                ),
+                hold(f"micro nuzzle {cycle} - right hold", 0.1),
+                pose(
+                    f"micro nuzzle {cycle} - settle under palm",
+                    (2048, 2150, 1850, 2130),
+                    (50, 40, 35, 45),
+                ),
+                hold(f"micro nuzzle {cycle} - close settle", 0.18),
+            ]
+        )
+    return steps
+
+
 def build_steps(*, light_style: str, rub_cycles: int, variant: str) -> list[RemoteStep]:
     if light_style == "breathe":
         light_cmd = "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py breathe 255 190 120 120"
@@ -34,68 +88,61 @@ def build_steps(*, light_style: str, rub_cycles: int, variant: str) -> list[Remo
             ),
             RemoteStep("hold reached target pose", "sleep 1.2"),
             RemoteStep("soft follow light", "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 205 150 105"),
+            RemoteStep(
+                "hold short-video target contact",
+                "sleep 0.8",
+            ),
         ]
     else:
         steps = [
             RemoteStep("warm ready light", light_cmd),
-            RemoteStep(
+            pose(
                 "settle into near-hand waiting pose",
-                "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2120 1980 2180 --speeds 160 90 90 130",
+                (2048, 2140, 1980, 2130),
+                (120, 75, 75, 110),
             ),
-            RemoteStep("pause before approach", "sleep 0.4"),
-            RemoteStep(
-                "lean toward hand",
-                "python3 /home/sunrise/Desktop/servo_1_2_lean_forward_2148_1848.py --target-1 2148 --target-2 1848 --speed 85",
+            hold("wait for hand to settle", 0.5),
+            pose(
+                "soft approach into hand zone",
+                (2048, 2170, 1900, 2130),
+                (95, 60, 50, 80),
             ),
-            RemoteStep("hold close approach", "sleep 0.35"),
-            RemoteStep(
-                "dip under palm",
-                "python3 /home/sunrise/Desktop/servo_1_2_lean_forward_2148_1848.py --target-1 2180 --target-2 1820 --speed 70",
+            hold("hold close approach", 0.3),
+            pose(
+                "dip head under palm",
+                (2048, 2150, 1850, 2130),
+                (80, 55, 40, 70),
             ),
+            hold("settle under palm before nuzzle", 0.35),
         ]
-
-    for idx in range(rub_cycles):
-        steps.append(
-            RemoteStep(
-                f"micro nuzzle cycle {idx + 1} - vertical",
-                "python3 /home/sunrise/Desktop/servo_2_nod_1900_2200.py --cycles 1 --low 1910 --high 1995 --return-target 1955 --pre-target 2180 --speed 120 --pause 0.04",
-            )
-        )
-        steps.append(
-            RemoteStep(
-                f"micro nuzzle cycle {idx + 1} - side",
-                "python3 /home/sunrise/Desktop/servo_3_shake_2100_2000.py --cycles 1 --left 2240 --right 2160 --return-target 2200 --speed 130 --pause 0.04",
-            )
-        )
+        steps.extend(build_micro_nuzzle_steps(cycles=rub_cycles))
 
     if variant == "04":
-        steps.append(
-            RemoteStep(
-                "hold short-video target contact",
-                "sleep 0.8",
-            )
-        )
+        pass
     else:
         steps.extend(
             [
-                RemoteStep(
+                pose(
                     "short follow as hand leaves",
-                    "python3 /home/sunrise/Desktop/servo_1_2_lean_forward_2148_1848.py --target-1 2210 --target-2 1805 --speed 80",
+                    (2048, 2210, 1825, 2130),
+                    (75, 50, 40, 65),
                 ),
-                RemoteStep("hold close after follow", "sleep 0.8"),
+                hold("hold close after short follow", 0.45),
             ]
         )
 
     steps.extend(
         [
-            RemoteStep(
+            pose(
                 "soft release from close pose",
-                "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2110 1985 2180 --speeds 140 80 80 120",
+                (2048, 2140, 1950, 2130),
+                (90, 55, 50, 75),
             ),
-            RemoteStep("linger in affectionate pose", "sleep 0.5"),
-            RemoteStep(
+            hold("linger in affectionate pose", 0.45),
+            pose(
                 "return to natural waiting pose",
-                "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 140 90 90 140",
+                (2048, 2150, 2048, 2130),
+                (120, 75, 75, 120),
             ),
             RemoteStep("natural warm light", "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 100"),
         ]
@@ -106,12 +153,12 @@ def build_steps(*, light_style: str, rub_cycles: int, variant: str) -> list[Remo
 def main() -> None:
     parser = build_parser("Demo scene 03: hand nuzzle (Videos 03 and 04).")
     parser.add_argument("--light-style", choices=("all", "breathe"), default="all")
-    parser.add_argument("--rub-cycles", type=int, default=2)
+    parser.add_argument("--rub-cycles", type=int, default=1)
     parser.add_argument("--variant", choices=("03", "04"), default="03")
     args = parser.parse_args()
     exit_from_plan(
         args=args,
-        steps=build_steps(light_style=args.light_style, rub_cycles=max(1, args.rub_cycles), variant=args.variant),
+        steps=build_steps(light_style=args.light_style, rub_cycles=max(1, min(args.rub_cycles, 3)), variant=args.variant),
     )
 
 

@@ -9,8 +9,8 @@ import subprocess
 from typing import Iterable
 
 
-DEFAULT_HOST = "82.157.174.100"
-DEFAULT_PORT = 6000
+DEFAULT_HOST = "192.168.0.183"
+DEFAULT_PORT = 22
 DEFAULT_USER = "root"
 
 

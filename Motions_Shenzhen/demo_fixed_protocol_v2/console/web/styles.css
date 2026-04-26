@@ -11,6 +11,8 @@
   --green: #2f806a;
   --red: #b9473f;
   --shadow: 0 24px 80px rgba(59, 47, 28, 0.16);
+  --servo-dock-width: 360px;
+  --servo-dock-gap: 18px;
 }
 
 * {
@@ -51,6 +53,12 @@ button.execute {
 
 button:hover {
   transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
 }
 
 input {
@@ -174,6 +182,15 @@ dt {
   justify-content: space-between;
 }
 
+.compact-title {
+  align-items: flex-start;
+}
+
+.compact-title button {
+  flex: 0 0 auto;
+  padding: 0.58rem 0.9rem;
+}
+
 .fields {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -198,9 +215,134 @@ label {
   border-bottom: 0;
 }
 
+.servo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.servo-cell {
+  min-width: 0;
+  padding: 12px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.servo-cell span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.servo-cell strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.servo-control-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.servo-control-head strong {
+  font-size: 0.95rem;
+}
+
+.servo-control-head label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.servo-control-head input {
+  width: 72px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 12px;
+}
+
+.servo-control-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.servo-control-row {
+  display: grid;
+  grid-template-columns: 34px 42px minmax(64px, 1fr) 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.servo-control-row span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.servo-control-row strong {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.54rem 0.6rem;
+  background: rgba(255, 255, 255, 0.64);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.servo-control-row button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.servo-control-row button[data-servo-delta="-1"] {
+  background: var(--green);
+  box-shadow: 0 8px 18px rgba(47, 128, 106, 0.2);
+}
+
+.servo-control-row button[data-servo-delta="1"] {
+  background: var(--accent);
+  box-shadow: 0 8px 18px rgba(226, 117, 66, 0.22);
+}
+
+@media (min-width: 1180px) {
+  .shell {
+    width: min(1440px, calc(100% - var(--servo-dock-width) - var(--servo-dock-gap) * 3));
+    margin-left: var(--servo-dock-gap);
+    margin-right: calc(var(--servo-dock-width) + var(--servo-dock-gap) * 2);
+  }
+
+  .servo-panel {
+    position: fixed;
+    top: var(--servo-dock-gap);
+    right: var(--servo-dock-gap);
+    bottom: var(--servo-dock-gap);
+    z-index: 20;
+    width: var(--servo-dock-width);
+    margin: 0;
+    overflow-y: auto;
+  }
+}
+
 .scene-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(220px, 1fr));
+  grid-template-columns: repeat(8, minmax(220px, 1fr));
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 8px;
@@ -316,6 +458,58 @@ dd {
 .quick-card span {
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.queue-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.queue-item.running {
+  border-color: rgba(45, 111, 137, 0.34);
+  background: rgba(45, 111, 137, 0.1);
+}
+
+.queue-item strong,
+.queue-item span {
+  display: block;
+}
+
+.queue-item span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.queue-remove {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--red);
+  box-shadow: none;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .output-panel pre {

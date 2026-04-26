@@ -1,0 +1,2 @@
+2026-04-26 00:47:47,696 INFO cam_receiver: HTTP server listening on 0.0.0.0:8001
+2026-04-26 00:47:47,697 INFO cam_receiver: Waiting for frames... press q to quit the preview window

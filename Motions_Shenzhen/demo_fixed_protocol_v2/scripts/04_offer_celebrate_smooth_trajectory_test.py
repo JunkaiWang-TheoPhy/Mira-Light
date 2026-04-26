@@ -16,10 +16,8 @@ def _sleep(seconds: float) -> str:
     return f"sleep {max(0.0, seconds / DEFAULT_TIME_MULTIPLIER):.2f}"
 
 
-def _party_light_cmd(party_light: str, brightness: int) -> str:
-    if party_light == "spin":
-        return f"python3 /home/sunrise/Desktop/send_uart3_led_cmd.py spin --rainbow 0 1 {brightness}"
-    return f"python3 /home/sunrise/Desktop/send_uart3_led_cmd.py rainbow {brightness}"
+def _party_light_cmd(brightness: int) -> str:
+    return f"python3 /home/sunrise/Desktop/send_uart3_led_cmd.py spin --rainbow 0 1 {brightness}"
 
 
 def _pose_step(
@@ -139,7 +137,7 @@ def _smooth_round(
     ]
 
 
-def build_steps(*, party_light: str, hold_seconds: float) -> list[RemoteStep]:
+def build_steps() -> list[RemoteStep]:
     high_center = (2048, 2520, 2300, 2200)
     center_high = (2048, 2360, 2160, 2130)
     left_mid_high = (1760, 2480, 2230, 2240)
@@ -176,8 +174,8 @@ def build_steps(*, party_light: str, hold_seconds: float) -> list[RemoteStep]:
             s2=205,
             s3=210,
         ),
-        RemoteStep("hold the reveal", _sleep(max(0.18, hold_seconds * 0.2))),
-        RemoteStep("enter party light", _party_light_cmd(party_light, 185)),
+        RemoteStep("hold the reveal", _sleep(0.28)),
+        RemoteStep("enter party light", _party_light_cmd(185)),
     ]
 
     steps.extend(
@@ -243,11 +241,10 @@ def build_steps(*, party_light: str, hold_seconds: float) -> list[RemoteStep]:
 
 
 def main() -> None:
-    parser = build_parser("Smooth trajectory celebration script promoted from validated test version.")
-    parser.add_argument("--party-light", choices=("spin", "rainbow"), default="spin")
-    parser.add_argument("--hold-seconds", type=float, default=1.4)
+    parser = build_parser("Smooth trajectory celebration test with four flowing left-center-right rounds.")
+    parser.parse_args()
     args = parser.parse_args()
-    exit_from_plan(args=args, steps=build_steps(party_light=args.party_light, hold_seconds=args.hold_seconds))
+    exit_from_plan(args=args, steps=build_steps())
 
 
 if __name__ == "__main__":

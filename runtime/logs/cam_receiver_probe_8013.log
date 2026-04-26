@@ -1,0 +1,3 @@
+2026-04-26 02:35:43,826 INFO cam_receiver: HTTP server listening on 127.0.0.1:8013
+2026-04-26 02:35:43,826 INFO cam_receiver: Waiting for frames... press q to quit the preview window
+2026-04-26 02:35:44,945 INFO cam_receiver: Received frame seq=probe-1 size=647 bytes count=1 latency_ms=23.8

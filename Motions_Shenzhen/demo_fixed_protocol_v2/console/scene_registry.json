@@ -2,8 +2,8 @@
   "title": "Mira Light Shenzhen Demo Console",
   "version": "2026-04-25-v2",
   "boardDefaults": {
-    "host": "82.157.174.100",
-    "port": 6000,
+    "host": "192.168.0.183",
+    "port": 22,
     "user": "root"
   },
   "scenes": [
@@ -35,13 +35,13 @@
       "id": "03_hand_nuzzle",
       "number": "03",
       "title": "摸一摸",
-      "subtitle": "评委伸手，灯头靠过去像猫一样蹭手",
-      "script": "03_hand_nuzzle_demo.py",
+      "subtitle": "评委伸手，Mira 主动钻到手掌下面轻轻蹭",
+      "script": "03_hand_nuzzle_faithful_demo.py",
       "risk": "motion-high",
-      "defaultArgs": ["--variant", "03", "--rub-cycles", "2"],
-      "operatorCue": "主持人说：你可以轻轻摸摸它。确认手在安全位置后再执行。",
-      "successSignal": "灯光变暖，灯头靠近手掌，下探后做上下和左右小幅蹭动，最后自然回到等待位。",
-      "fallbackBehavior": "如果手离得远，使用 --variant 04 作为短版目标接近动作。"
+      "defaultArgs": ["--light-style", "breathe", "--rub-cycles", "2", "--linger-seconds", "0.8", "--final-pose", "natural"],
+      "operatorCue": "主持人说：你可以轻轻摸摸它。请把手停在灯头前上方，不要主动压它；确认安全后再执行。",
+      "successSignal": "灯光变成最暖色温并轻微呼吸，Mira 先慢慢靠近，再低头钻到掌心下方，用灯头和中间关节持续做很小的上下/左右蹭动；手拿开时短追一下，最后柔和回到自然照明方向。",
+      "fallbackBehavior": "如果手离得远或空间不稳，可临时改回旧脚本 03_hand_nuzzle_demo.py 的 --variant 04，只做短版接近和保持。"
     },
     {
       "id": "04_offer_celebrate",
@@ -83,13 +83,25 @@
       "id": "07_tabletop_follow",
       "number": "07",
       "title": "桌面追踪",
-      "subtitle": "固定演示桌面目标从近侧移动到远侧并停住",
+      "subtitle": "2/1 号先让灯头朝下贴桌面，0/3 号大幅左右追书",
       "script": "07_tabletop_follow_demo.py",
       "risk": "motion-medium",
-      "defaultArgs": ["--correction-cycles", "2", "--final-pose", "target"],
-      "operatorCue": "主持人请评委移动桌上的书或物体，同时说明这是固定演示版 tracking 路径。",
-      "successSignal": "Mira 低头进入桌面关注位，连续跟到 far side，停住并做局部修正，最后保持目标相关姿态。",
-      "fallbackBehavior": "如果下一幕还在桌面上继续，使用 --final-pose tabletop。"
+      "defaultArgs": ["--correction-cycles", "1", "--final-pose", "target"],
+      "operatorCue": "对评委说：你可以试试在桌上移动这本书。先从左侧开始，停一下，再慢慢移到右侧。",
+      "successSignal": "Mira 先用 2 号和 1 号把灯头压成朝下看桌面的姿态；书移动时 0 号带身体方向、3 号带灯头视线一起追，书停下时 Mira 也停住，评委再移动时 Mira 再跟。",
+      "fallbackBehavior": "如果下一幕还在桌面上继续，使用 --final-pose tabletop；如果幅度太大，先把 --correction-cycles 设为 0 或缩短右侧停留。"
+    },
+    {
+      "id": "08_photo_pose",
+      "number": "08",
+      "title": "拍照",
+      "subtitle": "只动 1/2 号：1 号压低，2 号抬高，0/3 号保持不动",
+      "script": "08_photo_pose_demo.py",
+      "risk": "motion-medium",
+      "defaultArgs": ["--target-1", "1880", "--target-2", "1650", "--speed", "170", "--hold-seconds", "1.2"],
+      "operatorCue": "需要定格拍照时执行；先确认灯头下方和侧面没有手或物体。",
+      "successSignal": "0 号和 3 号不发动作命令，1 号降到低位、2 号抬到高位，形成稳定拍照姿态并短暂停留。",
+      "fallbackBehavior": "如果姿态太低，把 --target-1 调大一点；如果 2 号抬得太高，把 --target-2 调大一点。"
     }
   ],
   "quickActions": [
@@ -127,6 +139,28 @@
       ]
     },
     {
+      "id": "led_rainbow_spin",
+      "title": "彩色风车",
+      "risk": "light-only",
+      "commands": [
+        {
+          "label": "rainbow spinning pinwheel",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py spin --rainbow 0 1 185"
+        }
+      ]
+    },
+    {
+      "id": "led_blue_spin",
+      "title": "蓝色旋转风车",
+      "risk": "light-only",
+      "commands": [
+        {
+          "label": "blue spinning pinwheel",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py spin 0 0 255 0 1 185"
+        }
+      ]
+    },
+    {
       "id": "ping_servos",
       "title": "Ping 舵机",
       "risk": "read-only",
@@ -149,13 +183,35 @@
       ]
     },
     {
+      "id": "head_shake",
+      "title": "摇头",
+      "risk": "motion-medium",
+      "commands": [
+        {
+          "label": "shake servo 3 left and right",
+          "command": "python3 /home/sunrise/Desktop/servo_3_shake_2100_2000.py --cycles 2 --left 2360 --right 1980 --return-target 2130 --speed 260 --pause 0.05 --max-segment-wait 3.0"
+        }
+      ]
+    },
+    {
+      "id": "head_nod",
+      "title": "点头",
+      "risk": "motion-medium",
+      "commands": [
+        {
+          "label": "nod servo 2 up and down",
+          "command": "python3 /home/sunrise/Desktop/servo_2_nod_1900_2200.py --cycles 2 --low 1880 --high 2220 --return-target 2048 --pre-target 2130 --speed 260 --pause 0.05 --max-segment-wait 3.5"
+        }
+      ]
+    },
+    {
       "id": "normal_pose",
       "title": "回正常位",
       "risk": "motion-medium",
       "commands": [
         {
           "label": "return neutral pose",
-          "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 140 90 90 140"
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 280 180 180 280"
         },
         {
           "label": "warm neutral light",
@@ -170,7 +226,7 @@
       "commands": [
         {
           "label": "fold into sleep",
-          "command": "python3 /home/sunrise/Desktop/sleep_motion_with_03_return.py --speeds 1000 160 680 1000 --delay-ratio 0.68 --return03-ratio 0.25 --return-0 2048 --return-3 2130"
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 1821 2912 2130 --speeds 3000 480 2040 3000"
         },
         {
           "label": "dim sleep light",

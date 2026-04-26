@@ -21,7 +21,7 @@ def build_steps(
         final_look_cmd = "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 160 90 90 160"
     else:
         # Board convention from existing scripts: servo3 > neutral points toward the left judge side.
-        final_look_cmd = "python3 /home/sunrise/Desktop/four_servo_control.py pose 2400 2000 2048 2748 --speeds 120 100 100 120"
+        final_look_cmd = "python3 /home/sunrise/Desktop/four_servo_control.py pose 2365 2150 2048 2686 --speeds 120 100 100 120"
 
     steps: list[RemoteStep] = []
     if not skip_start_sleep:
@@ -30,7 +30,7 @@ def build_steps(
                 RemoteStep("start dark", "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py off"),
                 RemoteStep(
                     "fold to sleep start pose",
-                    "python3 /home/sunrise/Desktop/sleep_motion_with_03_return.py",
+                    "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 1821 2912 2130 --speeds 2000 320 1240 2000",
                 ),
                 RemoteStep("hold still before waking", "sleep 0.8"),
             ]

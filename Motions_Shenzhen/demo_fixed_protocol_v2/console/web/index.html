@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">Shenzhen Fixed Protocol</p>
           <h1>Mira Light 深圳演示主控台</h1>
-          <p class="subcopy">基于旧版 Director Console 的本地 HTTP 模式，原生适配 7 个固定动作任务。默认预览不动机器，执行时才通过 SSH 发到地瓜开发板。</p>
+          <p class="subcopy">基于旧版 Director Console 的本地 HTTP 模式，原生适配深圳演示动作。默认预览不动机器，执行时才通过 SSH 发到地瓜开发板。</p>
         </div>
         <div class="hero-card">
           <span>BOARD</span>
@@ -65,17 +65,86 @@
             <strong id="last-code">-</strong>
           </div>
         </article>
+
+        <article class="panel servo-panel">
+          <div class="panel-title row-title compact-title">
+            <div>
+              <h2>舵机当前位置</h2>
+              <p id="servo-position-summary">空闲时自动刷新。</p>
+            </div>
+            <button id="refresh-servos" type="button">刷新</button>
+          </div>
+          <div class="servo-grid">
+            <div class="servo-cell">
+              <span>00</span>
+              <strong id="servo-pos-0">-</strong>
+            </div>
+            <div class="servo-cell">
+              <span>01</span>
+              <strong id="servo-pos-1">-</strong>
+            </div>
+            <div class="servo-cell">
+              <span>02</span>
+              <strong id="servo-pos-2">-</strong>
+            </div>
+            <div class="servo-cell">
+              <span>03</span>
+              <strong id="servo-pos-3">-</strong>
+            </div>
+          </div>
+          <div class="servo-control-head">
+            <strong>手动微调</strong>
+            <label>
+              步长
+              <input id="servo-step" type="number" min="1" max="200" step="1" value="20" />
+            </label>
+          </div>
+          <div class="servo-control-grid">
+            <div class="servo-control-row" data-servo-id="0">
+              <span>00</span>
+              <button type="button" data-servo-delta="-1">−</button>
+              <strong id="servo-target-0">-</strong>
+              <button type="button" data-servo-delta="1">+</button>
+            </div>
+            <div class="servo-control-row" data-servo-id="1">
+              <span>01</span>
+              <button type="button" data-servo-delta="-1">−</button>
+              <strong id="servo-target-1">-</strong>
+              <button type="button" data-servo-delta="1">+</button>
+            </div>
+            <div class="servo-control-row" data-servo-id="2">
+              <span>02</span>
+              <button type="button" data-servo-delta="-1">−</button>
+              <strong id="servo-target-2">-</strong>
+              <button type="button" data-servo-delta="1">+</button>
+            </div>
+            <div class="servo-control-row" data-servo-id="3">
+              <span>03</span>
+              <button type="button" data-servo-delta="-1">−</button>
+              <strong id="servo-target-3">-</strong>
+              <button type="button" data-servo-delta="1">+</button>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section class="panel">
         <div class="panel-title row-title">
           <div>
-            <h2>七个固定场景</h2>
+            <h2>演示动作</h2>
             <p>每个场景都能先预览 shell，再执行真机。评委默认在左侧的动作已经写进对应脚本。</p>
           </div>
           <button id="refresh" type="button">刷新状态</button>
         </div>
         <div id="scene-grid" class="scene-grid"></div>
+      </section>
+
+      <section class="panel queue-panel">
+        <div class="panel-title">
+          <h2>执行队列</h2>
+          <p id="queue-summary">空闲</p>
+        </div>
+        <div id="queue-list" class="queue-list"></div>
       </section>
 
       <section class="panel">

@@ -9,7 +9,7 @@
 - 后端代理执行
 - 静态前端，无额外前端构建步骤
 
-但它不走旧 release 的 bridge/runtime，而是直接适配当前 7 个深圳固定动作脚本。
+但它不走旧 release 的 bridge/runtime，而是直接适配当前深圳固定动作脚本。
 
 ## 启动
 
@@ -34,7 +34,7 @@ http://127.0.0.1:8777
 默认板端连接：
 
 ```text
-root@82.157.174.100 -p 6000
+root@192.168.0.183 -p 22
 ```
 
 如果没有免密 SSH，有两种方式：
@@ -48,7 +48,8 @@ export MIRA_SHENZHEN_BOARD_PASSWORD='rootroot'
 
 ## 文件说明
 
-- `scene_registry.json`：7 个场景和救场动作的主控台登记表。
+- `scene_registry.json`：场景和救场动作的主控台登记表。
+- `console_v2_videos_mapping.md`：`console v2 01-08` 与 `Videos/01-08`、PDF 副本条目和额外动作的对照表。
 - `shenzhen_console.py`：本地 HTTP server，负责预览和 SSH 执行。
 - `web/`：主控台前端页面。
 - `start_shenzhen_console.sh`：启动脚本。
