@@ -51,6 +51,11 @@ button.execute {
   box-shadow: 0 10px 22px rgba(226, 117, 66, 0.26);
 }
 
+button.execute.emergency {
+  background: var(--red);
+  box-shadow: 0 10px 22px rgba(185, 71, 63, 0.28);
+}
+
 button:hover {
   transform: translateY(-1px);
 }
@@ -391,6 +396,11 @@ label {
 .motion-high .risk {
   color: var(--red);
   background: rgba(185, 71, 63, 0.12);
+}
+
+.motion-emergency .risk {
+  color: #fff;
+  background: var(--red);
 }
 
 .motion-medium .risk {

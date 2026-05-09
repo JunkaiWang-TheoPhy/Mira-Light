@@ -30,6 +30,19 @@ DEMO_ROOT = CONSOLE_DIR.parent
 SCRIPTS_DIR = DEMO_ROOT / "scripts"
 WEB_ROOT = CONSOLE_DIR / "web"
 REGISTRY_PATH = CONSOLE_DIR / "scene_registry.json"
+JAVIS_DIGUA_RENDER_SCRIPT = (
+    Path.home()
+    / "Documents"
+    / "Github"
+    / "Javis-Hackathon"
+    / "exports"
+    / "macbook-camera-print-deploy-pack-20260329"
+    / "source"
+    / "current"
+    / "openclaw-chrome-camera-anime"
+    / "runtime"
+    / "digua_remote_render_pipeline.py"
+)
 DEFAULT_HOST = "192.168.0.183"
 DEFAULT_PORT = 22
 DEFAULT_USER = "root"
@@ -40,6 +53,8 @@ SSH_CONTROL_PERSIST_SECONDS = int(os.environ.get("MIRA_SHENZHEN_SSH_CONTROL_PERS
 SSH_CONNECT_RETRIES = int(os.environ.get("MIRA_SHENZHEN_SSH_CONNECT_RETRIES", "2"))
 SSH_RETRY_DELAY_SECONDS = float(os.environ.get("MIRA_SHENZHEN_SSH_RETRY_DELAY_SECONDS", "0.15"))
 SSH_LOCK = Lock()
+PROCESS_LOCK = Lock()
+ACTIVE_PROCESSES: set[subprocess.Popen] = set()
 SERVO_MIN = 0
 SERVO_MAX = 4095
 MANUAL_SERVO_SPEEDS = (440, 320, 320, 440)
@@ -47,6 +62,30 @@ SERVO_POSITION_SCRIPT = """set -euo pipefail
 echo '== read all servo positions =='
 python3 /home/sunrise/Desktop/four_servo_control.py read-pos-all
 """
+EMERGENCY_STOP_COMMANDS = [
+    {
+        "label": "stop known Mira motion scripts",
+        "command": "\n".join(
+            [
+                "pkill -f '[s]ervo_.*\\.py' || true",
+                "pkill -f '[f]our_servo_control.py' || true",
+                "sleep 0.15",
+            ]
+        ),
+    },
+    {
+        "label": "force return neutral pose",
+        "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 280 180 180 280",
+    },
+    {
+        "label": "warm neutral light",
+        "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 100",
+    },
+    {
+        "label": "read all servo positions",
+        "command": "python3 /home/sunrise/Desktop/four_servo_control.py read-pos-all || true",
+    },
+]
 
 
 def parse_servo_positions(stdout: str) -> dict[str, int]:
@@ -114,6 +153,9 @@ def render_remote_script(steps: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+EMERGENCY_STOP_SCRIPT = render_remote_script(EMERGENCY_STOP_COMMANDS)
+
+
 def parse_extra_args(raw: object) -> list[str]:
     if raw in (None, "", False):
         return []
@@ -132,6 +174,40 @@ def redact_password(text: str, password: str) -> str:
 
 def timestamp() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def register_process(process: subprocess.Popen) -> None:
+    with PROCESS_LOCK:
+        ACTIVE_PROCESSES.add(process)
+
+
+def unregister_process(process: subprocess.Popen) -> None:
+    with PROCESS_LOCK:
+        ACTIVE_PROCESSES.discard(process)
+
+
+def terminate_active_processes(grace_seconds: float = 0.4) -> int:
+    with PROCESS_LOCK:
+        processes = [process for process in ACTIVE_PROCESSES if process.poll() is None]
+
+    for process in processes:
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            pass
+
+    deadline = time.monotonic() + grace_seconds
+    for process in processes:
+        remaining = max(0.0, deadline - time.monotonic())
+        try:
+            process.wait(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+
+    return len(processes)
 
 
 def ssh_control_path(*, host: str, port: int, user: str) -> Path:
@@ -167,14 +243,51 @@ def is_transient_ssh_failure(result: dict) -> bool:
     return not text.strip() or any(marker in text for marker in transient_markers)
 
 
-def run_local_command(command: list[str], timeout_seconds: float) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+def run_local_command(command: list[str], timeout_seconds: float, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    process = subprocess.Popen(
         command,
-        check=False,
         text=True,
-        capture_output=True,
-        timeout=timeout_seconds,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
     )
+    register_process(process)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        process.kill()
+        stdout, stderr = process.communicate()
+        raise subprocess.TimeoutExpired(command, timeout_seconds, output=stdout, stderr=stderr) from exc
+    finally:
+        unregister_process(process)
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
+def command_preview(command: list[str], env_keys: list[str] | None = None) -> str:
+    prefix = ""
+    if env_keys:
+        prefix = " ".join(f"{key}=<from environment or console>" for key in env_keys) + " "
+    return prefix + " ".join(shlex.quote(str(part)) for part in command)
+
+
+def run_local_action_command(
+    *,
+    command: list[str],
+    env: dict[str, str],
+    timeout_seconds: float,
+    redact_values: list[str] | None = None,
+) -> dict:
+    redact_values = [value for value in (redact_values or []) if value]
+    try:
+        result = run_local_command(command, timeout_seconds=timeout_seconds, env=env)
+    except subprocess.TimeoutExpired:
+        return {"returnCode": -1, "stdout": "", "stderr": f"Timed out after {timeout_seconds:.1f}s"}
+    stdout = result.stdout
+    stderr = result.stderr
+    for value in redact_values:
+        stdout = stdout.replace(value, "[redacted]")
+        stderr = stderr.replace(value, "[redacted]")
+    return {"returnCode": result.returncode, "stdout": stdout, "stderr": stderr}
 
 
 def run_ssh_with_pty(command: list[str], password: str, timeout_seconds: float) -> dict:
@@ -189,6 +302,7 @@ def run_ssh_with_pty(command: list[str], password: str, timeout_seconds: float) 
         text=False,
         close_fds=True,
     )
+    register_process(process)
     os.close(slave_fd)
     password_sent = False
     try:
@@ -221,6 +335,7 @@ def run_ssh_with_pty(command: list[str], password: str, timeout_seconds: float) 
             if process.poll() is not None and not ready:
                 break
     finally:
+        unregister_process(process)
         os.close(master_fd)
 
     stdout = redact_password("".join(output_chunks), password)
@@ -263,23 +378,31 @@ exit [lindex $result 3]
             handle.write(expect_program)
             expect_script = handle.name
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 [expect_bin, expect_script, *command],
-                check=False,
                 text=True,
-                capture_output=True,
-                timeout=timeout_seconds + 5.0,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 env=env,
             )
+            register_process(process)
+            try:
+                stdout, stderr = process.communicate(timeout=timeout_seconds + 5.0)
+            except subprocess.TimeoutExpired as exc:
+                process.kill()
+                stdout, stderr = process.communicate()
+                raise subprocess.TimeoutExpired(command, timeout_seconds + 5.0, output=stdout, stderr=stderr) from exc
+            finally:
+                unregister_process(process)
         finally:
             Path(expect_script).unlink(missing_ok=True)
     except subprocess.TimeoutExpired:
         return {"returnCode": -1, "stdout": "", "stderr": f"Timed out after {timeout_seconds:.1f}s"}
 
     return {
-        "returnCode": result.returncode,
-        "stdout": redact_password(result.stdout, password),
-        "stderr": redact_password(result.stderr, password),
+        "returnCode": process.returncode,
+        "stdout": redact_password(stdout, password),
+        "stderr": redact_password(stderr, password),
     }
 
 
@@ -440,9 +563,10 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
             "status": job["status"],
             "queuedAt": job["queuedAt"],
             "startedAt": job.get("startedAt"),
-            "host": job["host"],
-            "port": job["port"],
-            "user": job["user"],
+            "runMode": job.get("runMode", "remote"),
+            "host": job.get("host"),
+            "port": job.get("port"),
+            "user": job.get("user"),
         }
 
     def _current_view(self) -> dict | None:
@@ -454,8 +578,9 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
             "id": job["itemId"],
             "queueId": job["queueId"],
             "title": job["title"],
-            "host": job["host"],
-            "port": job["port"],
+            "runMode": job.get("runMode", "remote"),
+            "host": job.get("host"),
+            "port": job.get("port"),
         }
 
     def _refresh_queue_state_locked(self) -> None:
@@ -492,6 +617,10 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
         user: str,
         password: str,
         timeout_seconds: float,
+        run_mode: str = "remote",
+        local_command: list[str] | None = None,
+        local_env: dict[str, str] | None = None,
+        redact_values: list[str] | None = None,
     ) -> dict:
         job = {
             "queueId": uuid4().hex,
@@ -499,6 +628,10 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
             "itemId": item_id,
             "title": title,
             "script": script,
+            "runMode": run_mode,
+            "localCommand": local_command,
+            "localEnv": local_env or {},
+            "redactValues": redact_values or [],
             "host": host,
             "port": port,
             "user": user,
@@ -695,6 +828,78 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
                     return self._job_view(removed), None
         return None, "not_found"
 
+    def force_stop_to_neutral(
+        self,
+        *,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        timeout_seconds: float,
+    ) -> dict:
+        with self.lock:
+            removed_count = len(self.queue)
+            for job in self.queue:
+                job["status"] = "removed"
+            self.queue.clear()
+            self.state["running"] = True
+            self.state["current"] = {
+                "kind": "emergency",
+                "id": "force_stop_neutral",
+                "title": "强停归位",
+                "host": host,
+                "port": port,
+            }
+            self._refresh_queue_state_locked()
+
+        stopped_processes = terminate_active_processes()
+        started = time.monotonic()
+        try:
+            result = run_remote_script(
+                script=EMERGENCY_STOP_SCRIPT,
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                timeout_seconds=min(timeout_seconds, 30.0),
+            )
+        except Exception as exc:  # noqa: BLE001 - emergency result must be surfaced to the console.
+            result = {"returnCode": -1, "stdout": "", "stderr": str(exc)}
+
+        result["durationSeconds"] = round(time.monotonic() - started, 3)
+        result["script"] = EMERGENCY_STOP_SCRIPT
+        result["host"] = host
+        result["port"] = port
+        result["user"] = user
+        result["stoppedProcesses"] = stopped_processes
+        result["clearedQueueItems"] = removed_count
+
+        entry = {
+            "at": timestamp(),
+            "kind": "emergency",
+            "id": "force_stop_neutral",
+            "title": "强停归位",
+            "returnCode": result.get("returnCode"),
+        }
+        values = parse_servo_positions(result.get("stdout", ""))
+        with self.lock:
+            self.state["lastResult"] = {**entry, **result}
+            self.state["history"] = [entry, *self.state["history"][:19]]
+            if values:
+                self.state["servoPositions"] = {
+                    "values": values,
+                    "updatedAt": entry["at"],
+                    "running": False,
+                    "error": None,
+                    "host": host,
+                    "port": port,
+                    "user": user,
+                    "returnCode": result.get("returnCode"),
+                    "durationSeconds": result.get("durationSeconds"),
+                }
+            self._refresh_queue_state_locked()
+        return result
+
     def _record_result_locked(self, *, job: dict, result: dict) -> None:
         entry = {
             "at": timestamp(),
@@ -724,21 +929,30 @@ class ShenzhenConsoleServer(ThreadingHTTPServer):
     def _run_job(self, job: dict) -> dict:
         started = time.monotonic()
         try:
-            result = run_remote_script(
-                script=job["script"],
-                host=job["host"],
-                port=job["port"],
-                user=job["user"],
-                password=job["password"],
-                timeout_seconds=job["timeoutSeconds"],
-            )
+            if job.get("runMode") == "local":
+                result = run_local_action_command(
+                    command=job["localCommand"],
+                    env=job["localEnv"],
+                    timeout_seconds=job["timeoutSeconds"],
+                    redact_values=job.get("redactValues", []),
+                )
+            else:
+                result = run_remote_script(
+                    script=job["script"],
+                    host=job["host"],
+                    port=job["port"],
+                    user=job["user"],
+                    password=job["password"],
+                    timeout_seconds=job["timeoutSeconds"],
+                )
         except Exception as exc:  # noqa: BLE001 - surface queue failures to the console.
             result = {"returnCode": -1, "stdout": "", "stderr": str(exc)}
         result["durationSeconds"] = round(time.monotonic() - started, 3)
         result["script"] = job["script"]
-        result["host"] = job["host"]
-        result["port"] = job["port"]
-        result["user"] = job["user"]
+        result["runMode"] = job.get("runMode", "remote")
+        result["host"] = job.get("host")
+        result["port"] = job.get("port")
+        result["user"] = job.get("user")
         return result
 
     def _queue_error_result(self, job: dict, exc: Exception, started: float) -> dict:
@@ -836,8 +1050,15 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
             raise FileNotFoundError(f"Scene script not found: {scene['script']}")
         return target
 
+    def _registry_script_path(self, item: dict) -> Path:
+        target = (SCRIPTS_DIR / item["script"]).resolve()
+        target.relative_to(SCRIPTS_DIR.resolve())
+        if not target.is_file():
+            raise FileNotFoundError(f"Script not found: {item['script']}")
+        return target
+
     def _build_scene_script(self, scene: dict, body: dict) -> str:
-        script_path = self._scene_script_path(scene)
+        script_path = self._registry_script_path(scene)
         command = [
             os.environ.get("PYTHON", "python3"),
             str(script_path),
@@ -851,6 +1072,63 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Scene script failed")
         return result.stdout
+
+    def _build_quick_action_script(self, action: dict, body: dict) -> str:
+        if "localScript" in action:
+            command, env_keys, _env, _redact_values = self._build_local_action_command(action, body)
+            return command_preview(command, env_keys=env_keys)
+        if "script" not in action:
+            return render_remote_script(action["commands"])
+        script_path = self._registry_script_path(action)
+        command = [
+            os.environ.get("PYTHON", "python3"),
+            str(script_path),
+            *[str(item) for item in action.get("defaultArgs", [])],
+            *parse_extra_args(body.get("extraArgs")),
+        ]
+        try:
+            result = run_local_command(command, timeout_seconds=20.0)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(f"Timed out while rendering quick action script: {exc}") from exc
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Quick action script failed")
+        return result.stdout
+
+    def _local_script_path(self, action: dict) -> Path:
+        script = str(action["localScript"])
+        if script == "$JAVIS_DIGUA_RENDER_SCRIPT":
+            target = JAVIS_DIGUA_RENDER_SCRIPT
+        else:
+            target = Path(script).expanduser()
+        target = target.resolve()
+        if not target.is_file():
+            raise FileNotFoundError(f"Local action script not found: {target}")
+        return target
+
+    def _build_local_action_command(self, action: dict, body: dict) -> tuple[list[str], list[str], dict[str, str], list[str]]:
+        script_path = self._local_script_path(action)
+        host, port, user, password, _timeout = self._connection_from_body(body)
+        command = [
+            os.environ.get("PYTHON", "python3"),
+            str(script_path),
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--user",
+            user,
+            *[str(item) for item in action.get("defaultArgs", [])],
+            *parse_extra_args(body.get("extraArgs")),
+        ]
+        env = dict(os.environ)
+        env_keys: list[str] = []
+        if password:
+            env["DIGUA_SSH_PASSWORD"] = password
+            env_keys.append("DIGUA_SSH_PASSWORD")
+        for key in action.get("requiredEnv", []):
+            if key not in env_keys:
+                env_keys.append(key)
+        return command, env_keys, env, [password]
 
     def _connection_from_body(self, body: dict) -> tuple[str, int, str, str, float]:
         host = str(body.get("host") or self.server.board_host)
@@ -872,6 +1150,26 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
             user=user,
             password=password,
             timeout_seconds=timeout,
+        )
+
+    def _enqueue_local_action(self, *, action: dict, body: dict) -> dict:
+        host, port, user, password, timeout = self._connection_from_body(body)
+        command, env_keys, env, redact_values = self._build_local_action_command(action, body)
+        timeout = float(action.get("timeoutSeconds") or timeout)
+        return self.server.enqueue_job(
+            kind="quick-action",
+            item_id=action["id"],
+            title=action["title"],
+            script=command_preview(command, env_keys=env_keys),
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            timeout_seconds=timeout,
+            run_mode="local",
+            local_command=command,
+            local_env=env,
+            redact_values=redact_values,
         )
 
     def _record_result(self, *, kind: str, item_id: str, title: str, result: dict) -> None:
@@ -1005,6 +1303,19 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
                 self._send_json(409, {"ok": False, "error": "Servo position refresh already running"})
                 return
 
+            if path == "/api/emergency-stop":
+                host, port, user, password, timeout = self._connection_from_body(body)
+                result = self.server.force_stop_to_neutral(
+                    host=host,
+                    port=port,
+                    user=user,
+                    password=password,
+                    timeout_seconds=timeout,
+                )
+                status = 200 if result.get("returnCode") == 0 else 502
+                self._send_json(status, {"ok": status == 200, "result": result})
+                return
+
             if path.startswith("/api/preview/"):
                 scene_id = unquote(path.removeprefix("/api/preview/"))
                 scene = self._scene_by_id(scene_id)
@@ -1032,17 +1343,20 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
                 if action is None:
                     self._send_json(404, {"ok": False, "error": "Unknown quick action"})
                     return
-                script = render_remote_script(action["commands"])
+                script = self._build_quick_action_script(action, body)
                 if body.get("preview", False):
                     self._send_json(200, {"ok": True, "action": action, "script": script})
                     return
-                queued = self._enqueue_script(
-                    kind="quick-action",
-                    item_id=action_id,
-                    title=action["title"],
-                    script=script,
-                    body=body,
-                )
+                if "localScript" in action:
+                    queued = self._enqueue_local_action(action=action, body=body)
+                else:
+                    queued = self._enqueue_script(
+                        kind="quick-action",
+                        item_id=action_id,
+                        title=action["title"],
+                        script=script,
+                        body=body,
+                    )
                 self._send_json(202, {"ok": True, "queued": queued})
                 return
         except Exception as exc:

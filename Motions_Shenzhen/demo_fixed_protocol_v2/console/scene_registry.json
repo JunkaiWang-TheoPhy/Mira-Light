@@ -82,29 +82,54 @@
     {
       "id": "07_tabletop_follow",
       "number": "07",
-      "title": "桌面追踪",
-      "subtitle": "2/1 号先让灯头朝下贴桌面，0/3 号大幅左右追书",
+      "title": "00 摆动测试",
+      "subtitle": "从 03 结束位过渡到指定姿态，00 号从 2200 摆到 2900 再回来",
       "script": "07_tabletop_follow_demo.py",
       "risk": "motion-medium",
-      "defaultArgs": ["--correction-cycles", "1", "--final-pose", "target"],
-      "operatorCue": "对评委说：你可以试试在桌上移动这本书。先从左侧开始，停一下，再慢慢移到右侧。",
-      "successSignal": "Mira 先用 2 号和 1 号把灯头压成朝下看桌面的姿态；书移动时 0 号带身体方向、3 号带灯头视线一起追，书停下时 Mira 也停住，评委再移动时 Mira 再跟。",
-      "fallbackBehavior": "如果下一幕还在桌面上继续，使用 --final-pose tabletop；如果幅度太大，先把 --correction-cycles 设为 0 或缩短右侧停留。"
+      "defaultArgs": [],
+      "operatorCue": "确认 03 右手摸一摸已经结束，或现场姿态可以安全过渡到 2480/2200/2300/2260 后执行。",
+      "successSignal": "Mira 先标记 03 真实结束位 2480/2200/2300/2260，再到 2200/2182/2783/2131；随后 00 号摆到 2900，再回到 2200，其他三个关节保持指定位置。",
+      "fallbackBehavior": "如果已经在 2200/2182/2783/2131，可以加 --skip-transition-pose；如果 00 幅度太大，把 --speed-0 调低或先把 2900 改小。"
     },
     {
       "id": "08_photo_pose",
       "number": "08",
       "title": "拍照",
-      "subtitle": "只动 1/2 号：1 号压低，2 号抬高，0/3 号保持不动",
+      "subtitle": "0/3 号回中，1 号压低，2 号抬高，同步定格",
       "script": "08_photo_pose_demo.py",
       "risk": "motion-medium",
-      "defaultArgs": ["--target-1", "1880", "--target-2", "1650", "--speed", "170", "--hold-seconds", "1.2"],
+      "defaultArgs": ["--target-1", "1880", "--target-2", "1650", "--speed", "340", "--hold-seconds", "1.2"],
       "operatorCue": "需要定格拍照时执行；先确认灯头下方和侧面没有手或物体。",
-      "successSignal": "0 号和 3 号不发动作命令，1 号降到低位、2 号抬到高位，形成稳定拍照姿态并短暂停留。",
+      "successSignal": "0 号和 3 号同步回到 2048 中位，1 号降到低位、2 号抬到高位，形成稳定拍照姿态并短暂停留。",
       "fallbackBehavior": "如果姿态太低，把 --target-1 调大一点；如果 2 号抬得太高，把 --target-2 调大一点。"
     }
   ],
   "quickActions": [
+    {
+      "id": "force_stop_neutral",
+      "title": "强停归位",
+      "risk": "motion-emergency",
+      "emergency": true,
+      "confirm": "将中断当前动作、清空等待队列，并强制回到正常位。确认执行？",
+      "commands": [
+        {
+          "label": "stop known Mira motion scripts",
+          "command": "pkill -f '[s]ervo_.*\\.py' || true\npkill -f '[f]our_servo_control.py' || true\nsleep 0.15"
+        },
+        {
+          "label": "force return neutral pose",
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py pose 2048 2150 2048 2130 --speeds 280 180 180 280"
+        },
+        {
+          "label": "warm neutral light",
+          "command": "python3 /home/sunrise/Desktop/send_uart3_led_cmd.py all 255 220 180 100"
+        },
+        {
+          "label": "read all servo positions",
+          "command": "python3 /home/sunrise/Desktop/four_servo_control.py read-pos-all || true"
+        }
+      ]
+    },
     {
       "id": "led_off",
       "title": "灯光关闭",
@@ -183,6 +208,18 @@
       ]
     },
     {
+      "id": "digua_remote_anime_render",
+      "title": "地瓜拍照渲染",
+      "risk": "read-only",
+      "localScript": "$JAVIS_DIGUA_RENDER_SCRIPT",
+      "requiredEnv": ["ARK_API_KEY"],
+      "timeoutSeconds": 240,
+      "defaultArgs": [
+        "--output-dir",
+        "/Users/Zhuanz/Documents/Github/Javis-Hackathon/tmp/digua-console-output"
+      ]
+    },
+    {
       "id": "head_shake",
       "title": "摇头",
       "risk": "motion-medium",
@@ -203,6 +240,20 @@
           "command": "python3 /home/sunrise/Desktop/servo_2_nod_1900_2200.py --cycles 2 --low 1880 --high 2220 --return-target 2048 --pre-target 2130 --speed 260 --pause 0.05 --max-segment-wait 3.5"
         }
       ]
+    },
+    {
+      "id": "combo_01_07_03_07_08_photo",
+      "title": "串场 01+07→03→07→08",
+      "risk": "motion-high",
+      "script": "01_07_03_07_08_photo_combo_test.py",
+      "defaultArgs": []
+    },
+    {
+      "id": "combo_01_07_03_07_08_04_offer",
+      "title": "串场 01+07→03→07→08→04",
+      "risk": "motion-high",
+      "script": "01_07_03_07_08_04_offer_combo_test.py",
+      "defaultArgs": []
     },
     {
       "id": "normal_pose",

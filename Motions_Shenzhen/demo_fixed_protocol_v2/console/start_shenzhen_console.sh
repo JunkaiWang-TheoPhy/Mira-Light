@@ -12,4 +12,7 @@ if [[ -z "${PYTHON_BIN}" ]]; then
   exit 1
 fi
 
+: "${MIRA_SHENZHEN_BOARD_PASSWORD:=rootroot}"
+export MIRA_SHENZHEN_BOARD_PASSWORD
+
 exec "${PYTHON_BIN}" "${SCRIPT_DIR}/shenzhen_console.py" "$@"

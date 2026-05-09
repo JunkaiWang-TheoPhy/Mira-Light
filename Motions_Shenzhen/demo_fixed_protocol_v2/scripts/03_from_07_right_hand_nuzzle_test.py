@@ -22,49 +22,42 @@ def pose(label: str, positions: tuple[int, int, int, int], speeds: tuple[int, in
     )
 
 
-def warm_spin(label: str, r: int, g: int, b: int, brightness: int) -> RemoteStep:
-    return RemoteStep(label, led(f"spin {r} {g} {b} 0 1 {brightness}"))
-
-
 def build_nuzzle_cycles(cycles: int) -> list[RemoteStep]:
     steps: list[RemoteStep] = []
     for idx in range(max(1, min(cycles, 4))):
         cycle = idx + 1
         steps.extend(
             [
-                warm_spin(f"D warm rotation during nuzzle {cycle} - palm warm", 255, 145, 48, 155),
                 pose(
-                    f"D small nuzzle {cycle} - lift from palm",
-                    (2400, 2255, 2355, 2180),
-                    (110, 95, 130, 110),
+                    f"D wide nuzzle {cycle} - lift from palm",
+                    (2400, 2255, 2265, 2180),
+                    (165, 145, 195, 165),
                 ),
-                RemoteStep(f"D small nuzzle {cycle} - upper beat", "sleep 0.30"),
+                RemoteStep(f"D wide nuzzle {cycle} - upper beat", "sleep 0.20"),
                 pose(
-                    f"D small nuzzle {cycle} - sink under palm",
+                    f"D wide nuzzle {cycle} - sink under palm",
+                    (2400, 2245, 2510, 2180),
+                    (165, 145, 195, 165),
+                ),
+                RemoteStep(f"D wide nuzzle {cycle} - lower beat", "sleep 0.21"),
+                pose(
+                    f"D wide nuzzle {cycle} - rub left",
+                    (2400, 2245, 2400, 1920),
+                    (150, 130, 175, 220),
+                ),
+                RemoteStep(f"D wide nuzzle {cycle} - left beat", "sleep 0.19"),
+                pose(
+                    f"D wide nuzzle {cycle} - rub right",
+                    (2400, 2245, 2400, 2400),
+                    (150, 130, 175, 220),
+                ),
+                RemoteStep(f"D wide nuzzle {cycle} - right beat", "sleep 0.19"),
+                pose(
+                    f"D wide nuzzle {cycle} - return under palm center",
                     (2400, 2245, 2420, 2180),
-                    (110, 95, 130, 110),
+                    (150, 130, 175, 195),
                 ),
-                RemoteStep(f"D small nuzzle {cycle} - lower beat", "sleep 0.32"),
-                warm_spin(f"D warm rotation during nuzzle {cycle} - gentle glow", 255, 166, 76, 145),
-                pose(
-                    f"D small nuzzle {cycle} - rub slightly left",
-                    (2400, 2245, 2400, 2100),
-                    (100, 85, 115, 145),
-                ),
-                RemoteStep(f"D small nuzzle {cycle} - left beat", "sleep 0.28"),
-                pose(
-                    f"D small nuzzle {cycle} - rub slightly right",
-                    (2400, 2245, 2400, 2220),
-                    (100, 85, 115, 145),
-                ),
-                RemoteStep(f"D small nuzzle {cycle} - right beat", "sleep 0.28"),
-                warm_spin(f"D warm rotation during nuzzle {cycle} - soft amber", 255, 132, 48, 135),
-                pose(
-                    f"D small nuzzle {cycle} - return under palm center",
-                    (2400, 2245, 2420, 2180),
-                    (100, 85, 115, 130),
-                ),
-                RemoteStep(f"D small nuzzle {cycle} - center beat", "sleep 0.30"),
+                RemoteStep(f"D wide nuzzle {cycle} - center beat", "sleep 0.20"),
             ]
         )
     return steps
@@ -72,7 +65,7 @@ def build_nuzzle_cycles(cycles: int) -> list[RemoteStep]:
 
 def build_steps(
     *,
-    recognition_seconds: float,
+    stage1_seconds: float,
     nuzzle_cycles: int,
     final_pose: str,
     skip_start_pose: bool,
@@ -85,8 +78,9 @@ def build_steps(
 
     steps.extend(
         [
-            RemoteStep("A warm palm contact breathe", led("breathe 255 128 48 150")),
-            RemoteStep("A right-side recognition hold", f"sleep {max(0.0, recognition_seconds):.2f}"),
+            RemoteStep("A stage 1 warm palm contact breathe", led("breathe 255 128 48 150")),
+            RemoteStep("A stage 1 hold warm breathe", f"sleep {max(0.0, stage1_seconds):.2f}"),
+            RemoteStep("A stage 2 warm rotating palm light starts with motion", led("spin 255 145 48 0 1 155")),
             pose("B slowly approach right palm", (2400, 2260, 2360, 2180), (180, 120, 110, 160)),
             RemoteStep("B soft approach settle", "sleep 0.35"),
             pose("C lower head under palm", (2400, 2240, 2420, 2180), (150, 100, 120, 140)),
@@ -102,35 +96,23 @@ def build_steps(
         ]
     )
 
-    if final_pose == "soft-natural":
-        steps.extend(
-            [
-                pose("F soft return to natural right-side direction", (2360, 2280, 2320, 2130), (140, 90, 100, 130)),
-                RemoteStep("F natural warm light", led("all 255 220 180 100")),
-            ]
-        )
-    else:
-        steps.extend(
-            [
-                pose("F return to scene 07 end pose", START_POSE, (160, 110, 120, 140)),
-                RemoteStep("F keep warm palm breathe", led("breathe 255 128 48 135")),
-            ]
-        )
-
     return steps
 
 
 def main() -> None:
     parser = build_parser("Test scene 03: PDF-faithful right-hand nuzzle starting from scene 07 end pose.")
-    parser.add_argument("--recognition-seconds", type=float, default=1.2)
+    parser.add_argument("--stage1-seconds", type=float, default=3.5)
+    parser.add_argument("--stage2-seconds", type=float, default=0.0, help="Compatibility option; stage 2 rotation now runs during motion.")
+    parser.add_argument("--recognition-seconds", type=float, default=None, help="Legacy alias for --stage1-seconds.")
     parser.add_argument("--nuzzle-cycles", type=int, default=2)
     parser.add_argument("--final-pose", choices=("scene07", "soft-natural"), default="scene07")
     parser.add_argument("--skip-start-pose", action="store_true", help="Do not send the start-pose command if already in 07 end pose.")
     args = parser.parse_args()
+    stage1_seconds = args.stage1_seconds if args.recognition_seconds is None else args.recognition_seconds
     exit_from_plan(
         args=args,
         steps=build_steps(
-            recognition_seconds=args.recognition_seconds,
+            stage1_seconds=stage1_seconds,
             nuzzle_cycles=args.nuzzle_cycles,
             final_pose=args.final_pose,
             skip_start_pose=args.skip_start_pose,

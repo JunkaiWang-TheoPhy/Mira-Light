@@ -15,6 +15,7 @@
 - `02_cautious_intro_demo.py`
 - `03_hand_nuzzle_faithful_demo.py`
 - `03_from_07_right_hand_nuzzle_test.py`
+- `03_from_07_two_stage_light_only_test.py`
 - `04_offer_celebrate_demo.py`
 - `05_farewell_demo.py`
 - `06_sleep_demo.py`
@@ -35,7 +36,9 @@
 - `03_hand_nuzzle_demo.py`
   - 旧版备用脚本；其中 `--variant 04` 可作为 `Videos/04` 的短版接近 fallback
 - `03_from_07_right_hand_nuzzle_test.py`
-  - 测试脚本；承接 `03_from_07_start_light_test.py` 的 07 结束起始位和暖色灯光，直接实现右侧近距离摸一摸。
+  - 测试脚本；承接 `03_from_07_start_light_test.py` 的 07 结束起始位，灯光使用 `03_from_07_two_stage_light_only_test.py` 的两阶段方案；第一阶段暖色呼吸，第二阶段旋转灯和摸一摸动作同时进行，追手后停留不复位。
+- `03_from_07_two_stage_light_only_test.py`
+  - 只测灯光；无舵机动作，用于确认第一阶段暖色呼吸和第二阶段连续旋转灯是否正常。
 - `04_offer_celebrate_demo.py`
   - 对应：`Videos/05`
   - PDF 副本第 5 条
@@ -50,7 +53,7 @@
   - PDF 副本第 4 条：追踪 / 展示感知能力
 - `08_photo_pose_demo.py`
   - 额外控制台动作：拍照
-  - 只动 1/2 号关节，0/3 号不发动作命令
+  - 0/3 号回中，1/2 号进入拍照姿态，四个关节用同一条 pose 命令同步执行
 
 ## 特别说明
 
@@ -79,11 +82,12 @@ python3 01_presence_wake_demo.py --execute
 
 ```bash
 python3 03_hand_nuzzle_faithful_demo.py --rub-cycles 6 --linger-seconds 1.0
-python3 03_from_07_right_hand_nuzzle_test.py --nuzzle-cycles 2 --final-pose scene07
+python3 03_from_07_right_hand_nuzzle_test.py --stage1-seconds 3.5 --nuzzle-cycles 2
+python3 03_from_07_two_stage_light_only_test.py --stage1-seconds 3.5 --stage2-seconds 3.5
 python3 03_hand_nuzzle_demo.py --variant 04 --rub-cycles 3
 python3 04_offer_celebrate_demo.py --party-light spin --hold-seconds 1.2
 python3 05_farewell_demo.py --nod-cycles 2 --linger-seconds 0.8
 python3 06_sleep_demo.py --lights-off
 python3 07_tabletop_follow_demo.py --correction-cycles 2 --final-pose target
-python3 08_photo_pose_demo.py --target-1 1880 --target-2 1650
+python3 08_photo_pose_demo.py --target-0 2048 --target-1 1880 --target-2 1650 --target-3 2048
 ```

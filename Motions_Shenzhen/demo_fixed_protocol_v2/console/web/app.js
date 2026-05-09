@@ -59,6 +59,7 @@ function riskLabel(risk) {
     "read-only": "只读",
     "motion-medium": "中风险机械",
     "motion-high": "高风险机械",
+    "motion-emergency": "高优先级救场",
   };
   return labels[risk] || risk;
 }
@@ -234,8 +235,9 @@ function startServoHold(button) {
 function formatExecutionResult(result, options = {}) {
   const status = result.returnCode === 0 ? "完成" : "失败";
   const duration = Number.isFinite(result.durationSeconds) ? ` · ${result.durationSeconds}s` : "";
+  const runMode = result.runMode === "local" ? " · 本机脚本" : "";
   const target = result.host ? ` · ${result.user || "root"}@${result.host}:${result.port}` : "";
-  const header = `${status} · 返回码 ${result.returnCode}${duration}${target}`;
+  const header = `${status} · 返回码 ${result.returnCode}${duration}${runMode}${target}`;
   const stderr = cleanRemoteOutput(result.stderr);
 
   if (options.actionId === "read_positions") {
@@ -291,12 +293,39 @@ async function previewQuick(action) {
 }
 
 async function runQuick(action) {
+  if (action.emergency) {
+    await runEmergencyStop(action);
+    return;
+  }
   const data = await fetchJson(`/api/quick-action/${encodeURIComponent(action.id)}`, {
     method: "POST",
     body: JSON.stringify(connectionPayload()),
   });
   showOutput(`${action.title} · 已加入队列`, queueItemSummary(data.queued));
   await refreshState();
+}
+
+async function runEmergencyStop(action) {
+  const message = action.confirm || "将中断当前动作、清空等待队列，并强制回到正常位。确认执行？";
+  if (!window.confirm(message)) {
+    showOutput(`${action.title} · 已取消`, "没有发送任何命令。");
+    return;
+  }
+  const data = await fetchJson("/api/emergency-stop", {
+    method: "POST",
+    body: JSON.stringify(connectionPayload()),
+  });
+  const resultText = formatExecutionResult(data.result, { actionId: action.id });
+  const summary = [
+    `本地中断进程: ${data.result.stoppedProcesses ?? 0}`,
+    `清空等待队列: ${data.result.clearedQueueItems ?? 0}`,
+    resultText,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  showOutput(`${action.title} · 执行结果`, summary);
+  await refreshState();
+  await refreshServoPositions({ manual: true });
 }
 
 function queueStatusLabel(status) {
@@ -306,6 +335,7 @@ function queueStatusLabel(status) {
     done: "完成",
     failed: "失败",
     removed: "已删除",
+    interrupted: "已中断",
   };
   return labels[status] || status;
 }
@@ -314,11 +344,15 @@ function queueItemSummary(item) {
   if (!item) {
     return "已加入队列";
   }
+  const target =
+    item.runMode === "local"
+      ? `执行: 本机脚本 -> ${item.user}@${item.host}:${item.port}`
+      : `目标: ${item.user}@${item.host}:${item.port}`;
   return [
     `队列 ID: ${item.queueId}`,
     `项目: ${item.title}`,
     `状态: ${queueStatusLabel(item.status)}`,
-    `目标: ${item.user}@${item.host}:${item.port}`,
+    target,
   ].join("\n");
 }
 
@@ -505,7 +539,7 @@ function renderQuickActions() {
       </div>
       <div class="button-row">
         <button type="button" data-action="preview">预览</button>
-        <button type="button" class="execute" data-action="run">入队</button>
+        <button type="button" class="execute ${action.emergency ? "emergency" : ""}" data-action="run">${action.emergency ? "强停归位" : "入队"}</button>
       </div>
     `;
     card.querySelector('[data-action="preview"]').addEventListener("click", () => wrap(() => previewQuick(action)));

@@ -18,6 +18,12 @@ cd /Users/Zhuanz/Documents/Github/Mira-Light/Motions_Shenzhen/demo_fixed_protoco
 ./start_shenzhen_console.sh
 ```
 
+启动脚本默认会使用板端密码 `rootroot`。如需临时覆盖，可在启动前设置：
+
+```bash
+export MIRA_SHENZHEN_BOARD_PASSWORD='新的密码'
+```
+
 打开：
 
 ```text
@@ -37,7 +43,7 @@ http://127.0.0.1:8777
 root@192.168.0.183 -p 22
 ```
 
-如果没有免密 SSH，有两种方式：
+如果没有免密 SSH，启动脚本已经默认带 `rootroot`。也可以显式设置：
 
 ```bash
 export MIRA_SHENZHEN_BOARD_PASSWORD='rootroot'
@@ -58,5 +64,5 @@ export MIRA_SHENZHEN_BOARD_PASSWORD='rootroot'
 
 - 默认不会执行真机，只会预览。
 - 真机执行时有超时保护。
-- 密码不会写入代码或 registry。
+- 密码不会写入 registry 或前端页面；启动脚本为当前展位板端默认设置 `rootroot`，可用环境变量覆盖。
 - `torque off` 这类可能导致机械臂下坠的动作没有放进救场按钮。

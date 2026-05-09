@@ -30,7 +30,7 @@ def build_nuzzle_cycles(cycles: int) -> list[RemoteStep]:
             [
                 pose(
                     f"small nuzzle {cycle} - lift from palm",
-                    (2400, 2240, 2350, 2180),
+                    (2400, 2240, 2070, 2180),
                     (100, 90, 130, 110),
                 ),
                 RemoteStep(f"small nuzzle {cycle} - upper beat", "sleep 0.18"),
@@ -42,13 +42,13 @@ def build_nuzzle_cycles(cycles: int) -> list[RemoteStep]:
                 RemoteStep(f"small nuzzle {cycle} - lower beat", "sleep 0.18"),
                 pose(
                     f"small nuzzle {cycle} - rub slightly left",
-                    (2400, 2240, 2400, 2090),
+                    (2400, 2240, 2400, 1730),
                     (90, 80, 110, 145),
                 ),
                 RemoteStep(f"small nuzzle {cycle} - left beat", "sleep 0.16"),
                 pose(
                     f"small nuzzle {cycle} - rub slightly right",
-                    (2400, 2240, 2400, 2200),
+                    (2400, 2240, 2400, 2280),
                     (90, 80, 110, 145),
                 ),
                 RemoteStep(f"small nuzzle {cycle} - right beat", "sleep 0.16"),
@@ -66,11 +66,10 @@ def build_nuzzle_cycles(cycles: int) -> list[RemoteStep]:
 def build_steps(
     *,
     nuzzle_cycles: int,
-    final_pose: str,
     skip_start_pose: bool,
 ) -> list[RemoteStep]:
     steps: list[RemoteStep] = [
-        RemoteStep("03 right-hand nuzzle safety note", "echo '[03-right-hand] D/E/F only: nuzzle, short follow, return'"),
+        RemoteStep("03 right-hand nuzzle safety note", "echo '[03-right-hand] D/E only: expanded nuzzle, short follow, no return'"),
     ]
     if not skip_start_pose:
         steps.append(pose("set D initial under-palm pose", (2400, 2240, 2420, 2180), START_SPEEDS_OLD03_2X))
@@ -79,31 +78,18 @@ def build_steps(
         [
             RemoteStep("D warm palm light", led("breathe 255 128 48 145")),
             RemoteStep("D settle before small nuzzle", "sleep 0.20"),
+            RemoteStep("D stage 2 warm palm rotation", led("spin 255 145 48 0 1 155")),
+            RemoteStep("D stage 2 rotation settle", "sleep 0.60"),
         ]
     )
 
     steps.extend(build_nuzzle_cycles(nuzzle_cycles))
     steps.extend(
         [
-            pose("E short follow as hand leaves", (2440, 2220, 2360, 2220), (170, 115, 130, 150)),
+            pose("E short follow as hand leaves", (2480, 2200, 2300, 2260), (170, 115, 130, 150)),
             RemoteStep("E short follow hold", "sleep 0.45"),
         ]
     )
-
-    if final_pose == "soft-natural":
-        steps.extend(
-            [
-                pose("F soft return to natural right-side direction", (2360, 2280, 2300, 2130), (180, 120, 145, 150)),
-                RemoteStep("F natural warm light", led("all 255 220 180 100")),
-            ]
-        )
-    else:
-        steps.extend(
-            [
-                pose("F return to scene 07 end pose", START_POSE, (180, 120, 145, 150)),
-                RemoteStep("F keep warm palm light", led("breathe 255 128 48 135")),
-            ]
-        )
 
     return steps
 
@@ -111,14 +97,12 @@ def build_steps(
 def main() -> None:
     parser = build_parser("Test scene 03: right-side hand nuzzle D/E/F only.")
     parser.add_argument("--nuzzle-cycles", type=int, default=2)
-    parser.add_argument("--final-pose", choices=("scene07", "soft-natural"), default="scene07")
     parser.add_argument("--skip-start-pose", action="store_true", help="Do not send the D initial under-palm pose.")
     args = parser.parse_args()
     exit_from_plan(
         args=args,
         steps=build_steps(
             nuzzle_cycles=args.nuzzle_cycles,
-            final_pose=args.final_pose,
             skip_start_pose=args.skip_start_pose,
         ),
     )
