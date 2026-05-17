@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import copy
 import errno
@@ -19,6 +20,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock, Thread
 from urllib.parse import unquote, urlparse
@@ -30,6 +32,7 @@ DEMO_ROOT = CONSOLE_DIR.parent
 SCRIPTS_DIR = DEMO_ROOT / "scripts"
 WEB_ROOT = CONSOLE_DIR / "web"
 REGISTRY_PATH = CONSOLE_DIR / "scene_registry.json"
+LOCAL_CAPTURE_DIR = DEMO_ROOT.parent.parent / "tmp" / "mira-light-board-camera"
 JAVIS_DIGUA_RENDER_SCRIPT = (
     Path.home()
     / "Documents"
@@ -52,6 +55,9 @@ SSH_CONTROL_DIR = Path(os.environ.get("MIRA_SHENZHEN_SSH_CONTROL_DIR", "/tmp/mir
 SSH_CONTROL_PERSIST_SECONDS = int(os.environ.get("MIRA_SHENZHEN_SSH_CONTROL_PERSIST_SECONDS", "600"))
 SSH_CONNECT_RETRIES = int(os.environ.get("MIRA_SHENZHEN_SSH_CONNECT_RETRIES", "2"))
 SSH_RETRY_DELAY_SECONDS = float(os.environ.get("MIRA_SHENZHEN_SSH_RETRY_DELAY_SECONDS", "0.15"))
+KEYCHAIN_SECRET_SERVICES = {
+    "ARK_API_KEY": "mira-light-ark-api-key",
+}
 SSH_LOCK = Lock()
 PROCESS_LOCK = Lock()
 ACTIVE_PROCESSES: set[subprocess.Popen] = set()
@@ -112,6 +118,27 @@ def compact_remote_warning(result: dict) -> str | None:
     if not first_line:
         return f"Remote command exited {return_code}"
     return first_line[:180]
+
+
+def save_embedded_photo(stdout: str) -> tuple[str, str | None]:
+    match = re.search(r"PHOTO_B64_BEGIN\s*(.*?)\s*PHOTO_B64_END", stdout, re.DOTALL)
+    if not match:
+        return stdout, None
+
+    encoded = "".join(match.group(1).split())
+    image_bytes = base64.b64decode(encoded, validate=True)
+    LOCAL_CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
+    target = LOCAL_CAPTURE_DIR / f"wake-photo-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}.jpg"
+    target.write_bytes(image_bytes)
+
+    cleaned = re.sub(
+        r"PHOTO_B64_BEGIN\s*.*?\s*PHOTO_B64_END",
+        f"PHOTO_SAVED_LOCAL={target}",
+        stdout,
+        count=1,
+        flags=re.DOTALL,
+    )
+    return cleaned, str(target)
 
 
 def validate_servo_positions(raw_positions: object) -> dict[str, int]:
@@ -268,6 +295,32 @@ def command_preview(command: list[str], env_keys: list[str] | None = None) -> st
     if env_keys:
         prefix = " ".join(f"{key}=<from environment or console>" for key in env_keys) + " "
     return prefix + " ".join(shlex.quote(str(part)) for part in command)
+
+
+def read_keychain_secret(service: str) -> str:
+    command = ["security", "find-generic-password", "-s", service, "-w"]
+    account = os.environ.get("USER") or os.environ.get("LOGNAME")
+    if account:
+        command[2:2] = ["-a", account]
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if result.returncode != 0:
+        return ""
+    return result.stdout.strip()
+
+
+def hydrate_env_from_keychain(env: dict[str, str], keys: list[str]) -> None:
+    for key in keys:
+        if env.get(key):
+            continue
+        service = KEYCHAIN_SECRET_SERVICES.get(key)
+        if not service:
+            continue
+        value = read_keychain_secret(service)
+        if value:
+            env[key] = value
 
 
 def run_local_action_command(
@@ -1058,6 +1111,9 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
         return target
 
     def _build_scene_script(self, scene: dict, body: dict) -> str:
+        if "localScript" in scene:
+            command, env_keys, _env, _redact_values = self._build_local_action_command(scene, body)
+            return command_preview(command, env_keys=env_keys)
         script_path = self._registry_script_path(scene)
         command = [
             os.environ.get("PYTHON", "python3"),
@@ -1100,6 +1156,8 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
             target = JAVIS_DIGUA_RENDER_SCRIPT
         else:
             target = Path(script).expanduser()
+            if not target.is_absolute():
+                target = DEMO_ROOT / target
         target = target.resolve()
         if not target.is_file():
             raise FileNotFoundError(f"Local action script not found: {target}")
@@ -1128,6 +1186,7 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
         for key in action.get("requiredEnv", []):
             if key not in env_keys:
                 env_keys.append(key)
+        hydrate_env_from_keychain(env, env_keys)
         return command, env_keys, env, [password]
 
     def _connection_from_body(self, body: dict) -> tuple[str, int, str, str, float]:
@@ -1152,14 +1211,14 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
             timeout_seconds=timeout,
         )
 
-    def _enqueue_local_action(self, *, action: dict, body: dict) -> dict:
+    def _enqueue_local_item(self, *, kind: str, item: dict, body: dict) -> dict:
         host, port, user, password, timeout = self._connection_from_body(body)
-        command, env_keys, env, redact_values = self._build_local_action_command(action, body)
-        timeout = float(action.get("timeoutSeconds") or timeout)
+        command, env_keys, env, redact_values = self._build_local_action_command(item, body)
+        timeout = float(item.get("timeoutSeconds") or timeout)
         return self.server.enqueue_job(
-            kind="quick-action",
-            item_id=action["id"],
-            title=action["title"],
+            kind=kind,
+            item_id=item["id"],
+            title=item["title"],
             script=command_preview(command, env_keys=env_keys),
             host=host,
             port=port,
@@ -1171,6 +1230,9 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
             local_env=env,
             redact_values=redact_values,
         )
+
+    def _enqueue_local_action(self, *, action: dict, body: dict) -> dict:
+        return self._enqueue_local_item(kind="quick-action", item=action, body=body)
 
     def _record_result(self, *, kind: str, item_id: str, title: str, result: dict) -> None:
         entry = {
@@ -1333,7 +1395,10 @@ class ShenzhenConsoleHandler(BaseHTTPRequestHandler):
                     self._send_json(404, {"ok": False, "error": "Unknown scene"})
                     return
                 script = self._build_scene_script(scene, body)
-                queued = self._enqueue_script(kind="scene", item_id=scene_id, title=scene["title"], script=script, body=body)
+                if "localScript" in scene:
+                    queued = self._enqueue_local_item(kind="scene", item=scene, body=body)
+                else:
+                    queued = self._enqueue_script(kind="scene", item_id=scene_id, title=scene["title"], script=script, body=body)
                 self._send_json(202, {"ok": True, "queued": queued})
                 return
 

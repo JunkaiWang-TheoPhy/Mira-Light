@@ -102,6 +102,20 @@
       "operatorCue": "需要定格拍照时执行；先确认灯头下方和侧面没有手或物体。",
       "successSignal": "0 号和 3 号同步回到 2048 中位，1 号降到低位、2 号抬到高位，形成稳定拍照姿态并短暂停留。",
       "fallbackBehavior": "如果姿态太低，把 --target-1 调大一点；如果 2 号抬得太高，把 --target-2 调大一点。"
+    },
+    {
+      "id": "09_wake_photo_sleep",
+      "number": "09",
+      "title": "醒来拍照再睡",
+      "subtitle": "从睡姿醒来、伸懒腰、摆拍照姿态，真实拍照后立刻后台二次元渲染打印，同时回去睡觉",
+      "localScript": "scripts/09_wake_photo_sleep_demo.py",
+      "risk": "motion-high",
+      "requiredEnv": ["ARK_API_KEY"],
+      "timeoutSeconds": 300,
+      "defaultArgs": ["--hold-high-seconds", "1.2", "--rest-seconds", "0.3", "--printer-queue", "Mi_Wireless_Photo_Printer_9135_IP", "--print-media", "na_index-4x6_4x6in"],
+      "operatorCue": "需要完整拍照+二次元打印串场时执行；先确认灯头下方和侧面没有手或物体，摄像头无遮挡，9135 打印机在线。",
+      "successSignal": "Mira 先关灯进入睡姿，微光醒来并伸懒腰，摆到 2048/1880/1650/2048 拍照姿态后通过 /dev/video0 真实拍照；照片一保存到本机就立刻后台二次元渲染并提交 9135 打印机，同时主流程更连贯地回到睡觉姿态，最后关灯。",
+      "fallbackBehavior": "如果只想拍照渲染不打印，加 --no-print；如果打印机队列变化，用 --printer-queue 覆盖；如果回睡还是显得急或顿，用 --rest-seconds 微调最终停留。"
     }
   ],
   "quickActions": [

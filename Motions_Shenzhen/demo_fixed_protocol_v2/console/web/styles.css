@@ -346,8 +346,8 @@ label {
 }
 
 .scene-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(220px, 1fr));
+  display: flex;
+  align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 8px;
@@ -363,6 +363,7 @@ label {
 .scene-card {
   display: flex;
   flex-direction: column;
+  flex: 0 0 220px;
   min-height: 560px;
   padding: 18px;
 }

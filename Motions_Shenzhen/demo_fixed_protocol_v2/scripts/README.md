@@ -21,6 +21,7 @@
 - `06_sleep_demo.py`
 - `07_tabletop_follow_demo.py`
 - `08_photo_pose_demo.py`
+- `09_wake_photo_sleep_demo.py`
 
 ## 对应关系
 
@@ -54,6 +55,10 @@
 - `08_photo_pose_demo.py`
   - 额外控制台动作：拍照
   - 0/3 号回中，1/2 号进入拍照姿态，四个关节用同一条 pose 命令同步执行
+- `09_wake_photo_sleep_demo.py`
+  - 额外控制台动作：醒来拍照再睡
+  - 从睡姿醒来、伸懒腰、摆到 `2048/1880/1650/2048` 拍照姿态，通过板端 `/dev/video0` 抓取真实 JPEG；照片保存到本机后立刻后台二次元渲染并提交固定 IP 队列 `Mi_Wireless_Photo_Printer_9135_IP` 打印，打印纸张参数为 `media=na_index-4x6_4x6in`，同时主流程用较短过渡停顿回到睡觉姿态，最后自动关灯
+  - `ARK_API_KEY` 可以来自当前环境，也可以来自 macOS Keychain 的 `mira-light-ark-api-key` 项；LaunchAgent 启动控制台时会使用 Keychain fallback，避免重启后丢失渲染密钥
 
 ## 特别说明
 
@@ -90,4 +95,5 @@ python3 05_farewell_demo.py --nod-cycles 2 --linger-seconds 0.8
 python3 06_sleep_demo.py --lights-off
 python3 07_tabletop_follow_demo.py --correction-cycles 2 --final-pose target
 python3 08_photo_pose_demo.py --target-0 2048 --target-1 1880 --target-2 1650 --target-3 2048
+ARK_API_KEY=... DIGUA_SSH_PASSWORD=... python3 09_wake_photo_sleep_demo.py --hold-high-seconds 1.2 --rest-seconds 0.3 --printer-queue Mi_Wireless_Photo_Printer_9135_IP --print-media na_index-4x6_4x6in
 ```
