@@ -5,3 +5,7 @@ __pycache__/
 .DS_Store
 config/mira_light_profile.local.json
 tmp/
+.remote_exports/
+exports/*-pack-*/
+exports/*.tar.gz
+home_sunrise_Desktop_snapshots_*.tar.gz
