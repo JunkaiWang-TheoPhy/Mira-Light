@@ -1,0 +1,260 @@
+:root {
+  --paper: #f8f3e8;
+  --paper-strong: #fffaf0;
+  --ink: #1d1b18;
+  --muted: #6b645a;
+  --accent: #ff8f3d;
+  --accent-deep: #cf4d1a;
+  --gold: #f2c14b;
+  --shadow: rgba(37, 24, 9, 0.18);
+  --line: rgba(63, 44, 16, 0.12);
+  --bg-a: #fff7df;
+  --bg-b: #f1d9b0;
+  --bg-c: #ffd1a0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(255, 214, 153, 0.5), transparent 30%),
+    linear-gradient(140deg, var(--bg-a), var(--bg-b) 45%, var(--bg-c));
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+.ambient-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.75fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.mail-window,
+.director-card {
+  background: rgba(255, 250, 240, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px var(--shadow);
+}
+
+.mail-window {
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.window-bar {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid var(--line);
+}
+
+.window-bar span {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #d7c7ad;
+}
+
+.window-bar span:first-child {
+  background: #ff9c61;
+}
+
+.window-bar span:nth-child(2) {
+  background: #ffcd57;
+}
+
+.window-bar span:nth-child(3) {
+  background: #88ce73;
+}
+
+.mail-header,
+.mail-meta,
+.mail-body,
+.director-card {
+  padding: 24px;
+}
+
+.mail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.mail-header h1,
+.director-card h2 {
+  margin: 0;
+  line-height: 1;
+}
+
+.mail-header h1 {
+  font-size: clamp(42px, 7vw, 78px);
+}
+
+.subhead {
+  margin: 12px 0 0;
+  max-width: 32rem;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.status-chip {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 143, 61, 0.16), rgba(242, 193, 75, 0.28));
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+.mail-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.mail-meta span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.mail-body p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.highlights {
+  margin: 20px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+}
+
+.highlights li + li {
+  margin-top: 8px;
+}
+
+.cta-row {
+  margin-top: 24px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.primary-button {
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(207, 77, 26, 0.26);
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+}
+
+.secondary-link {
+  color: var(--accent-deep);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.director-card {
+  border-radius: 24px;
+}
+
+.director-card h2 {
+  font-size: 26px;
+}
+
+.director-card ol {
+  margin: 18px 0 0;
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+.small-note {
+  margin-top: 18px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  top: -10vh;
+  width: 12px;
+  height: 24px;
+  border-radius: 999px;
+  opacity: 0;
+  animation: confetti-fall 2200ms ease-in forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--travel-x), 115vh, 0) rotate(var(--spin));
+    opacity: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .ambient-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .mail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .mail-header {
+    flex-direction: column;
+  }
+}
